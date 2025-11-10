@@ -10,7 +10,7 @@ export class EmailService{
     constructor(){
       console.log("emailService")
       console.log("EMAIL_USER:", process.env.EMAIL_USER);
-console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "Loaded ✅" : "Not Loaded ❌");
+console.log("EMAIL_PASS:", process.env.EMAIL_PASS);
 
 this.transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -22,6 +22,8 @@ this.transporter = nodemailer.createTransport({
   },
 });
     }
+
+    
 
 async sendOtpEmail(to: string, otp: string) {
   const htmlContent = `
