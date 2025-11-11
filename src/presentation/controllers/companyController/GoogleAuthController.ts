@@ -11,14 +11,10 @@
 
 //       // 1️⃣ Verify Google token and extract user info
 //       const googleUser = await verifyGoogleToken(token);
-//       const googleSignUpData = {
-//   ...googleUser,
-//   role: this.role, // ✅ add required field
-//   status: "pending" as const,
-// };
+
 //       // 2️⃣ Run use case
 //       const useCase = new GoogleAuthUseCase(new UserRepository());
-//       const { user, accessToken, refreshToken } = await useCase.execute(googleSignUpData);
+//       const { user, accessToken, refreshToken } = await useCase.execute(googleUser);
 
 //       // 3️⃣ Set cookies
 //       res.cookie("accessToken", accessToken, {

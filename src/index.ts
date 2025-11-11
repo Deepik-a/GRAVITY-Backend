@@ -8,6 +8,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import path from "path";
 import userRoutes from "./presentation/routes/userRoutes.js";
+import companyRoutes from "./presentation/routes/companyRoutes.js";
 import { connectRedis } from "./infrastructure/config/redis.js";
 import {errorHandler} from './presentation/middlewares/errorMiddleware.js'
 import cookieParser from "cookie-parser";
@@ -34,7 +35,8 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use("/api/users", userRoutes);
+app.use("/users", userRoutes);
+app.use("/company", companyRoutes);
 
 app.use(errorHandler)
 

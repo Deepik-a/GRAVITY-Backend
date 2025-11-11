@@ -1,48 +1,57 @@
-import type { IUserRepository } from "../../../domain/repositories/IUserRepository.js";
-import { UserResponseDTO } from "../../dtos/UserSignUpDTO.js";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import type { UserWithPassword } from "../../../domain/repositories/IUserRepository.js";
+import type { IJwtService } from "../../../domain/services/IJWTService.js";
+import { UserResponseDTO } from "../../dtos/UserSignUpDTO.js";
 
 export class LoginUserUseCase {
-  constructor(private readonly userRepository: IUserRepository) {}
+  constructor(
+    private readonly repository: { findByEmail(email: string): Promise<any> },
+    private readonly jwtService: IJwtService,
+    private readonly role: "user" | "company" | "admin"
+  ) {}
 
   async execute({ email, password }: { email: string; password: string }) {
-    // Step 1️⃣ — Validate input
     if (!email || !password) {
       throw new Error("Email and password are required");
     }
 
-    // Step 2️⃣ — Find user by email
-    const user: UserWithPassword | null = await this.userRepository.findByEmail(email);
-    if (!user) throw new Error("User not found");
+    console.log(`[LoginUserUseCase] Role: ${this.role}, Email: ${email}`);
 
-    // Step 3️⃣ — Compare passwords
+    const user = await this.repository.findByEmail(email);
+    if (!user) {
+      console.error(`[LoginUserUseCase] ${this.role} not found for email: ${email}`);
+      throw new Error(`${this.role} not found`);
+    }
+
+    if (user.role && user.role !== this.role) {
+      throw new Error("Invalid role for this login");
+    }
+
+    if (this.role === "company" && user.status !== "verified") {
+      throw new Error("Company not verified yet. Please wait for approval.");
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) throw new Error("Invalid password");
 
-    // Step 4️⃣ — Generate Access & Refresh Tokens
-    const accessToken = jwt.sign(
-      { userId: user._id.toString(), role: "user" },
-      process.env.JWT_ACCESS_SECRET || "access_secret",
-      { expiresIn: "15m" }
-    );
+    const accessToken = this.jwtService.signAccessToken({
+      userId: user.id.toString(),
+      role: this.role,
+    });
 
-    const refreshToken = jwt.sign(
-      { userId: user._id.toString(), role: "user" },
-      process.env.JWT_REFRESH_SECRET || "refresh_secret",
-      { expiresIn: "7d" }
-    );
+    const refreshToken = this.jwtService.signRefreshToken({
+      userId: user.id.toString(),
+      role: this.role,
+    });
 
-    // Step 5️⃣ — Return safe DTO for client (exclude password)
     const safeUser = new UserResponseDTO(
-      user._id.toObjectId(),  // convert UniqueEntityID → ObjectId
+      user.id.toString(),
       user.name,
       user.email,
       user.phone
     );
 
     return {
+      message: "Login successful",
       user: safeUser,
       accessToken,
       refreshToken,

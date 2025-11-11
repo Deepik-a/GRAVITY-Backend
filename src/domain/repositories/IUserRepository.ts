@@ -6,16 +6,21 @@ import { UniqueEntityID } from "../value-objects/UniqueEntityID.js"
 
 // Internal type including password for login validation
 export interface UserWithPassword {
-    _id: UniqueEntityID;
-    name: string;
-    email: string;
-    phone: string;
-    password: string;
+  _id: UniqueEntityID;
+  name: string;
+  email: string;
+  phone: string;
+  role?: "user" | "company" | "admin";
+  status?: "pending" | "verified" | "approved";
+  profileImage?: string;
+  location?: string;
+  bio?: string;
+  password:string;
 }
 
 export interface IUserRepository {
     create(user: UserSignUp): Promise<UserSignUp>; // safe for client
-    findByEmail(email: string): Promise<UserWithPassword | null>; // includes password for login
+    findByEmail(email: string): Promise<UserSignUp | null>; // includes password for login
     updatePassword(email:string,hashedPassword:string):Promise<void>
     createWithGoogle(user:GoogleSignUp):Promise<GoogleSignUp>
     findGoogleUserByEmail(email: string): Promise<GoogleSignUp | null>;

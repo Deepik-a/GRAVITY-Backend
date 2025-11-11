@@ -46,6 +46,7 @@ export class OtpService {
 
       await redisClient.del(`otp:${purpose}:${email}`);
       console.log("OTP verified and deleted successfully.");
+;
 
       return { success: true, message: "OTP verified successfully" };
     } catch (error: any) {

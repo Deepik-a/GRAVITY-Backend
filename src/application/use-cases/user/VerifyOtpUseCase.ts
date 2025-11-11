@@ -22,36 +22,44 @@ export class VerifyOtpUseCase {
 
         const parsed = JSON.parse(tempData);
 
-        // Step 2️⃣: Create user from Redis data
-        const user = new UserSignUp(
-          parsed.name,
-          parsed.email,
-          parsed.phone || "",
-          parsed.password
-        );
+        // ✅ Log parsed object to ensure correct mapping
+        console.log("Parsed temp user from Redis:", parsed);
 
+        // Correctly map fields
+        const name = parsed.name;
+        const userEmail = parsed.email; // actual email
+        const phone = parsed.phone || "";
+        const password = parsed.password;
+        const role = parsed.role;
+        const status = parsed.status;
+
+        // Step 2️⃣: Create user from Redis data
+        const user = new UserSignUp(name, userEmail, phone, password, role, status);
+
+        // Step 3️⃣: Save in MongoDB via repository
         const createdUser = await this.userRepository.create(user);
+
+        // ✅ Delete temp data from Redis
         await redisClient.del(`tempUser:${email}`);
 
-        // ✅ Ensure createdUser.id exists
+        // Step 4️⃣: Generate JWT tokens
         const userId = (createdUser as any).id?.toString?.() || "";
 
-        // Step 3️⃣: Generate JWT tokens
         const accessToken = jwt.sign(
-          { userId, role: "user" },
+          { userId, role: role || "user" },
           process.env.JWT_ACCESS_SECRET || "access_secret",
           { expiresIn: "15m" }
         );
 
         const refreshToken = jwt.sign(
-          { userId, role: "user" },
+          { userId, role: role || "user" },
           process.env.JWT_REFRESH_SECRET || "refresh_secret",
           { expiresIn: "7d" }
         );
 
-        // Step 4️⃣: Return tokens + user to controller
+        // Step 5️⃣: Return tokens + user to controller
         return {
-          message: "User registered successfully",
+          message: `${role || "User"} registered successfully`,
           user: createdUser,
           accessToken,
           refreshToken,

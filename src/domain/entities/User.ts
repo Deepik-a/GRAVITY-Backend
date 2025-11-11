@@ -1,18 +1,23 @@
 import { UniqueEntityID } from "../value-objects/UniqueEntityID.js";
 
-export interface UserSignUpDetails{
-    name:string,
-    email:string,
-    phone:string,
-    password:string;
+export interface UserSignUpDetails {
+  id?: UniqueEntityID;
+  name: string;
+  email: string;
+  password: string;
+  role: "user" | "company" | "admin";
+  phone?: string;
+  status?: "pending" | "verified";
 }
+
 
 export interface GoogleSignUpDetails {
   name: string;
   email: string;
   googleId: string;
+  role: "user" | "company" | "admin";
+  status?: "pending" | "verified";
 }
-
 
 //a user is authenticated with basic details,profile is the user's extended information
 export interface UserProfileDetails {
@@ -28,23 +33,28 @@ export interface UserProfileDetails {
 
 
 //Entity for Local Authentication
-export class UserSignUp implements UserSignUpDetails{
-constructor(
-    public name:string,
-    public email:string,
-    public phone:string,
-    public password: string,// optional for Google users
-)
-{}
+export class UserSignUp implements UserSignUpDetails {
+  constructor(
+    public id: UniqueEntityID,
+    public name: string,
+    public email: string,
+    public password: string,
+    public role: "user" | "company" | "admin",
+    public phone?: string,        // optional → move down
+    public status?: "pending" | "verified" // optional → move down
+  ) {}
 }
 
-
-//Entity for google Authentication 
+//
+// 3️⃣ Entity for Google Authentication
+//
 export class GoogleSignUp implements GoogleSignUpDetails {
   constructor(
     public name: string,
     public email: string,
     public googleId: string,
+    public role: "user" | "company" | "admin",
+    public status?: "pending" | "verified"
   ) {}
 }
 

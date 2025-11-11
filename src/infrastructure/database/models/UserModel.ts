@@ -8,8 +8,12 @@ const userSchema = new mongoose.Schema(
     password: { type: String },
     googleId: { type: String },
     provider: { type: String, enum: ["local", "google"], default: "local" },
+    role: { type: String, default: "user" },
+    status: {
+      type: String,
+    },
 
-    // 👇 added profile-related fields
+    // 👇 Optional profile details
     profileImage: { type: String, default: "" },
     location: { type: String, default: "" },
     bio: { type: String, default: "" },
