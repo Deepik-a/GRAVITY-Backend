@@ -1,14 +1,15 @@
-import { IUserRepository } from "../../../domain/repositories/IUserRepository.js";
+import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
 import { ProfileResponseDTO } from "../../dtos/ProfileResponseDTO.js";
+import { IGetUserProfileUseCase } from "../../interfaces/use-cases/user/IGetUserProfileUseCase.js";
 import { ProfileMapper } from "../../mappers/ProfileMapper.js";
 
-export class GetUserProfileUseCase {
-  constructor(private userRepository: IUserRepository) {}
+export class GetUserProfileUseCase implements IGetUserProfileUseCase {
+  constructor(private _userRepository: IAuthRepository) {}
 
   async execute(userId: string): Promise<ProfileResponseDTO> {
     if (!userId) throw new Error("User ID is required");
 
-    const profile = await this.userRepository.findById(userId);
+    const profile = await this._userRepository.findById(userId);
     if (!profile) throw new Error("User profile not found");
 
     return ProfileMapper.toResponseDTO(profile);

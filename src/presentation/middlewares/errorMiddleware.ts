@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { StatusCode } from "../../domain/enums/StatusCode";
 
  export function errorHandler(
   err: unknown,
@@ -9,9 +10,9 @@ import { Request, Response, NextFunction } from "express";
   console.error("Error caught by middleware:", err);
   if (err instanceof Error) {
     // Known application error
-    res.status(400).json({ error: err.message });
+    res.status(StatusCode.BAD_REQUEST).json({ error: err.message });
   } else {
     // Unexpected or unknown error
-    res.status(500).json({ error: "Unexpected error occurred" });
+    res.status(StatusCode.INTERNAL_ERROR).json({ error: "Unexpected error occurred" });
   }
 }

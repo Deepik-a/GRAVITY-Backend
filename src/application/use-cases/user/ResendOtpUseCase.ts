@@ -1,30 +1,42 @@
 import redisClient from "../../../infrastructure/config/redis.js";
-import { OtpService } from "../../providers/OTPService.js";
+import { IOtpService } from "../../../domain/services/IOTPService.js";
 import { OtpPurpose } from "../../../domain/enums/OtpPurpose.js";
+import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
+import { Messages } from "../../../shared/constants/message.js";
 
 export class ResendOtpUseCase {
-  private otpService: OtpService;
-
-  constructor() {
-    this.otpService = new OtpService();
-  }
+  constructor(
+    private _otpService: IOtpService,
+    private _userRepository: IAuthRepository,
+    private _companyRepository: IAuthRepository
+  ) {}
 
   async execute(email: string): Promise<{ message: string }> {
-    console.log("STEP 1: Inside ResendOtpUseCase, email:", email);
+    let purpose: OtpPurpose;
 
-    // Step 2: Check if there is a temp user entry in Redis
+    // Check for pending signup first
     const tempUserKey = `tempUser:${email}`;
     const existingUser = await redisClient.get(tempUserKey);
 
-    if (!existingUser) {
-      throw new Error("No pending signup found for this email. Please register again.");
+    if (existingUser) {
+      purpose = OtpPurpose.SIGNUP;
+    } else {
+      // Check if this email exists in user or company DB
+      const userExists = await this._userRepository.findByEmail(email);
+      const companyExists = await this._companyRepository.findByEmail(email);
+
+      if (userExists || companyExists) {
+        purpose = OtpPurpose.FORGOT_PASSWORD;
+      } else {
+        throw new Error(
+          "No pending signup or registered account found for this email."
+        );
+      }
     }
 
-    // Step 3: Generate and send new OTP
-    console.log("STEP 3: Generating new OTP for:", email);
-    await this.otpService.generateOtp(email, OtpPurpose.SIGNUP);
+    // Generate OTP with correct purpose
+    await this._otpService.generateOtp(email, purpose);
 
-    console.log("STEP 4: OTP resent successfully");
-    return { message: "OTP resent successfully. Please check your email." };
+    return { message: Messages.AUTH.OTP_RESEND_SUCCESS };
   }
 }

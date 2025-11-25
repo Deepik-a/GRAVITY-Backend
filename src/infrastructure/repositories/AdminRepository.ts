@@ -1,16 +1,25 @@
-import { IAdminRepository } from "../../domain/repositories/IAdminRepository.js";
-import { Admin } from "../../domain/entities/Admin.js";
-import AdminModel  from "../../infrastructure/database/models/AdminModel.js"; // adjust path as needed
+import { IAdminRepository } from "../../domain/repositories/IAdminRepository";
+import { IAdmin } from "../../domain/entities/Admin";
+import AdminModel from "../database/models/AdminModel";
 
-export class AdminRepository implements IAdminRepository{
+export class AdminRepository implements IAdminRepository {
 
+  // 🔵 DB-LAYER METHOD (for admin-specific operations)
+  async findAdminByEmail(email: string): Promise<IAdmin | null> {
+    const admin = await AdminModel.findOne({ email });
+    console.log(admin,"admin from adminrepo")
+    if (!admin) return null;
 
-  async create(admin: Admin): Promise<Admin> {
-    const created = await AdminModel.create(admin);
-  return new Admin(created.name,created.email, created.password);
+    return {
+      id: admin._id.toString(),
+      email: admin.email,
+      password: admin.password,
+      role: admin.role,
+      refreshToken: admin.refreshToken,
+    };
   }
 
-      async findByEmail(email: string): Promise<Admin | null> {
-   return await AdminModel.findOne({ email });
+  async saveRefreshToken(adminId: string, token: string): Promise<void> {
+    await AdminModel.findByIdAndUpdate(adminId, { refreshToken: token });
   }
 }

@@ -1,28 +1,28 @@
 import { Types } from "mongoose";
 import { BaseRepository } from "./BaseRepository.js";
 import UserModel from "../database/models/UserModel.js";
-import { IUserRepository, UserWithPassword } from "../../domain/repositories/IUserRepository.js";
+import { IAuthRepository } from "../../domain/repositories/IAuthRepository.js";
 import { UserSignUp, GoogleSignUp, UserProfile } from "../../domain/entities/User.js";
 import { UniqueEntityID } from "../../domain/value-objects/UniqueEntityID.js";
 
 export class UserRepository
   extends BaseRepository<typeof UserModel.prototype>
-  implements IUserRepository
+  implements IAuthRepository
 {
   constructor() {
     super(UserModel);
   }
 
-  // 🟩 Create local user
+ 
 // 🟩 Create local user
-async createUser(user: UserSignUp): Promise<UserSignUp> {
-  const created = await this.create({
+async create(user: UserSignUp): Promise<UserSignUp> {
+  const created = await this.model.create({  //passing database fields
     name: user.name,
     email: user.email,
-    phone: user.phone,
-    password: user.password,
+     password: user.password,
+        role: user.role,
     provider: "local",
-    role: user.role,
+    phone: user.phone,
     status: user.status ?? "pending",
   });
 
@@ -30,9 +30,10 @@ async createUser(user: UserSignUp): Promise<UserSignUp> {
     new UniqueEntityID(created._id), // ✅ MongoDB ObjectId → UniqueEntityID
     created.name,
     created.email,
-    created.phone,
     created.password,
-    created.role as "user" | "company" | "admin",
+    created.role as "user" | "company" ,
+    created.provider,
+        created.phone,
     created.status
   );
 }
@@ -48,9 +49,10 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     new UniqueEntityID(found._id), // ✅ consistent naming
     found.name,
     found.email,
-    found.phone ?? "",
     found.password,
-    found.role as "user" | "company" | "admin",
+    found.role as "user" | "company" ,
+    found.provider,
+   found.phone ?? "",
     found.status
   );
 }
@@ -68,15 +70,15 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
 
   // 🟨 Google Users
   async createWithGoogle(user: GoogleSignUp): Promise<GoogleSignUp> {
-    const created = await this.create({
+    const created = await this.model.create({
       name: user.name,
       email: user.email,
       googleId: user.googleId,
+            role: user.role,
       provider: "google",
-      role: user.role,
       status: user.status,
     });
-    return new GoogleSignUp(created.name, created.email, created.googleId!, user.role, user.status);
+    return new GoogleSignUp(created.name, created.email, created.googleId!, user.role, user.provider,user.status);
   }
 
   async findByGoogleId(googleId: string): Promise<GoogleSignUp | null> {
@@ -110,7 +112,7 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     );
   }
 
-  // 🟦 Update profile
+  // 🟦 Update profilea
   async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
     const updated = Types.ObjectId.isValid(userId)
       ? await this.model.findByIdAndUpdate(userId, { $set: updates }, { new: true }).exec()
@@ -126,6 +128,23 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       updated.phone ?? undefined,
       updated.location ?? undefined,
       updated.bio ?? undefined
+    );
+  }
+
+  async getAllUsers(): Promise<UserProfile[]> {
+    const users = await UserModel.find().exec();
+
+    return users.map(
+      (user) =>
+        new UserProfile(
+          new UniqueEntityID(user._id.toString()),
+          user.name,
+          user.email,
+          user.profileImage ?? undefined,
+          user.phone ?? undefined,
+          user.location ?? undefined,
+          user.bio ?? undefined
+        )
     );
   }
 }

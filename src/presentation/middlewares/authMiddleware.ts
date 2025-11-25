@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { IJwtService } from "../../domain/services/IJWTService.js";
 import { IGetRepositoryDataUseCase } from "../../application/interfaces/use-cases/IGetRepositoryDataUseCase.js";
-import { HttpStatusCode } from "../../shared/constants/statusCodes.js";
 import { AppError } from "../../shared/error/AppError.js";
 import { cookieData } from "../../shared/constants/cookieData.js";
 import { logger } from "../../infrastructure/logger/logger.js";
 import { UniqueEntityID } from "../../domain/value-objects/UniqueEntityID.js";
+import { StatusCode } from "../../domain/enums/StatusCode.js";
+import { Messages } from "../../shared/constants/message.js";
 
 interface IRepoData {
   status?: string;
@@ -15,8 +16,8 @@ interface IRepoData {
 }
 export class Authenticate<Entity> {
   constructor(
-    private jwtService: IJwtService,
-    private getRepositoryDataUseCase: IGetRepositoryDataUseCase<Entity>
+    private _jwtService: IJwtService,
+    private _getRepositoryDataUseCase: IGetRepositoryDataUseCase<Entity>
   ) {}
 
   verify: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
@@ -29,31 +30,31 @@ export class Authenticate<Entity> {
       if (!accessToken && !refreshToken) {
         logger.error("🚫 No refresh/access token provided");
         return res
-          .status(HttpStatusCode.UNAUTHORIZED)
-          .json({ status: false, message: "Login expired" });
+          .status(StatusCode.UNAUTHORIZED)
+          .json({ status: false, message: Messages.AUTH.LOGIN_EXPIRED });
       }
 
       // ✅ 1. Validate Access Token first
       if (accessToken) {
         console.log("🔑 Verifying Access Token...");
-        const tokenData = this.jwtService.verifyAccessToken(accessToken);
+        const tokenData = this._jwtService.verifyAccessToken(accessToken);
         console.log("📦 Decoded Token Data:", tokenData);
 
         if (tokenData) {
-          const foundUser = (await this.getRepositoryDataUseCase.OneDocumentById(
+          const foundUser = (await this._getRepositoryDataUseCase.OneDocumentById(
             tokenData.userId
           )) as IRepoData;
 
           console.log("🧩 Fetched User from DB:", foundUser);
 
-          if (!foundUser) throw new AppError("User not found", HttpStatusCode.NOT_FOUND);
+          if (!foundUser) throw new AppError("User not found", StatusCode.NOT_FOUND);
 
           if (foundUser.status === "banned") {
             logger.error("⛔ User is banned");
             this.clearCookies(res);
             return res
-              .status(HttpStatusCode.UNAUTHORIZED)
-              .json({ status: false, message: "This account is banned" });
+              .status(StatusCode.UNAUTHORIZED)
+              .json({ status: false, message: Messages.USER.BANNED });
           }
 
           req.user = {
@@ -71,13 +72,13 @@ export class Authenticate<Entity> {
       // ✅ 2. If Access Token invalid, use Refresh Token
       if (refreshToken) {
         console.log("🔁 Using Refresh Token...");
-        const userPayload = this.jwtService.verifyRefreshToken(refreshToken);
+        const userPayload = this._jwtService.verifyRefreshToken(refreshToken);
         console.log("📦 Decoded Refresh Token Payload:", userPayload);
 
         const { exp, iat, ...payload } = userPayload;
 
         // Generate a new access token
-        const newAccessToken = this.jwtService.signAccessToken(payload);
+        const newAccessToken = this._jwtService.signAccessToken(payload);
         console.log("🆕 Issued new access token");
 
         // simplified cookie settings (no env usage)
@@ -88,14 +89,14 @@ export class Authenticate<Entity> {
           maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
         });
 
-        const foundUser = (await this.getRepositoryDataUseCase.OneDocumentById(
+        const foundUser = (await this._getRepositoryDataUseCase.OneDocumentById(
           userPayload.userId
         )) as IRepoData;
 
         console.log("🧩 Fetched User from DB (Refresh):", foundUser);
 
         if (!foundUser)
-          throw new AppError("User not found", HttpStatusCode.NOT_FOUND);
+          throw new AppError("User not found", StatusCode.NOT_FOUND);
 
         req.user = {
           role: payload.role,
@@ -112,15 +113,15 @@ export class Authenticate<Entity> {
       console.log("❌ Neither token valid - clearing cookies");
       this.clearCookies(res);
       return res
-        .status(HttpStatusCode.UNAUTHORIZED)
-        .json({ status: false, message: "Authentication failed" });
+        .status(StatusCode.UNAUTHORIZED)
+        .json({ status: false, message: Messages.AUTH.AUTH_FAILED });
     } catch (error: any) {
       logger.error("💥 Error in authentication middleware:", error.message);
       console.error("Stack Trace:", error.stack);
       this.clearCookies(res);
       return res
-        .status(HttpStatusCode.UNAUTHORIZED)
-        .json({ status: false, message: "Invalid or expired token" });
+        .status(StatusCode.UNAUTHORIZED)
+        .json({ status: false, message: Messages.AUTH.INVALID_TOKEN});
     }
   };
 

@@ -12,6 +12,10 @@ const userSchema = new mongoose.Schema(
     status: {
       type: String,
     },
+       isBlocked: { 
+      type: Boolean, 
+      default: false 
+    },
 
     // 👇 Optional profile details
     profileImage: { type: String, default: "" },

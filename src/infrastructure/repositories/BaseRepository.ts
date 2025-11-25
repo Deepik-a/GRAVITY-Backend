@@ -1,10 +1,10 @@
 // infrastructure/repositories/BaseRepository.ts
 import { Model, Document } from "mongoose";
-
+import { IBaseRepository } from "../../domain/repositories/IBaseRepository";
 /**
  * Generic BaseRepository wrapping common mongoose operations
  */
-export abstract class BaseRepository<T extends Document> {
+export abstract class BaseRepository<T extends Document> implements IBaseRepository<T> {
   protected model: Model<T>;
 
   constructor(model: Model<T>) {

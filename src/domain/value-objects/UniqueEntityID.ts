@@ -30,11 +30,11 @@
 // src/domain/value-objects/UniqueEntityID.ts
 import { ObjectId } from "mongodb";
 export class UniqueEntityID {
-  constructor(private readonly value: string | ObjectId) {}
+  constructor(private readonly _value: string | ObjectId) {}
   toString() {
-    return this.value.toString();
+    return this._value.toString();
   }
   toObjectId(): ObjectId {
-    return typeof this.value === "string" ? new ObjectId(this.value) : this.value;
+    return typeof this._value === "string" ? new ObjectId(this._value) : this._value;
   }
 }

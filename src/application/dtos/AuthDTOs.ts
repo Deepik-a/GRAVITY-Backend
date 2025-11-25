@@ -17,6 +17,7 @@ export interface AuthResponseDTO {
   message: string;
   token?: string;
   refreshToken?: string;
+  role?:string;
   user?: {
     id: string;
     name: string;

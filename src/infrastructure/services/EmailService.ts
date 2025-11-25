@@ -5,14 +5,14 @@ import nodemailer from "nodemailer"
 
 export class EmailService{
 
-    private transporter;
+    private _transporter;
 
     constructor(){
       console.log("emailService")
       console.log("EMAIL_USER:", process.env.EMAIL_USER);
 console.log("EMAIL_PASS:", process.env.EMAIL_PASS);
 
-this.transporter = nodemailer.createTransport({
+this._transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
   secure: true, // true for 465
@@ -131,7 +131,7 @@ async sendOtpEmail(to: string, otp: string) {
     </html>
   `;
 
-  await this.transporter.sendMail({
+  await this._transporter.sendMail({
     from: `"GRAVITY Support" <${process.env.EMAIL_USER}>`,
     to,
     subject: "🔐 Your GRAVITY Verification Code",

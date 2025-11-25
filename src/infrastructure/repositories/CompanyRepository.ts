@@ -1,28 +1,41 @@
+// src/infrastructure/repositories/CompanyRepository.ts
 import { Types } from "mongoose";
 import { BaseRepository } from "./BaseRepository.js";
 import CompanyModel from "../database/models/CompanyModel.js";
-import { IUserRepository } from "../../domain/repositories/IUserRepository.js";
+import { IAuthRepository } from "../../domain/repositories/IAuthRepository.js";
 import { UserSignUp, GoogleSignUp, UserProfile } from "../../domain/entities/User.js";
+import { ICompany } from "../../domain/entities/Company.js";
 import { UniqueEntityID } from "../../domain/value-objects/UniqueEntityID.js";
+import { ICompanyRepository } from "../../domain/repositories/ICompanyRepository.js";
+import { IStorageService } from "../../domain/services/IStorageService.js";
+import { S3StorageService } from "../services/S3StorageService.js";
+import { ObjectId } from "mongodb";
+  
 
 export class CompanyRepository
   extends BaseRepository<typeof CompanyModel.prototype>
-  implements IUserRepository
+  implements IAuthRepository, ICompanyRepository
 {
-  constructor() {
-    super(CompanyModel);
+  constructor(
+    companyModel = CompanyModel, // default
+    private readonly _s3Service?: S3StorageService // optional
+  ) {
+    super(companyModel); // ✅ required call to BaseRepository
   }
 
-  // 🟩 Create local company user
-  async createUser(user: UserSignUp): Promise<UserSignUp> {
-    const created = await this.create({
+  // -------------------------------------------
+  // 💠 AUTH METHODS (from IAuthRepository)
+  // -------------------------------------------
+
+  async create(user: UserSignUp): Promise<UserSignUp> {
+    const created = await this.model.create({
       name: user.name,
       email: user.email,
-      phone: user.phone,
       password: user.password,
+      role: "company",
       provider: "local",
-      role: "company", // fixed role for company repo
-      status: "pending",
+      phone: user.phone ?? "",
+      status: user.status ?? "pending",
     });
 
     return new UserSignUp(
@@ -30,15 +43,15 @@ export class CompanyRepository
       created.name,
       created.email,
       created.password,
-      created.role as "user" | "company" | "admin",
+      created.role,
+      created.provider,
       created.phone ?? "",
-      created.status
+      created.status ?? "pending"
     );
   }
 
-  // 🟦 Find by email (for login or forgot password)
   async findByEmail(email: string): Promise<UserSignUp | null> {
-    const found = await this.model.findOne({ email, provider: "local" }).exec();
+    const found = await this.model.findOne({ email });
     if (!found) return null;
 
     return new UserSignUp(
@@ -46,102 +59,245 @@ export class CompanyRepository
       found.name,
       found.email,
       found.password,
-      found.role as "user" | "company" | "admin",
-      found.phone ?? "",
+      found.role,
+      found.provider,
+      found.phone,
       found.status
     );
   }
 
-  // 🟦 Update password
   async updatePassword(email: string, hashedPassword: string): Promise<void> {
-    const result = await this.model.updateOne(
-      { email, provider: "local" },
-      { $set: { password: hashedPassword } }
-    );
-    if (result.matchedCount === 0) throw new Error("Company not found");
+    await this.model.updateOne({ email }, { $set: { password: hashedPassword } });
   }
 
-  // 🟨 Google signup
   async createWithGoogle(user: GoogleSignUp): Promise<GoogleSignUp> {
-    const created = await this.create({
+    const created = await this.model.create({
       name: user.name,
       email: user.email,
       googleId: user.googleId,
-      provider: "google",
       role: "company",
-      status: "pending",
+      provider: "google",
+      status: user.status ?? "pending",
     });
 
     return new GoogleSignUp(
       created.name,
       created.email,
       created.googleId!,
-      created.role as "user" | "company" | "admin",
+      created.role,
+      created.provider,
       created.status
     );
   }
 
-  async findByGoogleId(googleId: string): Promise<GoogleSignUp | null> {
-    const found = await this.model.findOne({ googleId, provider: "google" }).exec();
-    if (!found) return null;
-
-    return new GoogleSignUp(
-      found.name,
-      found.email,
-      found.googleId!,
-      found.role as "user" | "company" | "admin",
-      found.status
-    );
-  }
-
   async findGoogleUserByEmail(email: string): Promise<GoogleSignUp | null> {
-    const found = await this.model.findOne({ email, provider: "google" }).exec();
+    const found = await this.model.findOne({ email, googleId: { $ne: null } });
     if (!found) return null;
 
     return new GoogleSignUp(
       found.name,
       found.email,
       found.googleId!,
-      found.role as "user" | "company" | "admin",
+      found.role,
+      "google",
       found.status
     );
   }
 
-  // 🟩 Get company profile
-  async findById(companyId: string): Promise<UserProfile | null> {
-    const company = Types.ObjectId.isValid(companyId)
-      ? await this.model.findById(companyId).exec()
-      : await this.model.findOne({ googleId: companyId }).exec();
+  async findByGoogleId(googleId: string): Promise<GoogleSignUp | null> {
+    const found = await this.model.findOne({ googleId, provider: "google" });
+    if (!found) return null;
 
-    if (!company) return null;
+    return new GoogleSignUp(
+      found.name,
+      found.email,
+      found.googleId!,
+      found.role,
+      found.provider,
+      found.status
+    );
+  }
+
+  async findById(id: string): Promise<UserProfile | null> {
+    const found = await this.model.findById(id);
+    if (!found) return null;
 
     return new UserProfile(
-      new UniqueEntityID(company._id.toString()),
-      company.name,
-      company.email,
-      company.profileImage ?? undefined,
-      company.phone ?? undefined,
-      company.location ?? undefined,
-      company.bio ?? undefined
+      new UniqueEntityID(found._id.toString()),
+      found.name,
+      found.email,
+      found.profileImage,
+      found.phone,
+      found.location,
+      found.bio
     );
   }
 
-  // 🟦 Update company profile
-  async updateUserProfile(companyId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
-    const updated = Types.ObjectId.isValid(companyId)
-      ? await this.model.findByIdAndUpdate(companyId, { $set: updates }, { new: true }).exec()
-      : await this.model.findOneAndUpdate({ googleId: companyId }, { $set: updates }, { new: true }).exec();
-
+  async updateUserProfile(id: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
+    const updated = await this.model.findByIdAndUpdate(id, { $set: updates }, { new: true });
     if (!updated) return null;
 
     return new UserProfile(
       new UniqueEntityID(updated._id.toString()),
       updated.name,
       updated.email,
-      updated.profileImage ?? undefined,
-      updated.phone ?? undefined,
-      updated.location ?? undefined,
-      updated.bio ?? undefined
+      updated.profileImage,
+      updated.phone,
+      updated.location,
+      updated.bio
     );
   }
+
+  // -------------------------------------------
+  // 💠 COMPANY METHODS (from ICompanyRepository)
+  // -------------------------------------------
+
+ 
+ // Update documents using email
+async updateDocuments(
+  email: string,
+  docs: {
+    GST_Certificate?: string | null;
+    RERA_License?: string | null;
+    Trade_License?: string | null;
+  }
+): Promise<ICompany> {
+  const updated = await CompanyModel.findOneAndUpdate(
+    { email }, // ✅ match by email instead of _id
+    {
+      $set: {
+        "documents.GST_Certificate": docs.GST_Certificate,
+        "documents.RERA_License": docs.RERA_License,
+        "documents.Trade_License": docs.Trade_License,
+      },
+    },
+    { new: true }
+  ).lean<ICompany>();
+
+  if (!updated) throw new Error("Company not found");
+
+  return updated;
+}
+
+// Update document status using email
+// Repository Method
+async updateDocumentStatus(
+  identifier: { email?: string; companyId?: string },
+  status: "pending" | "verified" | "rejected"
+): Promise<ICompany> {
+
+  // Build dynamic filter
+  const filter: any = {};
+  if (identifier.email) filter.email = identifier.email;
+  if (identifier.companyId) filter._id = identifier.companyId;
+
+  if (Object.keys(filter).length === 0) {
+    throw new Error("Must provide email or companyId");
+  }
+
+  // Auto-update company.status based on documentStatus
+  let derivedStatus: string;
+
+  switch (status) {
+    case "verified":
+      derivedStatus = "verified";      // Or "verified"
+      break;
+    case "pending":
+      derivedStatus = "pending";
+      break;
+    case "rejected":
+      derivedStatus = "rejected";     // Or "rejected"
+      break;
+    default:
+      derivedStatus = "pending";
+  }
+
+  // Update the company
+  const updated = await CompanyModel.findOneAndUpdate(
+    filter,
+    {
+      documentStatus: status,
+      status: derivedStatus,
+    },
+    { new: true }
+  ).lean();
+
+  if (!updated) throw new Error("Company not found");
+
+  // Return ICompany mapped object
+  return {
+    id: updated._id.toString(),
+    name: updated.name,
+    email: updated.email,
+    phone: updated.phone ?? null,
+    role: updated.role,
+    status: updated.status,
+    documentStatus: updated.documentStatus,
+    documents: {
+      GST_Certificate: updated.documents?.GST_Certificate ?? null,
+      RERA_License: updated.documents?.RERA_License ?? null,
+      Trade_License: updated.documents?.Trade_License ?? null,
+    },
+  };
+}
+
+
+
+// Save or update a company
+async save(company: ICompany): Promise<ICompany> {
+  const updated = await CompanyModel.findOneAndUpdate(
+    { email: company.email },
+    { $set: company },
+    { new: true }
+  ).lean<ICompany>();
+
+  if (!updated) throw new Error("Company not found");
+  return updated;
+}
+
+async getAllCompanies(): Promise<ICompany[]> {
+  const companiesFromDb = await this.model.find().lean();
+
+  if (!this._s3Service) {
+    return companiesFromDb.map((c) => ({
+     id: (c._id as ObjectId).toString(),
+      name: c.name,
+      email: c.email,
+      phone: c.phone ?? null,
+      role: c.role,
+      status: c.status,
+      documents: {
+        GST_Certificate: (c.documents?.GST_Certificate as unknown as string) ?? null,
+        RERA_License: (c.documents?.RERA_License as unknown as string) ?? null,
+        Trade_License: (c.documents?.Trade_License as unknown as string) ?? null,
+      },
+      documentStatus: c.documentStatus,
+    }));
+  }
+
+  // Map signed URLs
+  return await Promise.all(
+    companiesFromDb.map(async (c) => ({
+       id: (c._id as ObjectId).toString(),
+      name: c.name,
+      email: c.email,
+      phone: c.phone ?? null,
+      role: c.role,
+      status: c.status,
+      documents: {
+        GST_Certificate: c.documents?.GST_Certificate
+          ? await this._s3Service!.getSignedUrl(c.documents.GST_Certificate as unknown as string)
+          : null,
+        RERA_License: c.documents?.RERA_License
+          ? await this._s3Service!.getSignedUrl(c.documents.RERA_License as unknown as string)
+          : null,
+        Trade_License: c.documents?.Trade_License
+          ? await this._s3Service!.getSignedUrl(c.documents.Trade_License as unknown as string)
+          : null,
+      },
+      documentStatus: c.documentStatus,
+    }))
+  );
+}
+
 }

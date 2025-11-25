@@ -1,114 +1,187 @@
 import { Request, Response, NextFunction } from "express";
+import { StatusCode } from "../../domain/enums/StatusCode";
+
+// Use Cases
 import { RegisterUseCase } from "../../application/use-cases/user/SignupUserUsecase.js";
 import { LoginUserUseCase } from "../../application/use-cases/user/LoginUserUseCase.js";
-import { OtpService } from "../../application/providers/OTPService.js";
-import { IAuthRepository } from "../../domain/repositories/IAuthRepository.js";
-import { IJwtService } from "../../domain/services/IJWTService.js";
-import { UserRepository } from "../../infrastructure/repositories/UserRepository.js";
-import { CompanyRepository } from "../../infrastructure/repositories/CompanyRepository.js";
+import { GoogleAuthUseCase } from "../../application/use-cases/user/GoogleAuthUseCase.js";
+import { VerifyOtpUseCase } from "../../application/use-cases/user/VerifyOtpUseCase.js";
+import { ForgotPasswordUseCase } from "../../application/use-cases/user/ForgotPasswordUseCase.js";
+import { ResetPasswordUseCase } from "../../application/use-cases/user/ResetPasswordUseCase .js"
+import { ResendOtpUseCase } from "../../application/use-cases/user/ResendOtpUseCase.js";
+import { DetectUserRoleUseCase } from "../../application/use-cases/user/DetectUserRoleUseCase.js";
+import { verifyGoogleToken } from "../../infrastructure/stratergies/googleStratergy.js";
 
-const VALID_ROLES = ["user", "company"] as const;
-type RoleType = (typeof VALID_ROLES)[number];
+
+
+import { OtpPurpose } from "../../domain/enums/OtpPurpose.js";
 
 export class AuthController {
-  private fixedRole?: RoleType; // optional fixed role for this controller
 
   constructor(
-    private jwtService: IJwtService,
-    private otpService: OtpService,
-    role?: RoleType // optional fixed role
-  ) {
-    if (role) {
-      this.fixedRole = role;
-      console.log("🔹 AuthController initialized with fixed role:", role);
-    }
-  }
+    private readonly _detectUserRoleUseCase: DetectUserRoleUseCase,
+    private readonly _loginUseCase: LoginUserUseCase,
+    private readonly _forgotPasswordUseCase: ForgotPasswordUseCase,
+    private readonly _verifyOtpUseCase: VerifyOtpUseCase,
+    private readonly _resetPasswordUseCase: ResetPasswordUseCase,
+    private readonly _registerUseCase: RegisterUseCase,
+    private readonly _resendOtpUseCase: ResendOtpUseCase,
+    private readonly _googleAuthUseCase: GoogleAuthUseCase,
+  ) {}
 
-  // Normalize role from frontend (homeowner → user)
-  private normalizeRole(role?: string): RoleType {
-    console.log("🔹 normalizeRole called with:", role);
-    if (!role) return this.fixedRole || "user"; // default if missing
-    if (role === "homeowner") {
-      console.log("🔹 Role 'homeowner' detected, mapping to 'user'");
-      return "user";
-    }
-    console.log("🔹 Role not mapped, using as-is:", role);
-    return role as RoleType;
-  }
 
-  // Validate role
-  private validateRole(role: unknown): asserts role is RoleType {
-    console.log("🔹 validateRole called with:", role);
-    if (!VALID_ROLES.includes(role as RoleType)) {
-      console.error("❌ Invalid role detected:", role);
-      console.error("❌ Valid roles are:", VALID_ROLES);
-      throw new Error(`Invalid role: ${role}`);
-    }
-    console.log("✅ Role validated successfully:", role);
-  }
-
-  // Choose repository based on role
-  private getRepositoryByRole(role: RoleType): IAuthRepository {
-    return role === "company" ? new CompanyRepository() : new UserRepository();
-  }
-
-  // Get role for this request (either fixed or from frontend)
-  private getRoleForRequest(reqRole?: string): RoleType {
-    if (this.fixedRole) return this.fixedRole;
-    const normalized = this.normalizeRole(reqRole);
-    this.validateRole(normalized);
-    return normalized;
-  }
-
-  // Register endpoint
+  // ---------------- REGISTER ----------------
   async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const role = this.getRoleForRequest(req.body.role);
-      const repository = this.getRepositoryByRole(role);
 
-      console.log("\n===== 🟩 REGISTER START =====");
-      console.log("Role:", role);
-      console.log("Payload:", req.body);
-      console.log("Repository:", repository.constructor.name);
-
-      const registerUseCase = new RegisterUseCase(repository, this.otpService, role);
-      const result = await registerUseCase.execute(req.body);
-
-      console.log("✅ REGISTER SUCCESS:", result);
-      console.log("===== 🟩 REGISTER END =====\n");
-
-      res.status(201).json({
-        success: true,
-        info: `OTP sent successfully for ${role} signup.`,
-        ...result,
-      });
-    } catch (error) {
-      console.error("❌ REGISTER ERROR:", error);
-      next(error);
+          const { name, email, password,phone, role } = req.body;
+          console.log(req.body,"Req.body from signup")
+    const result = await this._registerUseCase.execute({
+      name,
+      email,
+      password,
+    phone,
+      role
+    });
+      return res.status(StatusCode.CREATED).json(result);
+    } catch (err) {
+      next(err);
     }
   }
 
-  // Login endpoint
-  async login(req: Request, res: Response, next: NextFunction) {
+  // ---------------- LOGIN ----------------
+async login(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { email, password } = req.body;
+
+    const { repo, role, user } = await this._detectUserRoleUseCase.execute(email);
+    const result = await this._loginUseCase.execute({
+      password,
+      repo,
+      role,
+      user,
+    });
+
+    return res.status(StatusCode.SUCCESS).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+  // ---------------- GOOGLE LOGIN ----------------
+async googleLogin(req: Request, res: Response, next: NextFunction) {
+  try {
+    console.log("\n========== 🟩 Google Login START ==========");
+
+    const { token, role: frontendRole } = req.body;
+
+    console.log("📨 Incoming Request:");
+    console.log("   • frontendRole:", frontendRole);
+    console.log("   • token provided:", !!token);
+
+    if (!token) throw new Error("Google token required");
+
+    // 1️⃣ Verify Google token
+    console.log("\n🔐 Verifying Google token...");
+    const googlePayload = await verifyGoogleToken(token);
+    console.log("   ✔ Google token verified");
+    console.log("   📧 Email:", googlePayload.email);
+    console.log("   👤 Name:", googlePayload.name);
+    console.log("   🔑 GoogleId:", googlePayload.googleId);
+
+    const email = googlePayload.email;
+
+    const googleUser = {
+      name: googlePayload.name,
+      email,
+      googleId: googlePayload.googleId,
+    };
+
+    // 2️⃣ Detect user role + repo
+    console.log("\n🔎 Running DetectUserRoleUseCase...");
+    const { repo, role, user, isNewUser } =
+      await this._detectUserRoleUseCase.execute(email);
+
+    console.log("   ✔ Role detected:", role);
+  
+    console.log("   ✔ Existing user:", user ? "YES" : "NO");
+    console.log("   ✔ New user:", isNewUser);
+
+    // 3️⃣ Login / Signup logic
+    console.log("\n🚀 Executing GoogleAuthUseCase...");
+    const result = await this._googleAuthUseCase.execute({
+      googleUser,
+      repo,
+      existingUser: user,
+      frontendRole: isNewUser ? frontendRole : undefined,
+    });
+
+    console.log("   ✔ GoogleAuthUseCase completed");
+    console.log("   🔑 Authenticated role:", role);
+    console.log("   🟢 Login/Signup successful for:", email);
+
+    console.log("========== 🟩 Google Login END ==========\n");
+
+    res.status(StatusCode.SUCCESS).json(result);
+  } catch (err) {
+    console.log("❌ ERROR in Google Login:", err);
+    console.log("========== 🟥 Google Login FAILED ==========\n");
+    next(err);
+  }
+}
+
+
+
+
+
+
+  // ---------------- RESEND OTP ----------------
+  async resendOtp(req: Request, res: Response, next: NextFunction) {
     try {
-      const role = this.getRoleForRequest(req.body.role);
-      const repository = this.getRepositoryByRole(role);
+      const result = await this._resendOtpUseCase.execute(req.body.email);
+      return res.status(StatusCode.SUCCESS).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
 
-      console.log("\n===== 🟦 LOGIN START =====");
-      console.log("Role:", role);
-      console.log("Payload:", req.body);
-      console.log("Repository:", repository.constructor.name);
+  // ---------------- FORGOT PASSWORD ----------------
+  async forgotPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this._forgotPasswordUseCase.execute(req.body.email);
+      return res.status(StatusCode.SUCCESS).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
 
-      const loginUseCase = new LoginUserUseCase(repository, this.jwtService, role);
-      const result = await loginUseCase.execute(req.body);
+  // ---------------- VERIFY OTP ----------------
+  async verifyOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { email, otp, purpose } = req.body;  
+        console.log(req.body,"req.body from verifyotp")
+      const result = await this._verifyOtpUseCase.execute(
+       email,
+       otp,
+        purpose
+      );
+      return res.status(StatusCode.SUCCESS).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
 
-      console.log("✅ LOGIN SUCCESS:", result);
-      console.log("===== 🟦 LOGIN END =====\n");
-
-      res.status(200).json(result);
-    } catch (error) {
-      console.error("❌ LOGIN ERROR:", error);
-      next(error);
+  // ---------------- RESET PASSWORD ----------------
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this._resetPasswordUseCase.execute(
+        req.body.email,
+        req.body.newPassword
+      );
+      return res.status(StatusCode.SUCCESS).json(result);
+    } catch (err) {
+      next(err);
     }
   }
 }

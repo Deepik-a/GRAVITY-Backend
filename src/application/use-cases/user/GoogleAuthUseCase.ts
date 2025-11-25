@@ -1,62 +1,97 @@
-// src/application/use-cases/auth/GoogleAuthUseCase.ts
-import { IUserRepository } from "../../../domain/repositories/IUserRepository.js";
+import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
 import { GoogleSignUp } from "../../../domain/entities/User.js";
 import { GoogleUserMapper } from "../../mappers/GoogleUserMapper.js";
 import { IJwtService } from "../../../domain/services/IJWTService.js";
 
 export class GoogleAuthUseCase {
   constructor(
-    private readonly userRepository: IUserRepository,
-    private readonly jwtService: IJwtService,
-    private readonly role: "user" | "company" | "admin"
+    private readonly _userRepository: IAuthRepository,
+    private readonly _companyRepository: IAuthRepository,
+    private readonly _jwtService: IJwtService
   ) {}
+async execute({
+  googleUser,
+  repo,
+  existingUser,
+  frontendRole,
+}: {
+  googleUser: { name: string; email: string; googleId: string };
+  repo: IAuthRepository | null;
+  existingUser?: any;
+  frontendRole?: "user" | "company" | "admin";
+}) {
 
-  async execute(googleUser: GoogleSignUp) {
-    // 1️⃣ Check existing user
-    const byGoogleId = await this.userRepository.findByGoogleId(googleUser.googleId);
-    const byEmail = await this.userRepository.findGoogleUserByEmail(googleUser.email);
+  let user = existingUser;
+  let finalRepo = repo;
+  let isNewUser = false;
 
-    const existingUser: GoogleSignUp | null = byGoogleId || byEmail;
+  // ✅ Check if user exists in DB first
+  if (!user) {
+    const userByEmail = await this._userRepository.findGoogleUserByEmail(googleUser.email);
+    const companyByEmail = await this._companyRepository.findGoogleUserByEmail(googleUser.email);
 
-    let user: GoogleSignUp;
-    if (existingUser) {
-      user = existingUser;
-    } else {
-      const role = googleUser.role || this.role;
-      const status = role === "company" ? "pending" : "verified";
-
-      const newUser = new GoogleSignUp(
-        googleUser.name,
-        googleUser.email,
-        googleUser.googleId,
-        role,
-        status
-      );
-
-      user = await this.userRepository.createWithGoogle(newUser);
+    if (userByEmail) {
+      user = userByEmail;
+      finalRepo = this._userRepository;
+    } else if (companyByEmail) {
+      user = companyByEmail;
+      finalRepo = this._companyRepository;
     }
+  }
 
-    // 2️⃣ Role check
-    if (user.role === "company" && user.status !== "verified") {
-      throw new Error("Company not verified. Please wait for admin approval.");
-    }
+  // ✅ If still no user → create new
+  if (!user) {
+    if (!frontendRole) throw new Error("Role is required for first-time signup");
 
-    // 3️⃣ Generate tokens
-    const accessToken = this.jwtService.signAccessToken({
-      userId: user.googleId,
-      role: user.role,
-    });
+    finalRepo = frontendRole === "company" ? this._companyRepository : this._userRepository;
 
-    const refreshToken = this.jwtService.signRefreshToken({
-      userId: user.googleId,
-      role: user.role,
-    });
+    const status = frontendRole === "company" ? "pending" : "verified";
 
-    // 4️⃣ Return DTO
+    const newUser = new GoogleSignUp(
+      googleUser.name,
+      googleUser.email,
+      googleUser.googleId,
+      frontendRole,
+      "google",
+      status
+    );
+
+    user = await finalRepo.createWithGoogle(newUser);
+    isNewUser = true;
+  }
+
+  // ✅ Company verification check
+  if (user.role === "company" && user.status !== "verified") {
     return {
-      user: GoogleUserMapper.toResponseDTO(user,accessToken),
-      accessToken,
-      refreshToken,
+      user: GoogleUserMapper.toResponseDTO(user, ""),
+      isNewUser,
+      isPending: true,
     };
   }
+
+  // ✅ Generate JWT
+  const subject = user.id?.toString() || user.googleId;
+
+  const accessToken = this._jwtService.signAccessToken({
+    userId: subject,
+    role: user.role,
+    status: user.status,
+  });
+
+  const refreshToken = this._jwtService.signRefreshToken({
+    userId: subject,
+    role: user.role,
+    status: user.status,
+  });
+
+  return {
+    user: GoogleUserMapper.toResponseDTO(user, accessToken),
+    accessToken,
+    refreshToken,
+    isNewUser,
+    isPending: false,
+  };
+}
+
+
 }

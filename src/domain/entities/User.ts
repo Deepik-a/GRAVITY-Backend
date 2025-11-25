@@ -6,6 +6,7 @@ export interface UserSignUpDetails {
   email: string;
   password: string;
   role: "user" | "company" | "admin";
+  provider:"local"|"google"
   phone?: string;
   status?: "pending" | "verified";
 }
@@ -16,6 +17,7 @@ export interface GoogleSignUpDetails {
   email: string;
   googleId: string;
   role: "user" | "company" | "admin";
+  provider:"local"|"google";
   status?: "pending" | "verified";
 }
 
@@ -28,6 +30,7 @@ export interface UserProfileDetails {
   phone?: string;
   location?: string;
   bio?: string;
+  isBlocked?:boolean
 }
 
 
@@ -40,8 +43,9 @@ export class UserSignUp implements UserSignUpDetails {
     public email: string,
     public password: string,
     public role: "user" | "company" | "admin",
-    public phone?: string,        // optional → move down
-    public status?: "pending" | "verified" // optional → move down
+    public provider: "local" | "google" = "local",
+    public phone: string="",        // optional → move down
+    public status: "pending" | "verified" // optional → move down
   ) {}
 }
 
@@ -54,6 +58,7 @@ export class GoogleSignUp implements GoogleSignUpDetails {
     public email: string,
     public googleId: string,
     public role: "user" | "company" | "admin",
+    public provider:"local"|"google",
     public status?: "pending" | "verified"
   ) {}
 }
@@ -69,6 +74,18 @@ export class UserProfile implements UserProfileDetails {
     public profileImage?: string,
     public phone?: string,
     public location?: string,
-    public bio?: string
+    public bio?: string,
+    public isBlocked?:boolean
   ) {}
+}
+
+
+//an user that is required to do google login and signup
+export interface AuthenticatedUser {
+  id: UniqueEntityID;
+  name: string;
+  email: string;
+  role: "user" | "company" | "admin";
+  provider: "local" | "google";
+  googleId?: string;   // optional
 }

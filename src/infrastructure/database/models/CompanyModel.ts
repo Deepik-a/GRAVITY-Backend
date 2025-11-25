@@ -3,16 +3,24 @@ import mongoose, { Schema, Document } from "mongoose";
 import { ObjectId } from "mongodb";
 
 export interface ICompany extends Document {
-    _id: ObjectId; // ✅ fix
+  _id: ObjectId;
   name: string;
   email: string;
   phone?: string | null;
   password?: string | null;
   googleId?: string | null;
-role: "user" | "company" | "admin";
+  role: "user" | "company";
   status: "verified" | "pending";
-  createdAt?: Date;
-  updatedAt?: Date;
+  isBlocked: boolean;
+
+  // documents as plain strings
+  documents: {
+    GST_Certificate?: string | null;
+    RERA_License?: string | null;
+    Trade_License?: string | null;
+  };
+
+  documentStatus: "pending" | "verified" | "rejected";
 }
 
 const CompanySchema = new Schema<ICompany>(
@@ -22,14 +30,34 @@ const CompanySchema = new Schema<ICompany>(
     phone: { type: String, default: null },
     password: { type: String, default: null },
     googleId: { type: String, default: null },
+
     role: {
       type: String,
-      enum: ["user", "company", "admin"], // ✅ Strict enum enforcement
+      enum: ["user", "company"],
       required: true,
     },
+
     status: {
       type: String,
       enum: ["verified", "pending"],
+      default: "pending",
+    },
+
+    isBlocked: { 
+      type: Boolean, 
+      default: false 
+    },
+
+    // documents as plain strings
+    documents: {
+      GST_Certificate: { type: String, default: null },
+      RERA_License: { type: String, default: null },
+      Trade_License: { type: String, default: null },
+    },
+
+    documentStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
       default: "pending",
     },
   },
