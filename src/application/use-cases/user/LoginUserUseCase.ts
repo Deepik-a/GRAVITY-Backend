@@ -9,11 +9,24 @@ interface LoginInput {
   password: string;
   repo: IAuthRepository | IAdminRepository;
   role: "user" | "company" | "admin";
-  user: any; 
+  user: AuthenticatableUser; 
+}
+import { inject, injectable } from "inversify";
+import { TYPES } from "../../../infrastructure/DI/types";
+interface AuthenticatableUser {
+  id: string | { toString(): string };
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  phone?: string;
+  documentStatus?: string;
+  rejectionReason?: string;
 }
 
+@injectable()
 export class LoginUserUseCase {
-  constructor(private readonly _jwtService: IJwtService) {}
+  constructor(  @inject(TYPES.JwtService) private readonly _jwtService: IJwtService) {}
 
   async execute({ password, repo, role, user }: LoginInput) {
     if (!password) throw new Error("Password is required");
@@ -25,13 +38,10 @@ export class LoginUserUseCase {
 
     // 2️⃣ ADMIN LOGIN (special logic)
     if (role === "admin") {
-      return this._handleAdminLogin(user, password, repo as IAdminRepository);
+      return this._handleAdminLogin(user as AuthenticatableUser, password, repo as IAdminRepository);
     }
 
-    // 3️⃣ COMPANY LOGIN → must be verified
-    if (role === "company" && user.status !== "verified") {
-      throw new Error("Company not verified. Please wait for approval.");
-    }
+  
 
     // 4️⃣ Validate password for USER & COMPANY
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -54,7 +64,7 @@ export class LoginUserUseCase {
       subjectId,
       user.name,
       user.email,
-      user.phone
+      user.phone || ""
     );
 
     return {
@@ -63,12 +73,14 @@ export class LoginUserUseCase {
       role,
       accessToken,
       refreshToken,
+      documentStatus: user.documentStatus,
+      rejectionReason: user.rejectionReason,
     };
   }
 
   // 🔥 ADMIN LOGIN HANDLER (same as your previous AdminLoginUseCase)
   private async _handleAdminLogin(
-    admin: any,
+    admin: AuthenticatableUser,
     password: string,
     adminRepo: IAdminRepository
   ) {
@@ -76,17 +88,17 @@ export class LoginUserUseCase {
     if (!isMatch) throw new Error("Invalid admin password");
 
     const accessToken = this._jwtService.signAccessToken({
-      id: admin.id,
+      id: admin.id.toString(),
       role: admin.role,
     });
 
     const refreshToken = this._jwtService.signRefreshToken({
-      id: admin.id,
+      id: admin.id.toString(),
       role: admin.role,
     });
 
     // Save refresh token only for admin
-    await adminRepo.saveRefreshToken(admin.id, refreshToken);
+    await adminRepo.saveRefreshToken(admin.id.toString(), refreshToken);
 
     return {
       message: Messages.AUTH.ADMIN_LOGIN_SUCCESS,
@@ -94,7 +106,7 @@ export class LoginUserUseCase {
       accessToken,
       refreshToken,
       admin: {
-        id: admin.id,
+        id: admin.id.toString(),
         email: admin.email,
       },
     };

@@ -1,17 +1,19 @@
 import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
+import { inject, injectable } from "inversify";
+import { TYPES } from "../../../infrastructure/DI/types";
 import { AuthenticatedUser } from "../../../domain/entities/User.js";
 import { IAdminRepository } from "../../../domain/repositories/IAdminRepository.js";
 //Admin@123
+@injectable()
 export class DetectUserRoleUseCase {
   constructor(
-    private _userRepository: IAuthRepository,
-    private _companyRepository: IAuthRepository,
-    private _adminRepository?: IAuthRepository
+     @inject(TYPES.UserRepository) private _userRepository: IAuthRepository,
+     @inject(TYPES.CompanyRepository) private _companyRepository: IAuthRepository,
   ) {}
 
   async execute(email: string): Promise<{
     repo: IAuthRepository
-    role: "user" | "company" | "admin";
+    role: "user" | "company" ;
     user: any;
     isNewUser: boolean;
   }> {
@@ -19,25 +21,6 @@ export class DetectUserRoleUseCase {
 
     console.log("\n========== 🟦 DetectUserRoleUseCase START ==========");
     console.log("📧 Email:", email);
-
-    // 1) Admin
-    if (this._adminRepository) {
-      console.log("🔍 Checking admin repository...");
-      const admin = await this._adminRepository.findByEmail(email);
-
-      if (admin) {
-        console.log("✅ Found ADMIN user");
-        console.log("====================================================\n");
-        return {
-          repo: this._adminRepository,
-          role: "admin",
-          user: admin,
-          isNewUser: false,
-        };
-      }
-    } else {
-      console.log("⚠️ No admin repository provided, skipping admin check.");
-    }
 
     // 2) Company
     console.log("🔍 Checking company repository...");

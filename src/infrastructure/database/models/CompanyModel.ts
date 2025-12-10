@@ -9,11 +9,11 @@ export interface ICompany extends Document {
   phone?: string | null;
   password?: string | null;
   googleId?: string | null;
+
   role: "user" | "company";
   status: "verified" | "pending";
   isBlocked: boolean;
 
-  // documents as plain strings
   documents: {
     GST_Certificate?: string | null;
     RERA_License?: string | null;
@@ -21,6 +21,7 @@ export interface ICompany extends Document {
   };
 
   documentStatus: "pending" | "verified" | "rejected";
+  rejectionReason?: string | null;      // <-- NEW
 }
 
 const CompanySchema = new Schema<ICompany>(
@@ -43,12 +44,11 @@ const CompanySchema = new Schema<ICompany>(
       default: "pending",
     },
 
-    isBlocked: { 
-      type: Boolean, 
-      default: false 
+    isBlocked: {
+      type: Boolean,
+      default: false,
     },
 
-    // documents as plain strings
     documents: {
       GST_Certificate: { type: String, default: null },
       RERA_License: { type: String, default: null },
@@ -59,6 +59,11 @@ const CompanySchema = new Schema<ICompany>(
       type: String,
       enum: ["pending", "verified", "rejected"],
       default: "pending",
+    },
+
+    rejectionReason: {
+      type: String,
+      default: null,     // <-- NEW
     },
   },
   { timestamps: true }

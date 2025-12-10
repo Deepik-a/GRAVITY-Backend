@@ -2,6 +2,8 @@ import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js
 import { ProfileResponseDTO } from "../../dtos/ProfileResponseDTO.js";
 import { ProfileMapper } from "../../mappers/ProfileMapper.js";
 import { UniqueEntityID } from "../../../domain/value-objects/UniqueEntityID.js";
+import { inject, injectable } from "inversify";
+import { TYPES } from "../../../infrastructure/DI/types";
 
 interface UpdateProfileInput {
   userId: string;
@@ -10,9 +12,9 @@ interface UpdateProfileInput {
   location?: string;
   bio?: string;
 }
-
+@injectable()
 export class UpdateUserProfileUseCase {
-  constructor(private _userRepository: IAuthRepository) {}
+  constructor( @inject(TYPES.AuthRepository) private _userRepository: IAuthRepository) {}
 
   async execute(data: UpdateProfileInput): Promise<ProfileResponseDTO> {
     if (!data.userId) throw new Error("User ID is required");

@@ -10,15 +10,17 @@ import { ICompanyRepository } from "../../domain/repositories/ICompanyRepository
 import { IStorageService } from "../../domain/services/IStorageService.js";
 import { S3StorageService } from "../services/S3StorageService.js";
 import { ObjectId } from "mongodb";
+import { inject, injectable ,unmanaged} from "inversify";
+import { TYPES } from "../DI/types.js";
   
-
+@injectable()
 export class CompanyRepository
   extends BaseRepository<typeof CompanyModel.prototype>
   implements IAuthRepository, ICompanyRepository
 {
   constructor(
-    companyModel = CompanyModel, // default
-    private readonly _s3Service?: S3StorageService // optional
+       @unmanaged() companyModel = CompanyModel, // Ignore in DI
+      @inject(TYPES.StorageService) private readonly _s3Service: IStorageService,
   ) {
     super(companyModel); // ✅ required call to BaseRepository
   }
@@ -50,22 +52,41 @@ export class CompanyRepository
     );
   }
 
-  async findByEmail(email: string): Promise<UserSignUp | null> {
+// Inside your CompanyAuthRepository implementation...
+
+async findByEmail(email: string): Promise<UserSignUp | null> {
     const found = await this.model.findOne({ email });
     if (!found) return null;
+    
+    // --- CRITICAL FIX START ---
+    // Optional: Use .toObject() to ensure data integrity (best practice)
+    const rawData = found.toObject(); 
 
     return new UserSignUp(
-      new UniqueEntityID(found._id),
-      found.name,
-      found.email,
-      found.password,
-      found.role,
-      found.provider,
-      found.phone,
-      found.status
+        // 1. id
+        new UniqueEntityID(rawData._id.toString()), 
+        // 2. name
+        rawData.name,
+        // 3. email
+        rawData.email,
+        // 4. password
+        rawData.password,
+        // 5. role
+        rawData.role,
+        // 6. provider
+        rawData.provider,
+        // 7. phone
+        rawData.phone,
+        // 8. status
+        rawData.status,
+        
+        // 9. documentStatus (THE MISSING FIELD)
+        rawData.documentStatus, 
+        // 10. rejectionReason (THE OTHER MISSING FIELD)
+        rawData.rejectionReason 
     );
-  }
-
+    // --- CRITICAL FIX END ---
+}
   async updatePassword(email: string, hashedPassword: string): Promise<void> {
     await this.model.updateOne({ email }, { $set: { password: hashedPassword } });
   }
@@ -78,6 +99,7 @@ export class CompanyRepository
       role: "company",
       provider: "google",
       status: user.status ?? "pending",
+      documentStatus: "pending", // ✅ Initialize documentStatus
     });
 
     return new GoogleSignUp(
@@ -86,7 +108,10 @@ export class CompanyRepository
       created.googleId!,
       created.role,
       created.provider,
-      created.status
+      created.status,
+      new UniqueEntityID(created._id.toString()),
+      created.documentStatus,
+      created.rejectionReason
     );
   }
 
@@ -99,8 +124,11 @@ export class CompanyRepository
       found.email,
       found.googleId!,
       found.role,
-      "google",
-      found.status
+      found.provider,
+      found.status,
+      new UniqueEntityID(found._id.toString()), // Pass ID
+      found.documentStatus ?? "pending", // ✅ Default to pending if missing
+      found.rejectionReason
     );
   }
 
@@ -114,7 +142,10 @@ export class CompanyRepository
       found.googleId!,
       found.role,
       found.provider,
-      found.status
+      found.status,
+      new UniqueEntityID(found._id.toString()),
+      found.documentStatus ?? "pending", // ✅ Default to pending if missing
+      found.rejectionReason
     );
   }
 
@@ -147,157 +178,164 @@ export class CompanyRepository
       updated.bio
     );
   }
+/* --------------------------------------------------
+      UPDATE DOCUMENT KEYS (NOT SIGNED URL)
+    -------------------------------------------------- */
+  async updateDocuments(
+    email: string,
+    docs: {
+      GST_Certificate?: string | null;
+      RERA_License?: string | null;
+      Trade_License?: string | null;
+    }
+  ): Promise<ICompany> {
 
-  // -------------------------------------------
-  // 💠 COMPANY METHODS (from ICompanyRepository)
-  // -------------------------------------------
+    console.log("\n📌 [Repository:updateDocuments] Incoming Request");
+    console.log("➡️ Email:", email);
+    console.log("➡️ Received payload:", docs);
 
- 
- // Update documents using email
-async updateDocuments(
-  email: string,
-  docs: {
-    GST_Certificate?: string | null;
-    RERA_License?: string | null;
-    Trade_License?: string | null;
-  }
-): Promise<ICompany> {
-  const updated = await CompanyModel.findOneAndUpdate(
-    { email }, // ✅ match by email instead of _id
-    {
-      $set: {
-        "documents.GST_Certificate": docs.GST_Certificate,
-        "documents.RERA_License": docs.RERA_License,
-        "documents.Trade_License": docs.Trade_License,
+    const updated = await this.model.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          "documents.GST_Certificate": docs.GST_Certificate,
+          "documents.RERA_License": docs.RERA_License,
+          "documents.Trade_License": docs.Trade_License,
+        },
       },
-    },
-    { new: true }
-  ).lean<ICompany>();
+      { new: true }
+    ).lean<ICompany>();
 
-  if (!updated) throw new Error("Company not found");
+    if (!updated) {
+      console.log("❌ No company found for email:", email);
+      throw new Error("Company not found");
+    }
 
-  return updated;
-}
+    console.log("✅ Stored document keys in DB:", updated.documents);
+    return updated;
+  }
 
-// Update document status using email
-// Repository Method
+  /* --------------------------------------------------
+      UPDATE DOCUMENT STATUS
+    -------------------------------------------------- */
 async updateDocumentStatus(
   identifier: { email?: string; companyId?: string },
-  status: "pending" | "verified" | "rejected"
+  status: "pending" | "verified" | "rejected",
+  reason?: string
 ): Promise<ICompany> {
-
-  // Build dynamic filter
+  
   const filter: any = {};
   if (identifier.email) filter.email = identifier.email;
   if (identifier.companyId) filter._id = identifier.companyId;
 
-  if (Object.keys(filter).length === 0) {
-    throw new Error("Must provide email or companyId");
-  }
-
-  // Auto-update company.status based on documentStatus
-  let derivedStatus: string;
-
-  switch (status) {
-    case "verified":
-      derivedStatus = "verified";      // Or "verified"
-      break;
-    case "pending":
-      derivedStatus = "pending";
-      break;
-    case "rejected":
-      derivedStatus = "rejected";     // Or "rejected"
-      break;
-    default:
-      derivedStatus = "pending";
-  }
-
-  // Update the company
-  const updated = await CompanyModel.findOneAndUpdate(
-    filter,
-    {
-      documentStatus: status,
-      status: derivedStatus,
-    },
-    { new: true }
-  ).lean();
-
-  if (!updated) throw new Error("Company not found");
-
-  // Return ICompany mapped object
-  return {
-    id: updated._id.toString(),
-    name: updated.name,
-    email: updated.email,
-    phone: updated.phone ?? null,
-    role: updated.role,
-    status: updated.status,
-    documentStatus: updated.documentStatus,
-    documents: {
-      GST_Certificate: updated.documents?.GST_Certificate ?? null,
-      RERA_License: updated.documents?.RERA_License ?? null,
-      Trade_License: updated.documents?.Trade_License ?? null,
-    },
+  const updateData: any = {
+    documentStatus: status,
+    status: status === "verified" ? "verified" : "pending",
   };
-}
 
-
-
-// Save or update a company
-async save(company: ICompany): Promise<ICompany> {
-  const updated = await CompanyModel.findOneAndUpdate(
-    { email: company.email },
-    { $set: company },
-    { new: true }
-  ).lean<ICompany>();
-
-  if (!updated) throw new Error("Company not found");
-  return updated;
-}
-
-async getAllCompanies(): Promise<ICompany[]> {
-  const companiesFromDb = await this.model.find().lean();
-
-  if (!this._s3Service) {
-    return companiesFromDb.map((c) => ({
-     id: (c._id as ObjectId).toString(),
-      name: c.name,
-      email: c.email,
-      phone: c.phone ?? null,
-      role: c.role,
-      status: c.status,
-      documents: {
-        GST_Certificate: (c.documents?.GST_Certificate as unknown as string) ?? null,
-        RERA_License: (c.documents?.RERA_License as unknown as string) ?? null,
-        Trade_License: (c.documents?.Trade_License as unknown as string) ?? null,
-      },
-      documentStatus: c.documentStatus,
-    }));
+  if (status === "rejected" && reason) {
+    updateData["documents.rejectionReason"] = reason;
   }
 
-  // Map signed URLs
+  const updated = await CompanyModel.findOneAndUpdate(filter, {
+    $set: updateData,
+  }, { new: true }).lean();
+
+  if (!updated) throw new Error("Company not found");
+
+return {
+  id: updated._id.toString(),
+  name: updated.name,
+  email: updated.email,
+  phone: updated.phone ?? null,
+  role: updated.role,
+  status: updated.status,
+  documentStatus: updated.documentStatus,
+  rejectionReason: updated.rejectionReason ?? null,
+  documents: {
+    GST_Certificate: updated.documents?.GST_Certificate ?? null,
+    RERA_License: updated.documents?.RERA_License ?? null,
+    Trade_License: updated.documents?.Trade_License ?? null,
+  }
+};
+
+}
+
+
+  /* --------------------------------------------------
+      SAVE COMPANY
+    -------------------------------------------------- */
+  async save(company: ICompany): Promise<ICompany> {
+    console.log("\n📌 [Repository:save] Updating company");
+    console.log("➡️ Email:", company.email);
+
+    const updated = await this.model.findOneAndUpdate(
+      { email: company.email },
+      { $set: company },
+      { new: true }
+    ).lean<ICompany>();
+
+    if (!updated) throw new Error("Company not found");
+
+    console.log("✅ Company updated successfully");
+    return updated;
+  }
+
+  /* --------------------------------------------------
+      GET ALL COMPANIES WITH SIGNED URL MAPPING
+    -------------------------------------------------- */
+async getAllCompanies(): Promise<ICompany[]> {
+  console.log("\n📌 [Repository:getAllCompanies] Fetch triggered");
+
+  const companiesFromDb = await this.model.find().lean();
+  console.log(`📦 Found ${companiesFromDb.length} companies in DB`);
+
+  type DocumentField = "GST_Certificate" | "RERA_License" | "Trade_License";
+
   return await Promise.all(
-    companiesFromDb.map(async (c) => ({
-       id: (c._id as ObjectId).toString(),
-      name: c.name,
-      email: c.email,
-      phone: c.phone ?? null,
-      role: c.role,
-      status: c.status,
-      documents: {
-        GST_Certificate: c.documents?.GST_Certificate
-          ? await this._s3Service!.getSignedUrl(c.documents.GST_Certificate as unknown as string)
-          : null,
-        RERA_License: c.documents?.RERA_License
-          ? await this._s3Service!.getSignedUrl(c.documents.RERA_License as unknown as string)
-          : null,
-        Trade_License: c.documents?.Trade_License
-          ? await this._s3Service!.getSignedUrl(c.documents.Trade_License as unknown as string)
-          : null,
-      },
-      documentStatus: c.documentStatus,
-    }))
+    companiesFromDb.map(async (c) => {
+      console.log(`\n🔹 Resolving documents for: ${c.name} (${c.email})`);
+      console.log("🧩 Stored Document Keys:", c.documents);
+
+      const resolvedDocuments: Record<DocumentField, string | null> = {
+        GST_Certificate: null,
+        RERA_License: null,
+        Trade_License: null,
+      };
+
+      // Use a typed array to iterate safely
+      const documentFields: DocumentField[] = ["GST_Certificate", "RERA_License", "Trade_License"];
+
+      for (const field of documentFields) {
+        const fileKey = c.documents?.[field];
+
+        if (!fileKey) {
+          console.log(`⚠️ No file for ${field}`);
+          continue;
+        }
+
+        console.log(`📁 Generating signed URL for -> ${field}: ${fileKey}`);
+
+        try {
+          const signed = await this._s3Service.getSignedUrl(fileKey);
+          resolvedDocuments[field] = signed;
+          console.log(`🔑 Signed URL generated successfully (short): ${signed.slice(0, 90)}...`);
+        } catch (err) {
+          console.log(`❌ Failed to generate signed URL for: ${fileKey}`, err);
+        }
+      }
+
+      return {
+        id: (c._id as ObjectId).toString(),
+        name: c.name,
+        email: c.email,
+        phone: c.phone ?? null,
+        role: c.role,
+        status: c.status,
+        documentStatus: c.documentStatus,
+        documents: resolvedDocuments,
+      };
+    })
   );
 }
-
 }

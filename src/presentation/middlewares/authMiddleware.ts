@@ -1,141 +1,121 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { IJwtService } from "../../domain/services/IJWTService.js";
-import { IGetRepositoryDataUseCase } from "../../application/interfaces/use-cases/IGetRepositoryDataUseCase.js";
-import { AppError } from "../../shared/error/AppError.js";
 import { cookieData } from "../../shared/constants/cookieData.js";
-import { logger } from "../../infrastructure/logger/logger.js";
-import { UniqueEntityID } from "../../domain/value-objects/UniqueEntityID.js";
 import { StatusCode } from "../../domain/enums/StatusCode.js";
 import { Messages } from "../../shared/constants/message.js";
+import { inject, injectable } from "inversify";
+import { TYPES } from "../../infrastructure/DI/types.js";
+@injectable()
+export class SessionAuth {
+  constructor(@inject(TYPES.JwtService) private _jwtService: IJwtService) {}
 
-interface IRepoData {
-  status?: string;
-  email: string;
-  name: string;
-  userId: UniqueEntityID; // ✅ instead of _id
-}
-export class Authenticate<Entity> {
-  constructor(
-    private _jwtService: IJwtService,
-    private _getRepositoryDataUseCase: IGetRepositoryDataUseCase<Entity>
-  ) {}
-
-  verify: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
+  verify: RequestHandler = async (req, res, next) => {
     try {
-      // --- 🔍 Step 1: Log cookies coming from frontend ---
-      console.log("🍪 Incoming Cookies:", req.cookies);
-
+      console.log("🔍 Incoming request:", req.method, req.originalUrl);
+      console.log("🔍 Cookies received:", req.cookies);
       const { accessToken, refreshToken } = req.cookies;
 
+      // No tokens → not logged in
       if (!accessToken && !refreshToken) {
-        logger.error("🚫 No refresh/access token provided");
+        console.log("❌ No access or refresh token found");
         return res
           .status(StatusCode.UNAUTHORIZED)
           .json({ status: false, message: Messages.AUTH.LOGIN_EXPIRED });
       }
 
-      // ✅ 1. Validate Access Token first
+      // 🔹 1. Try Access Token first
       if (accessToken) {
-        console.log("🔑 Verifying Access Token...");
-        const tokenData = this._jwtService.verifyAccessToken(accessToken);
-        console.log("📦 Decoded Token Data:", tokenData);
+        console.log("🔎 Trying access token...");
+        const payload = this._jwtService.verifyAccessToken(accessToken);
 
-        if (tokenData) {
-          const foundUser = (await this._getRepositoryDataUseCase.OneDocumentById(
-            tokenData.userId
-          )) as IRepoData;
-
-          console.log("🧩 Fetched User from DB:", foundUser);
-
-          if (!foundUser) throw new AppError("User not found", StatusCode.NOT_FOUND);
-
-          if (foundUser.status === "banned") {
-            logger.error("⛔ User is banned");
-            this.clearCookies(res);
-            return res
-              .status(StatusCode.UNAUTHORIZED)
-              .json({ status: false, message: Messages.USER.BANNED });
-          }
-
+        if (payload) {
+          console.log("✅ Access token verified. Payload:", payload); // DEBUG
           req.user = {
-            role: tokenData.role,
-            email: foundUser.email,
-            name: foundUser.name,
-            id: foundUser.userId?.toString(), // ✅ FIXED
+            id: payload.userId,
+            role: payload.role,
+            email: payload.email,
+            name: payload.name,
           };
+          console.log("👤 Set req.user:", req.user); // DEBUG
 
-          console.log("✅ Attached user to req.user:", req.user);
           return next();
         }
+        console.log("⚠️ Access token invalid");
       }
 
-      // ✅ 2. If Access Token invalid, use Refresh Token
+      // 🔹 2. Access Token invalid → try Refresh Token
       if (refreshToken) {
-        console.log("🔁 Using Refresh Token...");
-        const userPayload = this._jwtService.verifyRefreshToken(refreshToken);
-        console.log("📦 Decoded Refresh Token Payload:", userPayload);
+        console.log("🔎 Trying refresh token...");
+        const payload = this._jwtService.verifyRefreshToken(refreshToken);
+        if (!payload) {
+          console.log("❌ Refresh token invalid → ending session");
+          return this.endSession(res);
+        }
 
-        const { exp, iat, ...payload } = userPayload;
+        console.log("🔄 Refresh token valid → issuing new access token");
 
-        // Generate a new access token
-        const newAccessToken = this._jwtService.signAccessToken(payload);
-        console.log("🆕 Issued new access token");
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { exp, iat, ...data } = payload;
 
-        // simplified cookie settings (no env usage)
+        // Issue new access token
+        const newAccessToken = this._jwtService.signAccessToken(data);
+
         res.cookie("accessToken", newAccessToken, {
           httpOnly: true,
-          secure: false, // set to true only if using HTTPS
+          secure: false,
           sameSite: "strict",
           maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
         });
 
-        const foundUser = (await this._getRepositoryDataUseCase.OneDocumentById(
-          userPayload.userId
-        )) as IRepoData;
-
-        console.log("🧩 Fetched User from DB (Refresh):", foundUser);
-
-        if (!foundUser)
-          throw new AppError("User not found", StatusCode.NOT_FOUND);
-
         req.user = {
+          id: payload.userId,
           role: payload.role,
-          email: foundUser.email,
-          name: foundUser.name,
-          id: foundUser.userId?.toString(), // ✅ valid now
+          email: payload.email,
+          name: payload.name,
         };
+        console.log("👤 Set req.user from refresh:", req.user); // DEBUG
 
-        console.log("✅ Attached user after refresh:", req.user);
         return next();
       }
 
-      // If neither token worked
-      console.log("❌ Neither token valid - clearing cookies");
-      this.clearCookies(res);
-      return res
-        .status(StatusCode.UNAUTHORIZED)
-        .json({ status: false, message: Messages.AUTH.AUTH_FAILED });
-    } catch (error: any) {
-      logger.error("💥 Error in authentication middleware:", error.message);
-      console.error("Stack Trace:", error.stack);
-      this.clearCookies(res);
-      return res
-        .status(StatusCode.UNAUTHORIZED)
-        .json({ status: false, message: Messages.AUTH.INVALID_TOKEN});
+      return this.endSession(res);
+    } catch {
+      return this.endSession(res);
     }
   };
 
-  private clearCookies(res: Response) {
-    console.log("🧹 Clearing cookies...");
-    res.clearCookie("accessToken", {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: false,
-    });
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: false,
+  authorize(allowedRoles: string[]): RequestHandler {
+    return (req: Request, res: Response, next: NextFunction) => {
+      console.log("🛡️ [Middleware] Authorize check");
+      console.log(`🎯 Required Roles: ${allowedRoles.join(", ")}`);
+      
+      if (!req.user) {
+        console.log("❌ No req.user found unexpectedly in authorize");
+        return res
+          .status(StatusCode.UNAUTHORIZED)
+          .json({ status: false, message: Messages.AUTH.LOGIN_EXPIRED });
+      }
+
+      console.log(`👤 Current User Role: '${req.user.role}'`);
+
+      if (!allowedRoles.includes(req.user.role)) {
+        console.log("⛔ Access Denied: Role mismatch");
+        return res
+          .status(StatusCode.FORBIDDEN)
+          .json({ status: false, message: "Access Denied: Insufficient Permissions" });
+      }
+      
+      console.log("✅ Access Granted");
+      next();
+    };
+  }
+
+  private endSession(res: Response) {
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+    return res.status(StatusCode.UNAUTHORIZED).json({
+      status: false,
+      message: Messages.AUTH.INVALID_TOKEN,
     });
   }
 }

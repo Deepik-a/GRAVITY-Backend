@@ -7,12 +7,14 @@ import { UniqueEntityID } from "../../../domain/value-objects/UniqueEntityID.js"
 import { ObjectId } from "mongodb";
 import jwt from "jsonwebtoken";
 import { Messages } from "../../../shared/constants/message.js";
-
+import { inject, injectable } from "inversify";
+import { TYPES } from "../../../infrastructure/DI/types";
+@injectable()
 export class VerifyOtpUseCase {
   constructor(
-    private _userRepository: IAuthRepository,
-    private _companyRepository: IAuthRepository,
-    private _otpService: IOtpService // DEPEND ON INTERFACE
+      @inject(TYPES.UserRepository)  private _userRepository: IAuthRepository,
+      @inject(TYPES.CompanyRepository)  private _companyRepository: IAuthRepository,
+      @inject(TYPES.OtpService)  private _otpService: IOtpService // DEPEND ON INTERFACE
   ) {}
 async execute(email: string, otp: string, purpose: OtpPurpose) {
   try {
@@ -27,6 +29,7 @@ async execute(email: string, otp: string, purpose: OtpPurpose) {
       const parsed = JSON.parse(tempData);
       const role = parsed.role; 
       const repo = role === "company" ? this._companyRepository : this._userRepository;
+      console.log(repo,"repo")
 
       const user = new UserSignUp(
         new UniqueEntityID(new ObjectId()),
@@ -73,7 +76,7 @@ async execute(email: string, otp: string, purpose: OtpPurpose) {
       if (!user && !company) throw new Error("No account found for this email");
 
       const role = user ? "user" : "company";
-
+console.log(role)
       return {
         success: true,
         role,

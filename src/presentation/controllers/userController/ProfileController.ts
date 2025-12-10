@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import { IGetUserProfileUseCase } from "../../../application/interfaces/use-cases/user/IGetUserProfileUseCase";
 import { StatusCode } from "../../../domain/enums/StatusCode.js";
-
+import { injectable, inject } from "inversify";
+import { TYPES } from "../../../infrastructure/DI/types";
+@injectable()
 export class ProfileController {
   constructor(
-    private readonly getProfileUseCase: IGetUserProfileUseCase,
+   @inject(TYPES.GetUserProfileUseCase) private readonly getProfileUseCase: IGetUserProfileUseCase,
   ) {}
 
   async getProfile(req: Request, res: Response, next: NextFunction) {

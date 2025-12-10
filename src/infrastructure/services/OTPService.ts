@@ -3,13 +3,14 @@ import { EmailService } from "./EmailService.js";
 import { OtpPurpose } from "../../domain/enums/OtpPurpose.js";
 import { IOtpService } from "../../domain/services/IOTPService.js";
 import { Messages } from "../../shared/constants/message.js";
+import { injectable,inject } from "inversify";
+import { TYPES } from "../DI/types.js";
 
+@injectable()
 export class OtpService implements IOtpService {
-  private _emailService: EmailService;
-
-  constructor() {
-    this._emailService = new EmailService();
-  }
+  constructor(
+    @inject(TYPES.EmailService) private _emailService: EmailService
+  ){}
 
   async generateOtp(email: string, purpose: OtpPurpose,role?: "user" | "company") {
     try {

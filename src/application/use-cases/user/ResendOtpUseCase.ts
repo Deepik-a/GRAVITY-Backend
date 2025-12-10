@@ -3,12 +3,14 @@ import { IOtpService } from "../../../domain/services/IOTPService.js";
 import { OtpPurpose } from "../../../domain/enums/OtpPurpose.js";
 import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
 import { Messages } from "../../../shared/constants/message.js";
-
+import { inject, injectable } from "inversify";
+import { TYPES } from "../../../infrastructure/DI/types";
+@injectable()
 export class ResendOtpUseCase {
   constructor(
-    private _otpService: IOtpService,
-    private _userRepository: IAuthRepository,
-    private _companyRepository: IAuthRepository
+    @inject(TYPES.OtpService) private _otpService: IOtpService,
+     @inject(TYPES.AuthRepository) private _userRepository: IAuthRepository,
+     @inject(TYPES.AuthRepository) private _companyRepository: IAuthRepository
   ) {}
 
   async execute(email: string): Promise<{ message: string }> {

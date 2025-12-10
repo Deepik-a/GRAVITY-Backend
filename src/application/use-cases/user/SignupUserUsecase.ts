@@ -5,12 +5,14 @@ import { OtpPurpose } from "../../../domain/enums/OtpPurpose.js";
 import bcrypt from "bcryptjs";
 import redisClient from "../../../infrastructure/config/redis.js";
 import { UniqueEntityID } from "../../../domain/value-objects/UniqueEntityID.js";
-
+import { inject, injectable } from "inversify";
+import { TYPES } from "../../../infrastructure/DI/types";
+@injectable()
 export class RegisterUseCase {
   constructor(
-    private readonly _userRepo: IAuthRepository,
-    private readonly _companyRepo: IAuthRepository,
-   private _otpService: IOtpService
+   @inject(TYPES.UserRepository) private readonly _userRepo: IAuthRepository,
+   @inject(TYPES.CompanyRepository) private readonly _companyRepo: IAuthRepository,
+   @inject(TYPES.OtpService) private _otpService: IOtpService
   ) {}
 
   async execute(payload: {
@@ -19,16 +21,25 @@ export class RegisterUseCase {
     password?: string;
     googleId?: string;
     phone: string;
-    role: "user" | "company" | "admin";
+    role: "user" | "company";
   }): Promise<{ message: string }> {
     const { role } = payload;
     const repo = role === "company" ? this._companyRepo : this._userRepo;
 
     console.log("repo selected from registerusecase",repo)
     
-    // 1) Check if exists
+    // 1) Check if email exists in current role
     const existing = await repo.findByEmail(payload.email);
     if (existing) throw new Error("Email already in use");
+
+    // 2) Check if email exists in OTHER role
+    if (role === "user") {
+      const existingCompany = await this._companyRepo.findByEmail(payload.email);
+      if (existingCompany) throw new Error("Email is already registered as company");
+    } else {
+      const existingUser = await this._userRepo.findByEmail(payload.email);
+      if (existingUser) throw new Error("Email is already registered as user");
+    }
 
     // ---------------- Google Signup ----------------
     if (payload.googleId) {

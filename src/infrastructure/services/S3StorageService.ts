@@ -1,8 +1,15 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { 
+  S3Client, 
+  PutObjectCommand, 
+  GetObjectCommand 
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { IStorageService } from "../../domain/services/IStorageService";
+import { injectable } from "inversify";
 
+@injectable()
 export class S3StorageService implements IStorageService {
+
   private readonly _s3 = new S3Client({
     region: process.env.AWS_REGION,
     credentials: {
@@ -11,6 +18,7 @@ export class S3StorageService implements IStorageService {
     },
   });
 
+  // ------------------ UPLOAD ------------------
   async uploadFile(file: Express.Multer.File): Promise<string> {
     const bucket = process.env.S3_BUCKET!;
     const key = `company-documents/${Date.now()}_${file.originalname}`;
@@ -24,17 +32,20 @@ export class S3StorageService implements IStorageService {
       })
     );
 
-    // Return signed URL
-    return this.getSignedUrl(key);
+    // ⛔ DO NOT return signed URL here
+    // ✔ ONLY return file key
+    return key;
   }
 
-  // ✅ New method to generate signed URL for existing object
+  // ------------------ SIGNED URL ON DEMAND ------------------
   async getSignedUrl(key: string): Promise<string> {
     const bucket = process.env.S3_BUCKET!;
-    return getSignedUrl(
+    
+    return await getSignedUrl(
       this._s3,
       new GetObjectCommand({ Bucket: bucket, Key: key }),
-      { expiresIn: 3600 } // 1 hour
+      { expiresIn: 300 } // 5 min validity for security
     );
   }
 }
+

@@ -15,8 +15,8 @@ export interface GoogleUserResponseDTO {
   email: string;
   googleId: string;
   token: string;
-  role: "user" | "company" | "admin"; // include role
-  isPending?: boolean; // optional, for company verification
+  role: "user" | "company"; // include role
+  documentStatus?: "pending" | "verified" | "rejected"; // ✅ send document status
 }
 
 

@@ -2,6 +2,5 @@
 import { ICompany } from "../../../../domain/entities/Company";
 
 export interface IVerifyCompanyUseCase {
-
-  execute(companyId: string, approve: boolean): Promise<ICompany>;
+execute(companyId: string, approve: boolean, reason?: string): Promise<ICompany>
 }

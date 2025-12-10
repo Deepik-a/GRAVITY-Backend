@@ -13,10 +13,12 @@ export interface ICompanyRepository {
   ): Promise<ICompany>;
 
   // Update only documentStatus by email or companyId
-  updateDocumentStatus(
-    params: { email?: string; companyId?: string },
-    status: "pending" | "verified" | "rejected"
-  ): Promise<ICompany>;
+// Interface / Repository signature
+updateDocumentStatus(
+  params: { email?: string; companyId?: string },
+  status: "pending" | "verified" | "rejected",
+  reason?: string // ✅ add optional reason
+): Promise<ICompany>;
 
   // Save or Update a company (optional)
   save(company: ICompany): Promise<ICompany>;

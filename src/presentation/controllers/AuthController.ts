@@ -11,22 +11,24 @@ import { ResetPasswordUseCase } from "../../application/use-cases/user/ResetPass
 import { ResendOtpUseCase } from "../../application/use-cases/user/ResendOtpUseCase.js";
 import { DetectUserRoleUseCase } from "../../application/use-cases/user/DetectUserRoleUseCase.js";
 import { verifyGoogleToken } from "../../infrastructure/stratergies/googleStratergy.js";
+import { injectable, inject } from "inversify";
+import { TYPES } from "../../infrastructure/DI/types";
 
 
 
 import { OtpPurpose } from "../../domain/enums/OtpPurpose.js";
-
+@injectable()
 export class AuthController {
 
   constructor(
-    private readonly _detectUserRoleUseCase: DetectUserRoleUseCase,
-    private readonly _loginUseCase: LoginUserUseCase,
-    private readonly _forgotPasswordUseCase: ForgotPasswordUseCase,
-    private readonly _verifyOtpUseCase: VerifyOtpUseCase,
-    private readonly _resetPasswordUseCase: ResetPasswordUseCase,
-    private readonly _registerUseCase: RegisterUseCase,
-    private readonly _resendOtpUseCase: ResendOtpUseCase,
-    private readonly _googleAuthUseCase: GoogleAuthUseCase,
+       @inject(TYPES.DetectUserRoleUseCase) private readonly _detectUserRoleUseCase: DetectUserRoleUseCase,
+      @inject(TYPES.LoginUserUseCase)  private readonly _loginUseCase: LoginUserUseCase,
+      @inject(TYPES.ForgotPasswordUseCase)  private readonly _forgotPasswordUseCase: ForgotPasswordUseCase,
+      @inject(TYPES.VerifyOtpUseCase)  private readonly _verifyOtpUseCase: VerifyOtpUseCase,
+      @inject(TYPES.ResetPasswordUseCase)  private readonly _resetPasswordUseCase: ResetPasswordUseCase,
+      @inject(TYPES.RegisterUseCase)  private readonly _registerUseCase: RegisterUseCase,
+      @inject(TYPES.ResendOtpUseCase) private readonly _resendOtpUseCase: ResendOtpUseCase,
+       @inject(TYPES.GoogleAuthUseCase) private readonly _googleAuthUseCase: GoogleAuthUseCase,
   ) {}
 
 

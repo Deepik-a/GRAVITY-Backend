@@ -4,7 +4,8 @@ import UserModel from "../database/models/UserModel.js";
 import { IAuthRepository } from "../../domain/repositories/IAuthRepository.js";
 import { UserSignUp, GoogleSignUp, UserProfile } from "../../domain/entities/User.js";
 import { UniqueEntityID } from "../../domain/value-objects/UniqueEntityID.js";
-
+import { injectable } from "inversify";
+@injectable()
 export class UserRepository
   extends BaseRepository<typeof UserModel.prototype>
   implements IAuthRepository

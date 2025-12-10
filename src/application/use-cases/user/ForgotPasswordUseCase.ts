@@ -2,11 +2,15 @@ import { OtpPurpose } from "../../../domain/enums/OtpPurpose.js";
 import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
 import { IOtpService } from "../../../domain/services/IOTPService.js";
 import { Messages } from "../../../shared/constants/message.js";
+import { inject, injectable } from "inversify";
+import { TYPES } from "../../../infrastructure/DI/types.js";
+
+@injectable()
 export class ForgotPasswordUseCase {
   constructor(
-  private _userRepository: IAuthRepository,
-private _companyRepository: IAuthRepository,
-private _otpService: IOtpService ,
+  @inject(TYPES.AuthRepository )private _userRepository: IAuthRepository,
+ @inject(TYPES.AuthRepository) private _companyRepository: IAuthRepository,
+ @inject(TYPES.OtpService) private _otpService: IOtpService ,
 
   ) {}
 

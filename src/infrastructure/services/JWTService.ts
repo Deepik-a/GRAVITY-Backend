@@ -1,7 +1,9 @@
 import jwt from "jsonwebtoken";
 import { IJwtService } from "../../domain/services/IJWTService.js";
 import { env } from "../../infrastructure/config/env.js";
+import { injectable } from "inversify";
 
+@injectable()
 export class JwtService implements IJwtService {
 
   signAccessToken(payload: Record<string, any>): string {

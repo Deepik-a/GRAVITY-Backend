@@ -5,10 +5,12 @@ export interface UserSignUpDetails {
   name: string;
   email: string;
   password: string;
-  role: "user" | "company" | "admin";
+  role: "user" | "company" ;
   provider:"local"|"google"
   phone?: string;
   status?: "pending" | "verified";
+  documentStatus?: "pending" | "verified" | "rejected";
+  rejectionReason?: string | null;
 }
 
 
@@ -16,9 +18,12 @@ export interface GoogleSignUpDetails {
   name: string;
   email: string;
   googleId: string;
-  role: "user" | "company" | "admin";
+  role: "user" | "company" ;
   provider:"local"|"google";
   status?: "pending" | "verified";
+  id?: UniqueEntityID;
+  documentStatus?: "pending" | "verified" | "rejected";
+  rejectionReason?: string | null;
 }
 
 //a user is authenticated with basic details,profile is the user's extended information
@@ -42,10 +47,12 @@ export class UserSignUp implements UserSignUpDetails {
     public name: string,
     public email: string,
     public password: string,
-    public role: "user" | "company" | "admin",
+    public role: "user" | "company" ,
     public provider: "local" | "google" = "local",
     public phone: string="",        // optional → move down
-    public status: "pending" | "verified" // optional → move down
+  public status: "pending" | "verified", // optional → move down
+    public documentStatus?: "pending" | "verified" | "rejected",
+    public rejectionReason?: string | null
   ) {}
 }
 
@@ -57,9 +64,12 @@ export class GoogleSignUp implements GoogleSignUpDetails {
     public name: string,
     public email: string,
     public googleId: string,
-    public role: "user" | "company" | "admin",
+    public role: "user" | "company",
     public provider:"local"|"google",
-    public status?: "pending" | "verified"
+    public status?: "pending" | "verified",
+    public id?: UniqueEntityID, // Added ID
+    public documentStatus?: "pending" | "verified" | "rejected", // Added
+    public rejectionReason?: string | null // Added
   ) {}
 }
 
@@ -85,7 +95,7 @@ export interface AuthenticatedUser {
   id: UniqueEntityID;
   name: string;
   email: string;
-  role: "user" | "company" | "admin";
+  role: "user" | "company";
   provider: "local" | "google";
   googleId?: string;   // optional
 }

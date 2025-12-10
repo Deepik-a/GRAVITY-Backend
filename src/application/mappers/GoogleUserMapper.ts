@@ -12,7 +12,7 @@ export class GoogleUserMapper {
       googleId: user.googleId,
       token,
       role: user.role, // ✅ send role to frontend
-      isPending: user.status === "pending", // ✅ useful for redirect
+      documentStatus: user.documentStatus, // ✅ send doc status directly
     };
   }
 }

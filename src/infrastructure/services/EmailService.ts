@@ -2,7 +2,9 @@
 //  aligning with the Dependency Inversion Principle.
 
 import nodemailer from "nodemailer"
+import { injectable } from "inversify";
 
+@injectable()
 export class EmailService{
 
     private _transporter;
@@ -140,5 +142,87 @@ async sendOtpEmail(to: string, otp: string) {
 
   console.log(`📧 OTP sent to ${to}`);
 }
+
+
+async sendRejectionEmail(to: string, reason: string) {
+  const htmlContent = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+  
+  <table width="100%" style="padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" style="background:white;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+
+          <!-- HEADER -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#081C45,#1E40AF);padding:30px;text-align:center;color:white;">
+              <h2 style="margin:0;font-size:28px;font-weight:bold;">GRAVITY</h2>
+              <p style="margin:5px 0 0;font-size:14px;">Document Verification Update</p>
+            </td>
+          </tr>
+
+          <!-- SEPARATOR -->
+          <tr>
+            <td style="height:6px;background:repeating-linear-gradient(45deg,#FCD34D 0px,#FCD34D 10px,#081C45 10px,#081C45 20px);"></td>
+          </tr>
+
+          <!-- CONTENT -->
+          <tr>
+            <td style="padding:30px;">
+              <h3 style="color:#081C45;margin-bottom:15px;">Document Verification Update</h3>
+              <p style="color:#4B5563;font-size:15px;line-height:1.6;">
+                Hello,
+                <br/><br/>
+                Thank you for submitting your documents for verification. After reviewing them, we were unable to approve your application at this time.
+              </p>
+
+              <div style="background:#FEF3C7;padding:15px;border-left:4px solid #F59E0B;border-radius:6px;margin:20px 0;">
+                <strong style="color:#92400E;font-size:14px;">Reason for Rejection:</strong>
+                <p style="color:#92400E;font-size:14px;margin:5px 0 0;line-height:1.5;">
+                  ${reason}
+                </p>
+              </div>
+
+              <p style="color:#4B5563;font-size:15px;line-height:1.6;">
+                You may re-upload corrected documents anytime from your dashboard to continue the verification process.
+              </p>
+
+              <p style="margin-top:20px;font-size:15px;font-weight:bold;color:#1E40AF;">
+                Thank you for your cooperation.
+              </p>
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="background:#F9FAFB;padding:20px;text-align:center;font-size:12px;color:#6B7280;border-top:1px solid #E5E7EB;">
+              © 2024 GRAVITY • Connecting Builders & Homeowners
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  </body>
+  </html>
+  `;
+
+  await this._transporter.sendMail({
+    from: `"GRAVITY Support" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "⚠ Action Needed: Document Rejected",
+    html: htmlContent,
+  });
+
+  console.log(`📧 Rejection Email sent to ${to}`);
+}
+
 
 }

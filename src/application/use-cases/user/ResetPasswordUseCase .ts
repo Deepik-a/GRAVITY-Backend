@@ -3,10 +3,12 @@ import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js
 import redisClient from "../../../infrastructure/config/redis.js";
 import { OtpPurpose } from "../../../domain/enums/OtpPurpose.js";
 import { Messages } from "../../../shared/constants/message.js";
-
+import { inject, injectable } from "inversify";
+import { TYPES } from "../../../infrastructure/DI/types";
+@injectable()
 export class ResetPasswordUseCase {
-  constructor(private _userRepository: IAuthRepository,
-private _companyRepository: IAuthRepository) {}
+  constructor( @inject(TYPES.AuthRepository) private _userRepository: IAuthRepository,
+@inject(TYPES.AuthRepository) private _companyRepository: IAuthRepository) {}
 
   async execute(email: string, newPassword: string) {
 

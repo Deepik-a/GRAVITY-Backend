@@ -13,5 +13,6 @@ export interface ICompany {
   };
 
   documentStatus: "pending" | "verified" | "rejected";
+  rejectionReason?: string | null;   // <--- add here
 }
 

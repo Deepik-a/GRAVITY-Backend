@@ -1,12 +1,15 @@
 import { IUploadCompanyDocumentsUseCase } from
   "../../../application/interfaces/use-cases/company/IUploadCompanyDocumentsUseCase";
 import { Request, Response, NextFunction } from "express";
+import { injectable, inject } from "inversify";
+import { TYPES } from "../../../infrastructure/DI/types";
 import { StatusCode } from "../../../domain/enums/StatusCode";
 import { Messages } from "../../../shared/constants/message";
 
+@injectable()
 export class CompanyDocumentController {
   constructor(
-    private readonly _uploadDocsUseCase: IUploadCompanyDocumentsUseCase
+    @inject(TYPES.UploadCompanyDocumentsUseCase) private readonly _uploadDocsUseCase: IUploadCompanyDocumentsUseCase
   ) {}
 
   async upload(req: Request, res: Response, next: NextFunction) {

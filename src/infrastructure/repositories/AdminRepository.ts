@@ -1,7 +1,9 @@
 import { IAdminRepository } from "../../domain/repositories/IAdminRepository";
 import { IAdmin } from "../../domain/entities/Admin";
 import AdminModel from "../database/models/AdminModel";
+import { injectable } from "inversify";
 
+@injectable()
 export class AdminRepository implements IAdminRepository {
 
   // 🔵 DB-LAYER METHOD (for admin-specific operations)
