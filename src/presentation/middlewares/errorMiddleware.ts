@@ -1,18 +1,26 @@
 import { Request, Response, NextFunction } from "express";
-import { StatusCode } from "../../domain/enums/StatusCode";
+import { AppError } from "@/shared/error/AppError";
+import { StatusCode } from "@/domain/enums/StatusCode";
 
- export function errorHandler(
+export function errorHandler(
   err: unknown,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction 
 ) {
-  console.error("Error caught by middleware:", err);
-  if (err instanceof Error) {
-    // Known application error
-    res.status(StatusCode.BAD_REQUEST).json({ error: err.message });
-  } else {
-    // Unexpected or unknown error
-    res.status(StatusCode.INTERNAL_ERROR).json({ error: "Unexpected error occurred" });
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      message: err.message,
+    });
   }
+
+  if (err instanceof Error) {
+    return res.status(StatusCode.BAD_REQUEST).json({
+      message: err.message,
+    });
+  }
+
+  return res.status(StatusCode.INTERNAL_ERROR).json({
+    message: "Internal server error",
+  });
 }

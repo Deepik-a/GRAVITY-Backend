@@ -1,4 +1,4 @@
-import { ICompany } from "../entities/Company";
+import { ICompany } from "@/domain/entities/Company";
 
 export interface ICompanyRepository {
 
@@ -25,4 +25,7 @@ updateDocumentStatus(
 
   // Get all companies
   getAllCompanies(): Promise<ICompany[]>;
+
+  // Update block status
+  updateBlockStatus(companyId: string, isBlocked: boolean): Promise<ICompany | null>;
 }

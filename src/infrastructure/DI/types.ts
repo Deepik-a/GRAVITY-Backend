@@ -19,6 +19,8 @@ export const TYPES = {
   GetAllUsersUseCase: Symbol.for("GetAllUsersUseCase"),
   GetAllCompaniesUseCase: Symbol.for("GetAllCompaniesUseCase"),
   VerifyCompanyUseCase: Symbol.for("VerifyCompanyUseCase"),
+  ToggleUserBlockStatusUseCase: Symbol.for("ToggleUserBlockStatusUseCase"),
+  ToggleCompanyBlockStatusUseCase: Symbol.for("ToggleCompanyBlockStatusUseCase"),
 
   // Use Cases - User/Auth
   DetectUserRoleUseCase: Symbol.for("DetectUserRoleUseCase"),
@@ -30,6 +32,7 @@ export const TYPES = {
   ResendOtpUseCase: Symbol.for("ResendOtpUseCase"),
   GoogleAuthUseCase: Symbol.for("GoogleAuthUseCase"),
 
+
   // Use Cases - Company
   UploadCompanyDocumentsUseCase: Symbol.for("UploadCompanyDocumentsUseCase"),
 
@@ -40,7 +43,7 @@ export const TYPES = {
   AdminController: Symbol.for("AdminController"),
   AuthController: Symbol.for("AuthController"),
   CompanyDocumentController: Symbol.for("CompanyDocumentController"),
-  // PofileController:Symbol.for("ProfileController"),
+  ProfileController:Symbol.for("ProfileController"),
 
   // Middleware
   SessionAuth: Symbol.for("SessionAuth"),

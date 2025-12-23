@@ -1,29 +1,32 @@
-import dotenv from "dotenv";
-dotenv.config();
-
+import { env } from "@/infrastructure/config/env";
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import path from "path";
-// import userRoutes from "./presentation/routes/userRoutes";
-import AdminRoutes from "./presentation/routes/adminRoutes";
-import AuthRoutes from "./presentation/routes/AuthRoutes.js";
-import CompanyRoutes from './presentation/routes/companyRoutes'
-import { connectRedis } from "./infrastructure/config/redis.js";
-import { errorHandler } from "./presentation/middlewares/errorMiddleware.js";
+import AdminRoutes from "@/presentation/routes/AdminRoutes";
+import AuthRoutes from "@/presentation/routes/AuthRoutes";
+import UserRoutes from "@/presentation/routes/UserRoutes";
+import CompanyRoutes from "@/presentation/routes/CompanyRoutes";
+import { connectRedis } from "@/infrastructure/config/redis";
+import { errorHandler } from "@/presentation/middlewares/errorMiddleware";
 import cookieParser from "cookie-parser";
+import { container } from "@/infrastructure/DI/inversify.config";
+import { TYPES } from "@/infrastructure/DI/types";
+import { ILogger } from "@/domain/services/ILogger";
 
-console.log("hello from index.ts good");
+const logger = container.get<ILogger>(TYPES.Logger);
+
+logger.info("hello from index.ts good");
 
 const app = express();
-console.log("hello before public file");
+logger.info("hello before public file");
 
 // must come before routes/middleware that use req.cookies
 app.use(cookieParser());
 
 // Serve static files
 app.use("/public", express.static(path.join(process.cwd(), "public")));
-console.log(process.cwd(), "process.cwd()");
+logger.info(process.cwd(), { cwd: process.cwd() });
 
 // CORS
 app.use(
@@ -40,12 +43,12 @@ app.use(express.json());
 app.use("/admin", AdminRoutes);
 app.use("/company", CompanyRoutes);
 app.use("/auth", AuthRoutes);
+app.use("/user",UserRoutes);
 
 // ------------ ERROR MIDDLEWARE ------------
 app.use(errorHandler);
 
-const uri = process.env.MONGO_URI;
-if (!uri) throw new Error("MONGO_URI is not defined");
+const uri = env.MONGO_URI;
 
 //
 //  ✅ FIX: Wrap startup logic in async to avoid "Top-level await" error
@@ -54,16 +57,16 @@ if (!uri) throw new Error("MONGO_URI is not defined");
   try {
     // CONNECT REDIS
     await connectRedis();
-    console.log("Redis connected");
+    logger.info("Redis connected");
 
     // CONNECT MONGO
     await mongoose.connect(uri);
-    console.log("MongoDB connected");
+    logger.info("MongoDB connected");
 
     // START SERVER
-    app.listen(5000, () => console.log("Server running on port 5000"));
+    app.listen(env.PORT, () => logger.info(`Server running on port ${env.PORT}`));
   } catch (error) {
-    console.error("Startup error:", error);
+    logger.error("Startup error:", { error });
     process.exit(1);
   }
 })();

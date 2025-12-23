@@ -1,19 +1,25 @@
-import redisClient from "../../../infrastructure/config/redis.js";
-import { IOtpService } from "../../../domain/services/IOTPService.js";
-import { OtpPurpose } from "../../../domain/enums/OtpPurpose.js";
-import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
-import { Messages } from "../../../shared/constants/message.js";
+import redisClient from "@/infrastructure/config/redis";
+import { IOtpService } from "@/domain/services/IOTPService";
+import { OtpPurpose } from "@/domain/enums/OtpPurpose";
+import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import { Messages } from "@/shared/constants/message";
 import { inject, injectable } from "inversify";
-import { TYPES } from "../../../infrastructure/DI/types";
+import { TYPES } from "@/infrastructure/DI/types";
+import { IResendOtpUseCase } from "@/application/interfaces/use-cases/user/IResendOtpUseCase";
+import { ResendOtpRequestDto, ResendOtpResponseDto } from "@/application/dtos/AuthDTOs";
+import { AppError } from "@/shared/error/AppError";
+import { StatusCode } from "@/domain/enums/StatusCode";
+
 @injectable()
-export class ResendOtpUseCase {
+export class ResendOtpUseCase implements IResendOtpUseCase {
   constructor(
     @inject(TYPES.OtpService) private _otpService: IOtpService,
      @inject(TYPES.AuthRepository) private _userRepository: IAuthRepository,
      @inject(TYPES.AuthRepository) private _companyRepository: IAuthRepository
   ) {}
 
-  async execute(email: string): Promise<{ message: string }> {
+  async execute(dto: ResendOtpRequestDto): Promise<ResendOtpResponseDto> {
+    const { email } = dto;
     let purpose: OtpPurpose;
 
     // Check for pending signup first
@@ -30,8 +36,9 @@ export class ResendOtpUseCase {
       if (userExists || companyExists) {
         purpose = OtpPurpose.FORGOT_PASSWORD;
       } else {
-        throw new Error(
-          "No pending signup or registered account found for this email."
+        throw new AppError(
+          "No pending signup or registered account found for this email.",
+          StatusCode.NOT_FOUND
         );
       }
     }

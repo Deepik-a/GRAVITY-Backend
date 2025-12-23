@@ -1,38 +1,41 @@
 import jwt from "jsonwebtoken";
 import { IJwtService } from "../../domain/services/IJWTService.js";
 import { env } from "../../infrastructure/config/env.js";
-import { injectable } from "inversify";
+import { injectable, inject } from "inversify";
+import { TYPES } from "../DI/types.js";
+import { ILogger } from "@/domain/services/ILogger";
 
 @injectable()
 export class JwtService implements IJwtService {
+  constructor(
+    @inject(TYPES.Logger) private readonly _logger: ILogger
+  ) {}
 
-  signAccessToken(payload: Record<string, any>): string {
-    console.log("🧠 [JWT] Signing Access Token with payload:", payload);
-    const token = jwt.sign(payload, env.JWT_ACCESS_SECRET, { expiresIn: "15m" });
-    console.log("🔐 [JWT] Access Token created:", token);
+  signAccessToken(payload: Record<string, unknown>): string {
+    this._logger.info("🧠 [JWT] Signing Access Token with payload:", { payload });
+    const token = jwt.sign(payload, env.JWT_ACCESS_SECRET, { expiresIn: env.JWT_ACCESS_EXPIRATION });
+    this._logger.info("🔐 [JWT] Access Token created:", { token });
     return token;
   }
 
-  signRefreshToken(payload: Record<string, any>): string {
-    console.log("🧠 [JWT] Signing Refresh Token with payload:", payload);
-    const token = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
-    console.log("🔐 [JWT] Refresh Token created:", token);
+  signRefreshToken(payload: Record<string, unknown>): string {
+    this._logger.info("🧠 [JWT] Signing Refresh Token with payload:", { payload });
+    const token = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRATION });
+    this._logger.info("🔐 [JWT] Refresh Token created:", { token });
     return token;
   }
 
-  verifyAccessToken(token: string): any {
-    console.log("🧠 [JWT] Verifying Access Token...");
-    console.log("📜 [JWT] Raw Access Token:", token);
-    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET);
-    console.log("📦 [JWT] Decoded Access Token Payload:", decoded);
+  verifyAccessToken(token: string): Record<string, unknown> {
+    this._logger.info("🧠 [JWT] Verifying Access Token...", { token });
+    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as Record<string, unknown>;
+    this._logger.info("📦 [JWT] Decoded Access Token Payload:", { decoded });
     return decoded;
   }
 
-  verifyRefreshToken(token: string): any {
-    console.log("🧠 [JWT] Verifying Refresh Token...");
-    console.log("📜 [JWT] Raw Refresh Token:", token);
-    const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET);
-    console.log("📦 [JWT] Decoded Refresh Token Payload:", decoded);
+  verifyRefreshToken(token: string): Record<string, unknown> {
+    this._logger.info("🧠 [JWT] Verifying Refresh Token...", { token });
+    const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET) as Record<string, unknown>;
+    this._logger.info("📦 [JWT] Decoded Refresh Token Payload:", { decoded });
     return decoded;
   }
 }

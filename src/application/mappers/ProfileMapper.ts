@@ -1,10 +1,10 @@
-import { UserProfile } from "../../domain/entities/User.js";
-import { ProfileResponseDTO } from "../dtos/ProfileResponseDTO.js";
-import { UniqueEntityID } from "../../domain/value-objects/UniqueEntityID.js";
+import { UserProfile } from "@/domain/entities/User";
+import { ProfileResponseDTO } from "@/application/dtos/user/ProfileResponseDTO";
+import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
 
-export class ProfileMapper {
+export const ProfileMapper = {
   // Convert domain entity → DTO
-  static toResponseDTO(profile: UserProfile): ProfileResponseDTO {
+  toResponseDTO(profile: UserProfile): ProfileResponseDTO {
     return new ProfileResponseDTO(
       profile.userId.toString(),
       profile.name,
@@ -12,12 +12,13 @@ export class ProfileMapper {
       profile.profileImage,
       profile.phone,
       profile.location,
-      profile.bio
+      profile.bio,
+      profile.isBlocked,
     );
-  }
+  },
 
   // Optional: Convert DTO → domain entity (for updates, etc.)
-  static toDomain(dto: ProfileResponseDTO): UserProfile {
+  toDomain(dto: ProfileResponseDTO): UserProfile {
     return new UserProfile(
       new UniqueEntityID(dto.userId),
       dto.name,
@@ -25,7 +26,8 @@ export class ProfileMapper {
       dto.profileImage,
       dto.phone,
       dto.location,
-      dto.bio
+      dto.bio,
+      dto.isBlocked,
     );
   }
-}
+};

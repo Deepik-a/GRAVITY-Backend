@@ -1,18 +1,18 @@
-import { GoogleSignUp } from "../../domain/entities/User.js";
-import { GoogleUserResponseDTO } from "../dtos/GoogleUserResponseDTO.js";
+import { GoogleSignUp } from "@/domain/entities/User";
+import { GoogleUserResponseDto } from "@/application/dtos/AuthDTOs";
 
-export class GoogleUserMapper {
-  static toResponseDTO(
+export const GoogleUserMapper = {
+  toResponseDTO(
     user: GoogleSignUp,
     token: string
-  ): GoogleUserResponseDTO {
+  ): GoogleUserResponseDto {
     return {
       name: user.name,
       email: user.email,
       googleId: user.googleId,
       token,
-      role: user.role, // ✅ send role to frontend
-      documentStatus: user.documentStatus, // ✅ send doc status directly
+      role: user.role, 
+      documentStatus: user.documentStatus, 
     };
   }
-}
+};

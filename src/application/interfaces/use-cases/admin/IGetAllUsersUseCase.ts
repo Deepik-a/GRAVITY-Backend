@@ -1,6 +1,7 @@
 // src/application/use-cases/admin/IGetAllUsersUseCase.ts
-import { UserProfile } from "../../../../domain/entities/User";
+import { UserListResponseDto } from "@/application/dtos/admin/UserListResponseDto";
+// import { GetAllUsersRequestDto } from "@/application/dtos/admin/GetAllUsersRequestDto";
 
 export interface IGetAllUsersUseCase {
-  execute(): Promise<UserProfile[]>;
+  execute(): Promise<UserListResponseDto[]>;
 }

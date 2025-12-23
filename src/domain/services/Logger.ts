@@ -1,10 +1,10 @@
 import { injectable } from "inversify";
 import winston from "winston";
-import { ILogger } from "../../domain/services/ILogger";
+import { ILogger } from "@/domain/services/ILogger";
 
 @injectable()
 export class LoggerService implements ILogger {
-  private logger = winston.createLogger({
+  private _logger = winston.createLogger({
     level: "info",
     format: winston.format.combine(
       winston.format.timestamp(),
@@ -16,15 +16,17 @@ export class LoggerService implements ILogger {
     ],
   });
 
-  info(message: string, meta?: any) {
-    this.logger.info(message, meta);
+  info(message: string, meta?: Record<string, unknown>) {
+    this._logger.info(message, meta);
   }
 
-  warn(message: string, meta?: any) {
-    this.logger.warn(message, meta);
+  warn(message: string, meta?: Record<string, unknown>) {
+    this._logger.warn(message, meta);
   }
 
-  error(message: string, meta?: any) {
-    this.logger.error(message, meta);
+  error(message: string, meta?: Record<string, unknown>) {
+    this._logger.error(message, meta);
   }
 }
+
+export const logger = new LoggerService();

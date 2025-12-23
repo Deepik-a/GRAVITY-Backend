@@ -1,9 +1,9 @@
-import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
-import { ProfileResponseDTO } from "../../dtos/ProfileResponseDTO.js";
-import { ProfileMapper } from "../../mappers/ProfileMapper.js";
-import { UniqueEntityID } from "../../../domain/value-objects/UniqueEntityID.js";
+import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import { ProfileResponseDTO } from "@/application/dtos/ProfileResponseDTO";
+import { ProfileMapper } from "@/application/mappers/ProfileMapper";
+import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
 import { inject, injectable } from "inversify";
-import { TYPES } from "../../../infrastructure/DI/types";
+import { TYPES } from "@/infrastructure/DI/types";
 
 interface UpdateProfileInput {
   userId: string;
@@ -12,8 +12,10 @@ interface UpdateProfileInput {
   location?: string;
   bio?: string;
 }
+import { IUpdateUserProfileUseCase } from "@/application/interfaces/use-cases/user/IUpdateUserProfileUseCase";
+
 @injectable()
-export class UpdateUserProfileUseCase {
+export class UpdateUserProfileUseCase implements IUpdateUserProfileUseCase {
   constructor( @inject(TYPES.AuthRepository) private _userRepository: IAuthRepository) {}
 
   async execute(data: UpdateProfileInput): Promise<ProfileResponseDTO> {

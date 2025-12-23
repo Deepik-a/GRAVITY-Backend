@@ -1,17 +1,20 @@
 import { Request, Response, NextFunction } from "express";
-import { IGetUserProfileUseCase } from "../../../application/interfaces/use-cases/user/IGetUserProfileUseCase";
-import { StatusCode } from "../../../domain/enums/StatusCode.js";
+import { IGetUserProfileUseCase } from "@/application/interfaces/use-cases/user/IGetUserProfileUseCase";
+import { ProfileResponseDTO } from "@/application/dtos/ProfileResponseDTO";
+import { StatusCode } from "@/domain/enums/StatusCode";
 import { injectable, inject } from "inversify";
-import { TYPES } from "../../../infrastructure/DI/types";
+import { TYPES } from "@/infrastructure/DI/types";
+import { GetUserProfileRequestDto } from "@/application/dtos/user/ProfileRequestDto";
+
 @injectable()
 export class ProfileController {
   constructor(
-   @inject(TYPES.GetUserProfileUseCase) private readonly getProfileUseCase: IGetUserProfileUseCase,
+   @inject(TYPES.GetUserProfileUseCase) private readonly _getProfileUseCase: IGetUserProfileUseCase,
   ) {}
 
   async getProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const user = (req as any).user;
+      const user = req.user;
 
       if (!user?.id) {
         return res
@@ -19,7 +22,8 @@ export class ProfileController {
           .json({ message: "Unauthorized: No user ID found" });
       }
 
-      const profile = await this.getProfileUseCase.execute(user.id);
+      const requestDto: GetUserProfileRequestDto = { userId: user.id };
+      const profile: ProfileResponseDTO = await this._getProfileUseCase.execute(requestDto);
 
       return res.status(StatusCode.SUCCESS).json({
         message: "Profile fetched successfully",
@@ -29,6 +33,5 @@ export class ProfileController {
       next(error);
     }
   }
-
 }
 

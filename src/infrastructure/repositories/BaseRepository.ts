@@ -1,5 +1,5 @@
 // infrastructure/repositories/BaseRepository.ts
-import { Model, Document } from "mongoose";
+import { Model, Document, FilterQuery, UpdateQuery } from "mongoose";
 import { IBaseRepository } from "../../domain/repositories/IBaseRepository";
 /**
  * Generic BaseRepository wrapping common mongoose operations
@@ -19,11 +19,11 @@ export abstract class BaseRepository<T extends Document> implements IBaseReposit
     return this.model.findById(id).exec();
   }
 
-  async findOne(query: any): Promise<T | null> {
+  async findOne(query: FilterQuery<T>): Promise<T | null> {
     return this.model.findOne(query).exec();
   }
 
-  async updateById(id: string, updates: any): Promise<T | null> {
+  async updateById(id: string, updates: UpdateQuery<T>): Promise<T | null> {
     return this.model.findByIdAndUpdate(id, { $set: updates }, { new: true }).exec();
   }
 

@@ -9,7 +9,6 @@ export class AdminRepository implements IAdminRepository {
   // 🔵 DB-LAYER METHOD (for admin-specific operations)
   async findAdminByEmail(email: string): Promise<IAdmin | null> {
     const admin = await AdminModel.findOne({ email });
-    console.log(admin,"admin from adminrepo")
     if (!admin) return null;
 
     return {

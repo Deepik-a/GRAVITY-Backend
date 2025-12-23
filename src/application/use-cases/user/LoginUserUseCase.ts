@@ -1,18 +1,14 @@
 import bcrypt from "bcryptjs";
-import type { IJwtService } from "../../../domain/services/IJWTService.js";
-import { UserResponseDTO } from "../../dtos/UserSignUpDTO.js";
-import type { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
-import type { IAdminRepository } from "../../../domain/repositories/IAdminRepository.js";
-import { Messages } from "../../../shared/constants/message.js";
-
-interface LoginInput {
-  password: string;
-  repo: IAuthRepository | IAdminRepository;
-  role: "user" | "company" | "admin";
-  user: AuthenticatableUser; 
-}
+import type { IJwtService } from "@/domain/services/IJWTService";
+import type { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import type { IAdminRepository } from "@/domain/repositories/IAdminRepository";
+import { Messages } from "@/shared/constants/message";
+import { AppError } from "@/shared/error/AppError";
+import { StatusCode } from "@/domain/enums/StatusCode";
 import { inject, injectable } from "inversify";
-import { TYPES } from "../../../infrastructure/DI/types";
+import { TYPES } from "@/infrastructure/DI/types";
+import { LoginRequestDto, LoginResponseDto } from "@/application/dtos/AuthDTOs";
+
 interface AuthenticatableUser {
   id: string | { toString(): string };
   name: string;
@@ -21,34 +17,56 @@ interface AuthenticatableUser {
   role: string;
   phone?: string;
   documentStatus?: string;
-  rejectionReason?: string;
+  rejectionReason?: string | null;
+  isBlocked?: boolean;
+}
+
+interface LoginInput extends LoginRequestDto {
+  repo: IAuthRepository | IAdminRepository;
+  role: "user" | "company" | "admin";
+  user: AuthenticatableUser; // Input from controller (Existing User)
 }
 
 @injectable()
 export class LoginUserUseCase {
-  constructor(  @inject(TYPES.JwtService) private readonly _jwtService: IJwtService) {}
 
-  async execute({ password, repo, role, user }: LoginInput) {
-    if (!password) throw new Error("Password is required");
+  constructor(@inject(TYPES.JwtService) private readonly _jwtService: IJwtService) {}
 
-    // 1️⃣ Check role consistency
-    if (user.role !== role) {
-      throw new Error("Invalid role for this login");
+  async execute({ email, password, repo, role }: LoginInput): Promise<LoginResponseDto> {
+    if (!password) throw new AppError("Password is required", StatusCode.BAD_REQUEST);
+
+    // 1️⃣ FRESH CHECK: Always fetch latest data from DB to get current status
+    // Input-ൽ നിന്ന് കിട്ടുന്ന 'user' ഒബ്‌ജക്റ്റിനെ ആശ്രയിക്കാതെ നേരിട്ട് സെർച്ച് ചെയ്യുന്നു
+    const freshUser = await (repo as any).findByEmail(email);
+    
+    if (!freshUser) {
+      throw new AppError("User not found", StatusCode.NOT_FOUND);
     }
 
-    // 2️⃣ ADMIN LOGIN (special logic)
+    // ⛔ BLOCK CHECK: Using fresh data from database
+    if (freshUser.isBlocked) {
+      throw new AppError(Messages.AUTH.ACCOUNT_BLOCKED, StatusCode.FORBIDDEN);
+    }
+
+    // 2️⃣ ROLE CHECK
+    if (freshUser.role !== role) {
+      throw new AppError("Invalid role for this login", StatusCode.FORBIDDEN);
+    }
+
+    // 3️⃣ ADMIN LOGIN HANDLER
     if (role === "admin") {
-      return this._handleAdminLogin(user as AuthenticatableUser, password, repo as IAdminRepository);
+      return this._handleAdminLogin(freshUser as AuthenticatableUser, password, repo as IAdminRepository);
     }
 
-  
+    // 4️⃣ PASSWORD VALIDATION (for User & Company)
+    const isPasswordValid = await bcrypt.compare(password, freshUser.password);
+    if (!isPasswordValid) {
+      throw new AppError("Invalid password", StatusCode.UNAUTHORIZED);
+    }
 
-    // 4️⃣ Validate password for USER & COMPANY
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) throw new Error("Invalid password");
+    const subjectId = freshUser.id.toString();
 
-    const subjectId = user.id.toString();
-
+    // 5️⃣ JWT GENERATION
     const accessToken = this._jwtService.signAccessToken({
       userId: subjectId,
       role,
@@ -59,33 +77,29 @@ export class LoginUserUseCase {
       role,
     });
 
-    // 5️⃣ Safe User DTO
-    const safeUser = new UserResponseDTO(
-      subjectId,
-      user.name,
-      user.email,
-      user.phone || ""
-    );
-
     return {
       message: Messages.AUTH.LOGIN_SUCCESS,
-      user: safeUser,
+      user: {
+        id: subjectId,
+        name: freshUser.name,
+        email: freshUser.email,
+        phone: freshUser.phone || "",
+      },
       role,
       accessToken,
       refreshToken,
-      documentStatus: user.documentStatus,
-      rejectionReason: user.rejectionReason,
+      documentStatus: freshUser.documentStatus,
+      rejectionReason: freshUser.rejectionReason,
     };
   }
 
-  // 🔥 ADMIN LOGIN HANDLER (same as your previous AdminLoginUseCase)
   private async _handleAdminLogin(
     admin: AuthenticatableUser,
     password: string,
     adminRepo: IAdminRepository
   ) {
     const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) throw new Error("Invalid admin password");
+    if (!isMatch) throw new AppError("Invalid admin password", StatusCode.UNAUTHORIZED);
 
     const accessToken = this._jwtService.signAccessToken({
       id: admin.id.toString(),
@@ -97,7 +111,6 @@ export class LoginUserUseCase {
       role: admin.role,
     });
 
-    // Save refresh token only for admin
     await adminRepo.saveRefreshToken(admin.id.toString(), refreshToken);
 
     return {
@@ -105,10 +118,12 @@ export class LoginUserUseCase {
       role: "admin",
       accessToken,
       refreshToken,
-      admin: {
+      user: {
         id: admin.id.toString(),
+        name: "Admin",
         email: admin.email,
-      },
+        phone: "",
+      }
     };
   }
 }

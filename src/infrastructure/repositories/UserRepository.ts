@@ -5,6 +5,8 @@ import { IAuthRepository } from "../../domain/repositories/IAuthRepository.js";
 import { UserSignUp, GoogleSignUp, UserProfile } from "../../domain/entities/User.js";
 import { UniqueEntityID } from "../../domain/value-objects/UniqueEntityID.js";
 import { injectable } from "inversify";
+import { AppError } from "@/shared/error/AppError";
+import { StatusCode } from "@/domain/enums/StatusCode";
 @injectable()
 export class UserRepository
   extends BaseRepository<typeof UserModel.prototype>
@@ -35,7 +37,10 @@ async create(user: UserSignUp): Promise<UserSignUp> {
     created.role as "user" | "company" ,
     created.provider,
         created.phone,
-    created.status
+    created.status,
+    created.documentStatus,
+    created.rejectionReason,
+    created.isBlocked
   );
 }
 
@@ -54,7 +59,10 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     found.role as "user" | "company" ,
     found.provider,
    found.phone ?? "",
-    found.status
+    found.status,
+    found.documentStatus,
+    found.rejectionReason,
+    found.isBlocked
   );
 }
 
@@ -66,7 +74,7 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       { email, provider: "local" },
       { $set: { password: hashedPassword } }
     );
-    if (result.matchedCount === 0) throw new Error("User not found");
+    if (result.matchedCount === 0) throw new AppError("User not found", StatusCode.NOT_FOUND);
   }
 
   // 🟨 Google Users
@@ -79,19 +87,52 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       provider: "google",
       status: user.status,
     });
-    return new GoogleSignUp(created.name, created.email, created.googleId!, user.role, user.provider,user.status);
+    return new GoogleSignUp(
+      created.name,
+      created.email,
+      created.googleId ? created.googleId : "",
+      user.role,
+      user.provider,
+      user.status,
+      new UniqueEntityID(created._id.toString()),
+      created.documentStatus,
+      created.rejectionReason,
+      created.isBlocked
+    );
   }
 
   async findByGoogleId(googleId: string): Promise<GoogleSignUp | null> {
     const record = await this.model.findOne({ googleId, provider: "google" }).exec();
     if (!record) return null;
-    return new GoogleSignUp(record.name, record.email, record.googleId!, record.role, record.status);
+    return new GoogleSignUp(
+      record.name,
+      record.email,
+      record.googleId ? record.googleId : "",
+      record.role,
+      record.provider,
+      record.status,
+      new UniqueEntityID(record._id.toString()),
+      record.documentStatus,
+      record.rejectionReason,
+      record.isBlocked
+    );
   }
 
   async findGoogleUserByEmail(email: string): Promise<GoogleSignUp | null> {
     const record = await this.model.findOne({ email, provider: "google" }).exec();
     if (!record) return null;
-    return new GoogleSignUp(record.name, record.email, record.googleId!, record.role, record.status);
+    return new GoogleSignUp(
+      record.name,
+      record.email,
+      record.googleId ? record.googleId : "",
+      record.role,
+      record.provider,
+      record.status,
+      new UniqueEntityID(record._id.toString()),
+      record.documentStatus,
+      record.rejectionReason,
+      record.isBlocked
+    );
   }
 
   // 🟩 Get profile
@@ -101,6 +142,10 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       : await this.model.findOne({ googleId: userId }).exec();
 
     if (!user) return null;
+    
+    // Debug logging for block status investigation
+    console.log("DEBUG_REPO: user found raw:", user.toObject ? user.toObject() : user);
+    console.log("DEBUG_REPO: user.isBlocked:", user.isBlocked, "Type:", typeof user.isBlocked);
 
     return new UserProfile(
       new UniqueEntityID(user._id.toString()),
@@ -109,7 +154,9 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       user.profileImage ?? undefined,
       user.phone ?? undefined,
       user.location ?? undefined,
-      user.bio ?? undefined
+      user.bio ?? undefined,
+      user.isBlocked,
+      user.role
     );
   }
 
@@ -144,8 +191,32 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
           user.profileImage ?? undefined,
           user.phone ?? undefined,
           user.location ?? undefined,
-          user.bio ?? undefined
+          user.bio ?? undefined,
+          user.isBlocked ?? false,
+          user.role
         )
+    );
+  }
+
+  async updateBlockStatus(userId: string, isBlocked: boolean): Promise<UserProfile | null> {
+    const updated = await this.model.findByIdAndUpdate(
+      userId,
+      { $set: { isBlocked } },
+      { new: true }
+    ).exec();
+
+    if (!updated) return null;
+
+    return new UserProfile(
+      new UniqueEntityID(updated._id.toString()),
+      updated.name,
+      updated.email,
+      updated.profileImage ?? undefined,
+      updated.phone ?? undefined,
+      updated.location ?? undefined,
+      updated.bio ?? undefined,
+      updated.isBlocked,
+      updated.role
     );
   }
 }

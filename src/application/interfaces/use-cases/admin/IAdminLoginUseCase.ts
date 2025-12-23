@@ -1,10 +1,6 @@
+import { AdminLoginRequestDto } from "@/application/dtos/admin/AdminLoginRequestDto";
+import { AdminLoginResponseDto } from "@/application/dtos/admin/AdminLoginResponseDto";
+
 export interface IAdminLoginUseCase {
-  execute(
-    email: string,
-    password: string
-  ): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    message: string;
-  }>;
+  execute(dto: AdminLoginRequestDto): Promise<AdminLoginResponseDto>;
 }

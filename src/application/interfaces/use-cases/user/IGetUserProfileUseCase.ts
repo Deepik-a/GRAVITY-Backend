@@ -1,5 +1,6 @@
 import { ProfileResponseDTO } from "../../../dtos/ProfileResponseDTO";
+import { GetUserProfileRequestDto } from "@/application/dtos/user/ProfileRequestDto";
 
 export interface IGetUserProfileUseCase {
-  execute(userId: string): Promise<ProfileResponseDTO>;
+  execute(dto: GetUserProfileRequestDto): Promise<ProfileResponseDTO>;
 }

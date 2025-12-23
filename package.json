@@ -1,13 +1,13 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "type": "module",
   "main": "index.ts",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "tsx src/index.ts",
-    "akhil": "node dist/index.js"
+    "dev": "tsc -w", 
+    "build": "tsc && tsc-alias",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [],
   "author": "",
@@ -32,7 +32,9 @@
     "passport-google-oauth20": "^2.0.0",
     "redis": "^5.9.0",
     "reflect-metadata": "^0.2.2",
-    "winston": "^3.18.3"
+    "tsc-alias": "^1.8.16",
+    "winston": "^3.18.3",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

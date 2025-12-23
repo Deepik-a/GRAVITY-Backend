@@ -1,12 +1,19 @@
-// import { Router } from "express";
-// import { container } from "../../infrastructure/DI/inversify.config";
-// import { TYPES } from "../../infrastructure/DI/types.js";
-// import { ProfileController } from "../controllers/userController/ProfileController.js";
+import { Router } from "express";
+import { container } from "../../infrastructure/DI/inversify.config";
+import { TYPES } from "../../infrastructure/DI/types.js";
+import { ProfileController } from "../controllers/userController/ProfileController.js";
+import { SessionAuth } from "@/presentation/middlewares/authMiddleware"; 
 
-// const router = Router();
+const router = Router();
+const profileController = container.get<ProfileController>(TYPES.ProfileController);
+const userAuth = container.get<SessionAuth>(TYPES.SessionAuth);
 
-// const profileController = container.get<ProfileController>(TYPES.ProfileController);
 
-// router.get("/profile", profileController.getProfile.bind(profileController));
+router.get(
+  "/profile", 
+  userAuth.verify, 
+  userAuth.authorize(["user", "company"]), 
+  profileController.getProfile.bind(profileController)
+);
 
-// export default router;
+export default router;

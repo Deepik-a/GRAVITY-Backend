@@ -1,32 +1,28 @@
-import { UserSignUp, GoogleSignUp } from "../../../domain/entities/User.js";
-import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
-import { IOtpService } from "../../../domain/services/IOTPService.js"; 
-import { OtpPurpose } from "../../../domain/enums/OtpPurpose.js";
+import { UserSignUp, GoogleSignUp } from "@/domain/entities/User";
+import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import { IOtpService } from "@/domain/services/IOTPService"; 
+import { OtpPurpose } from "@/domain/enums/OtpPurpose";
 import bcrypt from "bcryptjs";
-import redisClient from "../../../infrastructure/config/redis.js";
-import { UniqueEntityID } from "../../../domain/value-objects/UniqueEntityID.js";
+import redisClient from "@/infrastructure/config/redis";
+import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
 import { inject, injectable } from "inversify";
-import { TYPES } from "../../../infrastructure/DI/types";
+import { TYPES } from "@/infrastructure/DI/types";
+import { IRegisterUseCase } from "@/application/interfaces/use-cases/user/IRegisterUseCase";
+import { SignupRequestDto } from "@/application/dtos/user/SignupRequestDto";
+import { SignupResponseDto } from "@/application/dtos/user/SignupResponseDto";
+
 @injectable()
-export class RegisterUseCase {
+export class RegisterUseCase implements IRegisterUseCase {
   constructor(
    @inject(TYPES.UserRepository) private readonly _userRepo: IAuthRepository,
    @inject(TYPES.CompanyRepository) private readonly _companyRepo: IAuthRepository,
    @inject(TYPES.OtpService) private _otpService: IOtpService
   ) {}
 
-  async execute(payload: {
-    name: string;
-    email: string;
-    password?: string;
-    googleId?: string;
-    phone: string;
-    role: "user" | "company";
-  }): Promise<{ message: string }> {
+  async execute(payload: SignupRequestDto): Promise<SignupResponseDto> {
     const { role } = payload;
     const repo = role === "company" ? this._companyRepo : this._userRepo;
 
-    console.log("repo selected from registerusecase",repo)
     
     // 1) Check if email exists in current role
     const existing = await repo.findByEmail(payload.email);

@@ -13,7 +13,8 @@ export const Messages = {
       PASSWORD_RESET_SUCCESS:"Password has been reset successfully.",
       OTP_GENERATE_SUCCESS:"OTP generated and sent successfully",
       OTP_VERIFY_SUCCESS: "OTP verified successfully",
-      AUTH_FAILED:"Authentication failed"
+      AUTH_FAILED:"Authentication failed",
+      ACCOUNT_BLOCKED: "Your account has been blocked. Please contact admin.",
   },
 
   USER: {

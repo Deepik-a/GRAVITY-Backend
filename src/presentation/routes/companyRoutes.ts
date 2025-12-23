@@ -1,8 +1,8 @@
 import { Router } from "express";
 import multer from "multer";
-import { container } from "../../infrastructure/DI/inversify.config";
-import { TYPES } from "../../infrastructure/DI/types.js";
-import { CompanyDocumentController } from "../controllers/companyController/CompanyDocumentController.ts.js";
+import { container } from "@/infrastructure/DI/inversify.config";
+import { TYPES } from "@/infrastructure/DI/types";
+import { CompanyDocumentController } from "@/presentation/controllers/companyController/CompanyDocumentController";
 const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 

@@ -1,5 +1,5 @@
 // src/domain/repositories/IAuthRepository.ts
-import { UserSignUp, GoogleSignUp, UserProfile } from "../entities/User.js";
+import { UserSignUp, GoogleSignUp, UserProfile } from "@/domain/entities/User";
 
 export interface IAuthRepository {
   // local signup (create a user/company/admin)

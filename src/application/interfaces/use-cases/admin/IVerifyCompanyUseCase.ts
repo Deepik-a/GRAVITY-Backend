@@ -1,6 +1,7 @@
 // src/application/interfaces/use-cases/company/IVerifyCompanyUseCase.ts
-import { ICompany } from "../../../../domain/entities/Company";
+import { VerifyCompanyRequestDto } from "@/application/dtos/admin/VerifyCompanyRequestDto";
+import { CompanyResponseDto } from "@/application/dtos/admin/CompanyResponseDto";
 
 export interface IVerifyCompanyUseCase {
-execute(companyId: string, approve: boolean, reason?: string): Promise<ICompany>
+execute(dto: VerifyCompanyRequestDto): Promise<CompanyResponseDto>
 }

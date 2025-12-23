@@ -1,26 +1,34 @@
-import { ICompanyRepository } from "../../../domain/repositories/ICompanyRepository";
-import { ICompany } from "../../../domain/entities/Company.js";
+import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { inject, injectable } from "inversify";
-import { TYPES } from "../../../infrastructure/DI/types";
-import { EmailService } from "../../../infrastructure/services/EmailService";
+import { TYPES } from "@/infrastructure/DI/types";
+import { EmailService } from "@/infrastructure/services/EmailService";
+import { IVerifyCompanyUseCase } from "@/application/interfaces/use-cases/admin/IVerifyCompanyUseCase";
+import { VerifyCompanyRequestDto } from "@/application/dtos/admin/VerifyCompanyRequestDto";
+import { CompanyResponseDto } from "@/application/dtos/admin/CompanyResponseDto";
 
 @injectable()
-export class VerifyCompanyUseCase {
-  constructor(@inject(TYPES.CompanyRepository) private companyRepo: ICompanyRepository,
-    @inject(TYPES.EmailService) private emailService: EmailService
-) {}
+export class VerifyCompanyUseCase implements IVerifyCompanyUseCase {
+  constructor(
+    @inject(TYPES.CompanyRepository) private _companyRepo: ICompanyRepository,
+    @inject(TYPES.EmailService) private _emailService: EmailService
+  ) {}
 
-  async execute(companyId: string, approve: boolean,reason?: string): Promise<ICompany> {
+
+  async execute(dto: VerifyCompanyRequestDto): Promise<CompanyResponseDto> {
+    const { companyId, approve, reason } = dto; 
+    
     const status = approve ? "verified" : "rejected";
 
-    // Update documentStatus using companyId
-    const updatedCompany = await this.companyRepo.updateDocumentStatus({ companyId }, status,reason);
+    const updatedCompany = await this._companyRepo.updateDocumentStatus(
+        { companyId }, 
+        status, 
+        reason
+    );
 
-  // Email only when rejecting
-  if (!approve && reason) {
-    await this.emailService.sendRejectionEmail(updatedCompany.email, reason);
-  }
+    if (!approve && reason) {
+      await this._emailService.sendRejectionEmail(updatedCompany.email, reason);
+    }
 
-    return updatedCompany;
+    return updatedCompany; 
   }
 }

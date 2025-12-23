@@ -1,26 +1,30 @@
 //providers: Contains modules responsible for offering services or dependencies,
 //  aligning with the Dependency Inversion Principle.
 
-import nodemailer from "nodemailer"
-import { injectable } from "inversify";
+import nodemailer from "nodemailer";
+import { injectable, inject } from "inversify";
+import { env } from "../config/env.js";
+import { TYPES } from "../DI/types.js";
+import { ILogger } from "@/domain/services/ILogger";
 
 @injectable()
 export class EmailService{
 
     private _transporter;
 
-    constructor(){
-      console.log("emailService")
-      console.log("EMAIL_USER:", process.env.EMAIL_USER);
-console.log("EMAIL_PASS:", process.env.EMAIL_PASS);
+    constructor(
+      @inject(TYPES.Logger) private readonly _logger: ILogger
+    ){
+      this._logger.info("emailService initializing...");
+      this._logger.info("EMAIL_USER:", { user: env.EMAIL_USER });
 
 this._transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
   secure: true, // true for 465
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: env.EMAIL_USER,
+    pass: env.EMAIL_PASS,
   },
 });
     }
@@ -134,13 +138,13 @@ async sendOtpEmail(to: string, otp: string) {
   `;
 
   await this._transporter.sendMail({
-    from: `"GRAVITY Support" <${process.env.EMAIL_USER}>`,
+    from: `"GRAVITY Support" <${env.EMAIL_USER}>`,
     to,
     subject: "🔐 Your GRAVITY Verification Code",
     html: htmlContent,
   });
 
-  console.log(`📧 OTP sent to ${to}`);
+  this._logger.info(`📧 OTP sent to ${to}`);
 }
 
 
@@ -157,7 +161,7 @@ async sendRejectionEmail(to: string, reason: string) {
     <tr>
       <td align="center">
         <table width="600" style="background:white;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-
+ 
           <!-- HEADER -->
           <tr>
             <td style="background:linear-gradient(135deg,#081C45,#1E40AF);padding:30px;text-align:center;color:white;">
@@ -165,12 +169,12 @@ async sendRejectionEmail(to: string, reason: string) {
               <p style="margin:5px 0 0;font-size:14px;">Document Verification Update</p>
             </td>
           </tr>
-
+ 
           <!-- SEPARATOR -->
           <tr>
             <td style="height:6px;background:repeating-linear-gradient(45deg,#FCD34D 0px,#FCD34D 10px,#081C45 10px,#081C45 20px);"></td>
           </tr>
-
+ 
           <!-- CONTENT -->
           <tr>
             <td style="padding:30px;">
@@ -180,48 +184,48 @@ async sendRejectionEmail(to: string, reason: string) {
                 <br/><br/>
                 Thank you for submitting your documents for verification. After reviewing them, we were unable to approve your application at this time.
               </p>
-
+ 
               <div style="background:#FEF3C7;padding:15px;border-left:4px solid #F59E0B;border-radius:6px;margin:20px 0;">
                 <strong style="color:#92400E;font-size:14px;">Reason for Rejection:</strong>
                 <p style="color:#92400E;font-size:14px;margin:5px 0 0;line-height:1.5;">
                   ${reason}
                 </p>
               </div>
-
+ 
               <p style="color:#4B5563;font-size:15px;line-height:1.6;">
                 You may re-upload corrected documents anytime from your dashboard to continue the verification process.
               </p>
-
+ 
               <p style="margin-top:20px;font-size:15px;font-weight:bold;color:#1E40AF;">
                 Thank you for your cooperation.
               </p>
             </td>
           </tr>
-
+ 
           <!-- FOOTER -->
           <tr>
             <td style="background:#F9FAFB;padding:20px;text-align:center;font-size:12px;color:#6B7280;border-top:1px solid #E5E7EB;">
               © 2024 GRAVITY • Connecting Builders & Homeowners
             </td>
           </tr>
-
+ 
         </table>
       </td>
     </tr>
   </table>
-
+ 
   </body>
   </html>
   `;
 
   await this._transporter.sendMail({
-    from: `"GRAVITY Support" <${process.env.EMAIL_USER}>`,
+    from: `"GRAVITY Support" <${env.EMAIL_USER}>`,
     to,
     subject: "⚠ Action Needed: Document Rejected",
     html: htmlContent,
   });
 
-  console.log(`📧 Rejection Email sent to ${to}`);
+  this._logger.info(`📧 Rejection Email sent to ${to}`);
 }
 
 

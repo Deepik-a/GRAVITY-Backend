@@ -1,170 +1,102 @@
-import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
-import { GoogleSignUp } from "../../../domain/entities/User.js";
-import { GoogleUserMapper } from "../../mappers/GoogleUserMapper.js";
-import { IJwtService } from "../../../domain/services/IJWTService.js";
+import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import { GoogleSignUp, UserSignUp } from "@/domain/entities/User";
+import { GoogleUserMapper } from "@/application/mappers/GoogleUserMapper";
+import { IJwtService } from "@/domain/services/IJWTService";
+import { Messages } from "@/shared/constants/message";
 import { inject, injectable } from "inversify";
-import { TYPES } from "../../../infrastructure/DI/types";
+import { TYPES } from "@/infrastructure/DI/types";
+import { GoogleAuthRequestDto, GoogleAuthResponseDto } from "@/application/dtos/AuthDTOs";
+import { IGoogleAuthUseCase } from "@/application/interfaces/use-cases/user/IGoogleAuthUseCase";
+import { AppError } from "@/shared/error/AppError";
+import { StatusCode } from "@/domain/enums/StatusCode";
 
 @injectable()
-export class GoogleAuthUseCase {
+export class GoogleAuthUseCase implements IGoogleAuthUseCase {
   constructor(
     @inject(TYPES.UserRepository) private readonly _userRepository: IAuthRepository,
     @inject(TYPES.CompanyRepository) private readonly _companyRepository: IAuthRepository,
     @inject(TYPES.JwtService) private readonly _jwtService: IJwtService
   ) {}
 
-  async execute({
-    googleUser,
-    repo,
-    existingUser,
-    frontendRole,
-  }: {
-    googleUser: { name: string; email: string; googleId: string };
-    repo: IAuthRepository | null;
-    existingUser?: any;
-    frontendRole?: "user" | "company";
-  }) {
-    console.log("--- USE CASE EXECUTION START ---");
-    console.log(`[INIT] Input Email: ${googleUser.email}, Frontend Role: ${frontendRole}`);
+  async execute(dto: GoogleAuthRequestDto): Promise<GoogleAuthResponseDto> {
+    const { googleUser, repo, existingUser, frontendRole } = dto;
 
-    let user = existingUser;
-    console.log(`[VAR] user initialized to: ${user ? 'Existing User Object' : 'null/undefined'}`);
-    
-    let finalRepo = repo;
-    console.log(`[VAR] finalRepo initialized to: ${finalRepo ? 'Provided Repo' : 'null'}`);
-    
+    let user: UserSignUp | GoogleSignUp = existingUser as UserSignUp | GoogleSignUp;
+    let finalRepo: IAuthRepository | null = repo || null;
     let isNewUser = false;
-    console.log(`[VAR] isNewUser initialized to: ${isNewUser}`);
 
-    // --- CHECK IF USER EXISTS IN DB ---
-    console.log("--- 1. Checking DB for Existing User ---");
-    if (!user) {
-        console.log("[CONDITION] User is null/undefined. Running DB checks...");
-        
-        const userByEmail = await this._userRepository.findGoogleUserByEmail(googleUser.email);
-        console.log(`[DB] Result from UserRepository: ${userByEmail ? 'Found' : 'Not Found'}`);
-        
-        const companyByEmail = await this._companyRepository.findGoogleUserByEmail(googleUser.email);
-        console.log(`[DB] Result from CompanyRepository: ${companyByEmail ? 'Found' : 'Not Found'}`);
+    // 1. FRESH SEARCH (Always fetch from DB to get the latest Block Status)
+    const [userByEmail, companyByEmail] = await Promise.all([
+      this._userRepository.findGoogleUserByEmail(googleUser.email),
+      this._companyRepository.findGoogleUserByEmail(googleUser.email),
+    ]);
 
-        if (userByEmail) {
-            console.log("[ASSIGN] Found user in UserRepository.");
-            user = userByEmail;
-            finalRepo = this._userRepository;
-        } else if (companyByEmail) {
-            console.log("[ASSIGN] Found user in CompanyRepository.");
-            user = companyByEmail;
-            finalRepo = this._companyRepository;
-        }
-        console.log(`[CHECK] User object after DB lookups: ${user ? `ID: ${user.id?.toString()}` : 'STILL NULL'}`);
-    } else {
-        console.log("[SKIP] User object was already provided (existingUser input).");
+    const freshUser = userByEmail || companyByEmail;
+
+    if (freshUser) {
+      user = freshUser; // freshUser
+      finalRepo = userByEmail ? this._userRepository : this._companyRepository;
     }
 
-    // --- CREATE NEW USER IF NOT FOUND ---
-    console.log("--- 2. Checking for New User Creation ---");
+    // 2. CREATE NEW USER IF NOT FOUND AT ALL
     if (!user) {
-        console.log("[CONDITION] User is null. Proceeding to create new user.");
-        
-        if (!frontendRole) {
-            console.error("[ERROR] Frontend Role is required for first-time signup.");
-            throw new Error("Role is required for first-time signup");
-        }
+      if (!frontendRole) {
+        throw new AppError("Role is required for first-time signup", StatusCode.BAD_REQUEST);
+      }
 
-        finalRepo = frontendRole === "company" ? this._companyRepository : this._userRepository;
-        console.log(`[ASSIGN] finalRepo set for new ${frontendRole}`);
+      finalRepo = frontendRole === "company" ? this._companyRepository : this._userRepository;
+      const status = frontendRole === "company" ? "pending" : "verified";
 
-        const status = frontendRole === "company" ? "pending" : "verified";
-        console.log(`[VAR] New user status set to: ${status}`);
+      const newUser = new GoogleSignUp(
+        googleUser.name,
+        googleUser.email,
+        googleUser.googleId,
+        frontendRole,
+        "google",
+        status
+      );
 
-        const newUser = new GoogleSignUp(
-            googleUser.name,
-            googleUser.email,
-            googleUser.googleId,
-            frontendRole,
-            "google",
-            status
-        );
-        console.log(`[OBJ] GoogleSignUp object created for new user.`);
-
-        user = await finalRepo.createWithGoogle(newUser);
-        console.log(`[DB] New user created. ID: ${user.id?.toString()}`);
-        
-        isNewUser = true;
-        console.log("[ASSIGN] isNewUser set to true.");
+      user = await finalRepo.createWithGoogle(newUser);
+      isNewUser = true;
     }
 
-    // --- COMPANY VERIFICATION CHECK ---
-    console.log("--- 3. Company Verification Check ---");
+    // 3. SAFETY CHECK
+    if (!user || !finalRepo) {
+      throw new AppError("Authentication failed: User could not be identified.", StatusCode.INTERNAL_ERROR);
+    }
+
+    // ⛔ FRESH BLOCK CHECK (This will now use the latest value from DB)
+    console.log("Current block status from DB:", user.isBlocked);
+    if (user.isBlocked) {
+      throw new AppError(Messages.AUTH.ACCOUNT_BLOCKED, StatusCode.FORBIDDEN);
+    }
+
+    // 4. COMPANY VERIFICATION CHECK
     const isCompany = user.role === "company";
     const isPending = user.status === "pending";
-    const isExisting = !isNewUser;
-    
-    console.log(`[LOGIC] Role: ${user.role}, Status: ${user.status}, New User: ${isNewUser}`);
-    
-    if (isCompany && isPending && isExisting) {
-        console.log("[CONDITION] User is existing company with PENDING status.");
-        
-        const docStatus = user.documentStatus;
-        console.log(`[DATA CHECK] user.documentStatus found as: ${docStatus}`);
-        
-        if (docStatus === 'pending') {
-            console.error("[ERROR] Blocking login: documentStatus is 'pending'.");
-            throw new Error("Company verification is pending approval by admin. Please wait.");
-        }
+    if (isCompany && isPending && !isNewUser) {
+      if (user.documentStatus === "pending") {
+        throw new AppError("Company verification is pending approval.", StatusCode.FORBIDDEN);
+      }
     }
 
-    // --- GENERATE JWT ---
-    console.log("--- 4. Generating Tokens ---");
-    const subject = user.id?.toString() || user.googleId;
-    console.log(`[VAR] Subject for JWT (ID/GoogleID): ${subject}`);
+    // 5. GENERATE JWT
+    const subject = (user as any).id?.toString() || (user as any).googleId;
+    const payload = { userId: subject, role: user.role, status: user.status };
 
-    const accessTokenPayload = {
-        userId: subject,
-        role: user.role,
-        status: user.status,
+    const accessToken = this._jwtService.signAccessToken(payload);
+    const refreshToken = this._jwtService.signRefreshToken(payload);
+
+    // 6. RETURN
+    const googleUserDto = GoogleUserMapper.toResponseDTO(user as GoogleSignUp, accessToken);
+
+    return {
+      user: googleUserDto,
+      accessToken,
+      refreshToken,
+      isNewUser,
+      documentStatus: user.documentStatus,
+      rejectionReason: user.rejectionReason,
     };
-    console.log("[JWT] Access Token Payload:", accessTokenPayload);
-    const accessToken = this._jwtService.signAccessToken(accessTokenPayload);
-    console.log(`[JWT] Access Token generated (starts with: ${accessToken.substring(0, 15)}...)`);
-
-    const refreshTokenPayload = {
-        userId: subject,
-        role: user.role,
-        status: user.status,
-    };
-    console.log("[JWT] Refresh Token Payload:", refreshTokenPayload);
-    const refreshToken = this._jwtService.signRefreshToken(refreshTokenPayload);
-    console.log(`[JWT] Refresh Token generated (starts with: ${refreshToken.substring(0, 15)}...)`);
-
-
-    // --- RETURN RESPONSE ---
-    console.log("--- 5. Preparing Response DTO ---");
-    
-    // Log the user object immediately before DTO mapping
-    console.log("🔑 [FINAL USER OBJECT] Data passed to mapper:", {
-        id: user.id?.toString(),
-        role: user.role,
-        status: user.status,
-        documentStatus: user.documentStatus,
-        rejectionReason: user.rejectionReason,
-    });
-    
-    const userResponseDTO = GoogleUserMapper.toResponseDTO(user, accessToken);
-    console.log("[DTO] User DTO created.");
-    
-    const finalReturn = {
-        user: userResponseDTO,
-        accessToken,
-        refreshToken,
-        isNewUser,
-        documentStatus: user.documentStatus, 
-        rejectionReason: user.rejectionReason,
-    };
-    
-    console.log("✅ [RETURN] Final object being returned:", finalReturn);
-    console.log("--- USE CASE EXECUTION END ---");
-
-    return finalReturn;
   }
 }

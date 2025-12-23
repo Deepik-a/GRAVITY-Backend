@@ -1,19 +1,32 @@
+//to change ts to js
+
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+
+    /* 🔑 Switch to CommonJS */
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+
+    "rootDir": "src",
+    "outDir": "dist",
+
+    /* Path alias still works (compile-time) */
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"]
+    },
+
+    "strict": true,
+
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": true,
+
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-      "rootDir": "src",
-    "outDir": "dist",
-      "experimentalDecorators": true,//for di container-inversify
-  "emitDecoratorMetadata": true,//for di container-inversify
+
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": ["src"]
-  
 }
-

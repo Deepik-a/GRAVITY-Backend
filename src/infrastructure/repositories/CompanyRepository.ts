@@ -1,5 +1,4 @@
-// src/infrastructure/repositories/CompanyRepository.ts
-import { Types } from "mongoose";
+
 import { BaseRepository } from "./BaseRepository.js";
 import CompanyModel from "../database/models/CompanyModel.js";
 import { IAuthRepository } from "../../domain/repositories/IAuthRepository.js";
@@ -8,10 +7,12 @@ import { ICompany } from "../../domain/entities/Company.js";
 import { UniqueEntityID } from "../../domain/value-objects/UniqueEntityID.js";
 import { ICompanyRepository } from "../../domain/repositories/ICompanyRepository.js";
 import { IStorageService } from "../../domain/services/IStorageService.js";
-import { S3StorageService } from "../services/S3StorageService.js";
 import { ObjectId } from "mongodb";
 import { inject, injectable ,unmanaged} from "inversify";
 import { TYPES } from "../DI/types.js";
+import { ILogger } from "@/domain/services/ILogger";
+import { AppError } from "@/shared/error/AppError";
+import { StatusCode } from "@/domain/enums/StatusCode";
   
 @injectable()
 export class CompanyRepository
@@ -21,6 +22,7 @@ export class CompanyRepository
   constructor(
        @unmanaged() companyModel = CompanyModel, // Ignore in DI
       @inject(TYPES.StorageService) private readonly _s3Service: IStorageService,
+      @inject(TYPES.Logger) private readonly _logger: ILogger,
   ) {
     super(companyModel); // ✅ required call to BaseRepository
   }
@@ -58,34 +60,21 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     const found = await this.model.findOne({ email });
     if (!found) return null;
     
-    // --- CRITICAL FIX START ---
-    // Optional: Use .toObject() to ensure data integrity (best practice)
     const rawData = found.toObject(); 
 
     return new UserSignUp(
-        // 1. id
-        new UniqueEntityID(rawData._id.toString()), 
-        // 2. name
-        rawData.name,
-        // 3. email
-        rawData.email,
-        // 4. password
-        rawData.password,
-        // 5. role
-        rawData.role,
-        // 6. provider
-        rawData.provider,
-        // 7. phone
-        rawData.phone,
-        // 8. status
-        rawData.status,
-        
-        // 9. documentStatus (THE MISSING FIELD)
-        rawData.documentStatus, 
-        // 10. rejectionReason (THE OTHER MISSING FIELD)
-        rawData.rejectionReason 
+        new UniqueEntityID(rawData._id.toString()), // 1
+        rawData.name,                               // 2
+        rawData.email,                              // 3
+        rawData.password,                           // 4
+        rawData.role,                               // 5
+        rawData.provider,                           // 6
+        rawData.phone,                              // 7
+        rawData.status,                             // 8
+        rawData.documentStatus,                     // 9
+        rawData.rejectionReason,                    // 10
+        rawData.isBlocked ?? false                  // 11 
     );
-    // --- CRITICAL FIX END ---
 }
   async updatePassword(email: string, hashedPassword: string): Promise<void> {
     await this.model.updateOne({ email }, { $set: { password: hashedPassword } });
@@ -105,7 +94,7 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     return new GoogleSignUp(
       created.name,
       created.email,
-      created.googleId!,
+      created.googleId ?? "",
       created.role,
       created.provider,
       created.status,
@@ -115,23 +104,23 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     );
   }
 
-  async findGoogleUserByEmail(email: string): Promise<GoogleSignUp | null> {
-    const found = await this.model.findOne({ email, googleId: { $ne: null } });
-    if (!found) return null;
+ async findGoogleUserByEmail(email: string): Promise<GoogleSignUp | null> {
+  const found = await this.model.findOne({ email, googleId: { $ne: null } });
+  if (!found) return null;
 
-    return new GoogleSignUp(
-      found.name,
-      found.email,
-      found.googleId!,
-      found.role,
-      found.provider,
-      found.status,
-      new UniqueEntityID(found._id.toString()), // Pass ID
-      found.documentStatus ?? "pending", // ✅ Default to pending if missing
-      found.rejectionReason
-    );
-  }
-
+  return new GoogleSignUp(
+    found.name,
+    found.email,
+    found.googleId ?? "",
+    found.role,
+    found.provider,
+    found.status,
+    new UniqueEntityID(found._id.toString()),
+    found.documentStatus ?? "pending",
+    found.rejectionReason,
+    found.isBlocked ?? false 
+  );
+}
   async findByGoogleId(googleId: string): Promise<GoogleSignUp | null> {
     const found = await this.model.findOne({ googleId, provider: "google" });
     if (!found) return null;
@@ -139,7 +128,7 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     return new GoogleSignUp(
       found.name,
       found.email,
-      found.googleId!,
+      found.googleId ?? "",
       found.role,
       found.provider,
       found.status,
@@ -190,9 +179,9 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     }
   ): Promise<ICompany> {
 
-    console.log("\n📌 [Repository:updateDocuments] Incoming Request");
-    console.log("➡️ Email:", email);
-    console.log("➡️ Received payload:", docs);
+    this._logger.info("📌 [Repository:updateDocuments] Incoming Request");
+    this._logger.info("➡️ Email:", { email });
+    this._logger.info("➡️ Received payload:", { docs });
 
     const updated = await this.model.findOneAndUpdate(
       { email },
@@ -207,11 +196,11 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     ).lean<ICompany>();
 
     if (!updated) {
-      console.log("❌ No company found for email:", email);
-      throw new Error("Company not found");
+      this._logger.info("❌ No company found for email:", { email });
+      throw new AppError("Company not found", StatusCode.NOT_FOUND);
     }
 
-    console.log("✅ Stored document keys in DB:", updated.documents);
+    this._logger.info("✅ Stored document keys in DB:", { documents: updated.documents });
     return updated;
   }
 
@@ -224,11 +213,11 @@ async updateDocumentStatus(
   reason?: string
 ): Promise<ICompany> {
   
-  const filter: any = {};
+  const filter: Record<string, string | undefined> = {};
   if (identifier.email) filter.email = identifier.email;
   if (identifier.companyId) filter._id = identifier.companyId;
 
-  const updateData: any = {
+  const updateData: Record<string, string> = {
     documentStatus: status,
     status: status === "verified" ? "verified" : "pending",
   };
@@ -241,7 +230,7 @@ async updateDocumentStatus(
     $set: updateData,
   }, { new: true }).lean();
 
-  if (!updated) throw new Error("Company not found");
+  if (!updated) throw new AppError("Company not found", StatusCode.NOT_FOUND);
 
 return {
   id: updated._id.toString(),
@@ -266,8 +255,7 @@ return {
       SAVE COMPANY
     -------------------------------------------------- */
   async save(company: ICompany): Promise<ICompany> {
-    console.log("\n📌 [Repository:save] Updating company");
-    console.log("➡️ Email:", company.email);
+    this._logger.info("📌 [Repository:save] Updating company", { email: company.email });
 
     const updated = await this.model.findOneAndUpdate(
       { email: company.email },
@@ -275,9 +263,9 @@ return {
       { new: true }
     ).lean<ICompany>();
 
-    if (!updated) throw new Error("Company not found");
+    if (!updated) throw new AppError("Company not found", StatusCode.NOT_FOUND);
 
-    console.log("✅ Company updated successfully");
+    this._logger.info("✅ Company updated successfully");
     return updated;
   }
 
@@ -285,17 +273,17 @@ return {
       GET ALL COMPANIES WITH SIGNED URL MAPPING
     -------------------------------------------------- */
 async getAllCompanies(): Promise<ICompany[]> {
-  console.log("\n📌 [Repository:getAllCompanies] Fetch triggered");
+  this._logger.info("📌 [Repository:getAllCompanies] Fetch triggered");
 
   const companiesFromDb = await this.model.find().lean();
-  console.log(`📦 Found ${companiesFromDb.length} companies in DB`);
+  this._logger.info(`📦 Found ${companiesFromDb.length} companies in DB`);
 
   type DocumentField = "GST_Certificate" | "RERA_License" | "Trade_License";
 
   return await Promise.all(
     companiesFromDb.map(async (c) => {
-      console.log(`\n🔹 Resolving documents for: ${c.name} (${c.email})`);
-      console.log("🧩 Stored Document Keys:", c.documents);
+      this._logger.info(`\n🔹 Resolving documents for: ${c.name} (${c.email})`);
+      this._logger.info("🧩 Stored Document Keys:", { documents: c.documents });
 
       const resolvedDocuments: Record<DocumentField, string | null> = {
         GST_Certificate: null,
@@ -310,18 +298,18 @@ async getAllCompanies(): Promise<ICompany[]> {
         const fileKey = c.documents?.[field];
 
         if (!fileKey) {
-          console.log(`⚠️ No file for ${field}`);
+          this._logger.info(`⚠️ No file for ${field}`);
           continue;
         }
 
-        console.log(`📁 Generating signed URL for -> ${field}: ${fileKey}`);
+        this._logger.info(`📁 Generating signed URL for -> ${field}: ${fileKey}`);
 
         try {
           const signed = await this._s3Service.getSignedUrl(fileKey);
           resolvedDocuments[field] = signed;
-          console.log(`🔑 Signed URL generated successfully (short): ${signed.slice(0, 90)}...`);
+          this._logger.info(`🔑 Signed URL generated successfully (short): ${signed.slice(0, 90)}...`);
         } catch (err) {
-          console.log(`❌ Failed to generate signed URL for: ${fileKey}`, err);
+          this._logger.error(`❌ Failed to generate signed URL for: ${fileKey}`, { error: err });
         }
       }
 
@@ -334,8 +322,37 @@ async getAllCompanies(): Promise<ICompany[]> {
         status: c.status,
         documentStatus: c.documentStatus,
         documents: resolvedDocuments,
+        rejectionReason: c.rejectionReason,
+        isBlocked: c.isBlocked
       };
     })
   );
+}
+
+async updateBlockStatus(companyId: string, isBlocked: boolean): Promise<ICompany | null> {
+  const updated = await CompanyModel.findByIdAndUpdate(
+    companyId,
+    { $set: { isBlocked } },
+    { new: true }
+  ).lean();
+
+  if (!updated) return null;
+
+  return {
+    id: (updated._id as unknown as ObjectId).toString(),
+    name: updated.name,
+    email: updated.email,
+    phone: updated.phone ?? null,
+    role: updated.role,
+    status: updated.status,
+    documentStatus: updated.documentStatus,
+    documents: {
+         GST_Certificate: updated.documents?.GST_Certificate ?? null ,
+        RERA_License: updated.documents?.RERA_License ?? null,
+        Trade_License: updated.documents?.Trade_License ?? null,
+    },
+    rejectionReason: updated.rejectionReason,
+    isBlocked: updated.isBlocked
+  };
 }
 }

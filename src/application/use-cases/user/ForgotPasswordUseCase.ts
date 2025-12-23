@@ -1,12 +1,17 @@
-import { OtpPurpose } from "../../../domain/enums/OtpPurpose.js";
-import { IAuthRepository } from "../../../domain/repositories/IAuthRepository.js";
-import { IOtpService } from "../../../domain/services/IOTPService.js";
-import { Messages } from "../../../shared/constants/message.js";
+import { OtpPurpose } from "@/domain/enums/OtpPurpose.js";
+import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import { IOtpService } from "@/domain/services/IOTPService";
+import { Messages } from "@/shared/constants/message";
 import { inject, injectable } from "inversify";
-import { TYPES } from "../../../infrastructure/DI/types.js";
+import { TYPES } from "@/infrastructure/DI/types";
+
+import { IForgotPasswordUseCase } from "@/application/interfaces/use-cases/user/IForgotPasswordUseCase";
+import { ForgotPasswordRequestDto, ForgotPasswordResponseDto } from "@/application/dtos/AuthDTOs";
+import { AppError } from "@/shared/error/AppError";
+import { StatusCode } from "@/domain/enums/StatusCode";
 
 @injectable()
-export class ForgotPasswordUseCase {
+export class ForgotPasswordUseCase implements IForgotPasswordUseCase {
   constructor(
   @inject(TYPES.AuthRepository )private _userRepository: IAuthRepository,
  @inject(TYPES.AuthRepository) private _companyRepository: IAuthRepository,
@@ -14,7 +19,8 @@ export class ForgotPasswordUseCase {
 
   ) {}
 
-  async execute(email: string) {
+  async execute(dto: ForgotPasswordRequestDto): Promise<ForgotPasswordResponseDto> {
+    const { email } = dto;
 
     // First check local user
     const localUser = await this._userRepository.findByEmail(email);
@@ -30,7 +36,7 @@ export class ForgotPasswordUseCase {
 
     // 🔍 2. Check Company account
 
-const company = await this._companyRepository.findByEmail(email)
+const company = await this._companyRepository.findByEmail(email);
  if (company) { await this._otpService.generateOtp(email, OtpPurpose.FORGOT_PASSWORD, "company");
  return { success: true, message:Messages.AUTH.OTP_SUCCESS, }; }
 
@@ -47,7 +53,7 @@ const company = await this._companyRepository.findByEmail(email)
     }
 
     // No account found at all
-    throw new Error("No account found with this email.");
+    throw new AppError("No account found with this email.", StatusCode.NOT_FOUND);
   }
 }
 

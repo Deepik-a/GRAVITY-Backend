@@ -1,22 +1,43 @@
 import { Request, Response, NextFunction } from "express";
-import { StatusCode } from "../../domain/enums/StatusCode";
+import { StatusCode } from "@/domain/enums/StatusCode";
 
 // Use Cases
-import { RegisterUseCase } from "../../application/use-cases/user/SignupUserUsecase.js";
-import { LoginUserUseCase } from "../../application/use-cases/user/LoginUserUseCase.js";
-import { GoogleAuthUseCase } from "../../application/use-cases/user/GoogleAuthUseCase.js";
-import { VerifyOtpUseCase } from "../../application/use-cases/user/VerifyOtpUseCase.js";
-import { ForgotPasswordUseCase } from "../../application/use-cases/user/ForgotPasswordUseCase.js";
-import { ResetPasswordUseCase } from "../../application/use-cases/user/ResetPasswordUseCase .js"
-import { ResendOtpUseCase } from "../../application/use-cases/user/ResendOtpUseCase.js";
-import { DetectUserRoleUseCase } from "../../application/use-cases/user/DetectUserRoleUseCase.js";
-import { verifyGoogleToken } from "../../infrastructure/stratergies/googleStratergy.js";
+import { RegisterUseCase } from "@/application/use-cases/user/RegisterUseCase";
+import { LoginUserUseCase } from "@/application/use-cases/user/LoginUserUseCase";
+import { GoogleAuthUseCase } from "@/application/use-cases/user/GoogleAuthUseCase";
+import { VerifyOtpUseCase } from "@/application/use-cases/user/VerifyOtpUseCase";
+import { ForgotPasswordUseCase } from "@/application/use-cases/user/ForgotPasswordUseCase";
+import { ResetPasswordUseCase } from "@/application/use-cases/user/ResetPasswordUseCase";
+import { ResendOtpUseCase } from "@/application/use-cases/user/ResendOtpUseCase";
+import { DetectUserRoleUseCase } from "@/application/use-cases/user/DetectUserRoleUseCase";
+import { verifyGoogleToken } from "@/infrastructure/strategies/GoogleStrategy";
 import { injectable, inject } from "inversify";
-import { TYPES } from "../../infrastructure/DI/types";
+import { TYPES } from "@/infrastructure/DI/types";
+import { SignupRequestDto } from "@/application/dtos/user/SignupRequestDto";
+
+import { 
+  LoginRequestDto, 
+  ResendOtpRequestDto, 
+  ForgotPasswordRequestDto, 
+  VerifyOtpRequestDto, 
+  ResetPasswordRequestDto,
+  LoginResponseDto,
+  GoogleAuthResponseDto,
+  ResendOtpResponseDto,
+  ForgotPasswordResponseDto,
+  VerifyOtpResponseDto,
+  ResetPasswordResponseDto,
+  DetectRoleResponseDto
+} from "@/application/dtos/AuthDTOs";
+import { SignupResponseDto } from "@/application/dtos/user/SignupResponseDto";
+import { ILogger } from "@/domain/services/ILogger";
+import { UserSignUp } from "@/domain/entities/User";
+import { AppError } from "@/shared/error/AppError";
+import { cookieData } from "@/shared/constants/cookieData";
 
 
 
-import { OtpPurpose } from "../../domain/enums/OtpPurpose.js";
+
 @injectable()
 export class AuthController {
 
@@ -29,22 +50,18 @@ export class AuthController {
       @inject(TYPES.RegisterUseCase)  private readonly _registerUseCase: RegisterUseCase,
       @inject(TYPES.ResendOtpUseCase) private readonly _resendOtpUseCase: ResendOtpUseCase,
        @inject(TYPES.GoogleAuthUseCase) private readonly _googleAuthUseCase: GoogleAuthUseCase,
+       @inject(TYPES.Logger) private readonly _logger: ILogger,
   ) {}
 
 
   // ---------------- REGISTER ----------------
   async register(req: Request, res: Response, next: NextFunction) {
     try {
+    
+      const signupDto: SignupRequestDto = req.body;
+      this._logger.info("Req.body from signup", { signupDto });
 
-          const { name, email, password,phone, role } = req.body;
-          console.log(req.body,"Req.body from signup")
-    const result = await this._registerUseCase.execute({
-      name,
-      email,
-      password,
-    phone,
-      role
-    });
+      const result: SignupResponseDto = await this._registerUseCase.execute(signupDto);
       return res.status(StatusCode.CREATED).json(result);
     } catch (err) {
       next(err);
@@ -54,14 +71,39 @@ export class AuthController {
   // ---------------- LOGIN ----------------
 async login(req: Request, res: Response, next: NextFunction) {
   try {
-    const { email, password } = req.body;
+    const loginDto: LoginRequestDto = req.body;
+    const { repo, role, user }: DetectRoleResponseDto = await this._detectUserRoleUseCase.execute(loginDto.email);
+    
+    if (!user) throw new AppError("User not found", StatusCode.NOT_FOUND);
+    
+    if (!role || !repo) {
+  throw new AppError("Invalid role or repository", StatusCode.BAD_REQUEST);
+}
 
-    const { repo, role, user } = await this._detectUserRoleUseCase.execute(email);
-    const result = await this._loginUseCase.execute({
-      password,
+    const result: LoginResponseDto = await this._loginUseCase.execute({
+      email: loginDto.email,
+      password: loginDto.password,
       repo,
       role,
-      user,
+      user: user as UserSignUp,
+    });
+
+
+    // ✅ User Specific Cookies
+    res.cookie("userAccessToken", result.accessToken, {
+      httpOnly: cookieData.httpONLY,
+      secure: cookieData.SECURE,
+      sameSite: cookieData.SAME_SITE,
+      maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
+      path: "/", 
+    });
+
+    res.cookie("userRefreshToken", result.refreshToken, {
+      httpOnly: cookieData.httpONLY,
+      secure: cookieData.SECURE,
+      sameSite: cookieData.SAME_SITE,
+      maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
+      path: "/",
     });
 
     return res.status(StatusCode.SUCCESS).json(result);
@@ -74,61 +116,43 @@ async login(req: Request, res: Response, next: NextFunction) {
   // ---------------- GOOGLE LOGIN ----------------
 async googleLogin(req: Request, res: Response, next: NextFunction) {
   try {
-    console.log("\n========== 🟩 Google Login START ==========");
-
+    this._logger.info("========== 🟩 Google Login START ==========");
     const { token, role: frontendRole } = req.body;
 
-    console.log("📨 Incoming Request:");
-    console.log("   • frontendRole:", frontendRole);
-    console.log("   • token provided:", !!token);
+    if (!token) throw new AppError("Google token required", StatusCode.BAD_REQUEST);
 
-    if (!token) throw new Error("Google token required");
-
-    // 1️⃣ Verify Google token
-    console.log("\n🔐 Verifying Google token...");
     const googlePayload = await verifyGoogleToken(token);
-    console.log("   ✔ Google token verified");
-    console.log("   📧 Email:", googlePayload.email);
-    console.log("   👤 Name:", googlePayload.name);
-    console.log("   🔑 GoogleId:", googlePayload.googleId);
-
     const email = googlePayload.email;
 
-    const googleUser = {
-      name: googlePayload.name,
-      email,
-      googleId: googlePayload.googleId,
-    };
-
-    // 2️⃣ Detect user role + repo
-    console.log("\n🔎 Running DetectUserRoleUseCase...");
-    const { repo, role, user, isNewUser } =
+    const { repo, user, isNewUser }: DetectRoleResponseDto = 
       await this._detectUserRoleUseCase.execute(email);
 
-    console.log("   ✔ Role detected:", role);
-  
-    console.log("   ✔ Existing user:", user ? "YES" : "NO");
-    console.log("   ✔ New user:", isNewUser);
-
-    // 3️⃣ Login / Signup logic
-    console.log("\n🚀 Executing GoogleAuthUseCase...");
-    const result = await this._googleAuthUseCase.execute({
-      googleUser,
-      repo,
+    const result: GoogleAuthResponseDto = await this._googleAuthUseCase.execute({
+      googleUser: { name: googlePayload.name, email, googleId: googlePayload.googleId },
+      repo: repo || undefined,
       existingUser: user,
       frontendRole: isNewUser ? frontendRole : undefined,
     });
 
-    console.log("   ✔ GoogleAuthUseCase completed");
-    console.log("   🔑 Authenticated role:", role);
-    console.log("   🟢 Login/Signup successful for:", email);
+    // ✅ User Specific Cookies
+    res.cookie("userAccessToken", result.accessToken, {
+      httpOnly: cookieData.httpONLY,
+      secure: cookieData.SECURE,
+      sameSite: cookieData.SAME_SITE,
+      maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
+      path: "/",
+    });
 
-    console.log("========== 🟩 Google Login END ==========\n");
+    res.cookie("userRefreshToken", result.refreshToken, {
+      httpOnly: cookieData.httpONLY,
+      secure: cookieData.SECURE,
+      sameSite: cookieData.SAME_SITE,
+      maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
+      path: "/",
+    });
 
-    res.status(StatusCode.SUCCESS).json(result);
+    return res.status(StatusCode.SUCCESS).json(result);
   } catch (err) {
-    console.log("❌ ERROR in Google Login:", err);
-    console.log("========== 🟥 Google Login FAILED ==========\n");
     next(err);
   }
 }
@@ -141,7 +165,8 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
   // ---------------- RESEND OTP ----------------
   async resendOtp(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this._resendOtpUseCase.execute(req.body.email);
+      const resendDto: ResendOtpRequestDto = req.body;
+      const result: ResendOtpResponseDto = await this._resendOtpUseCase.execute(resendDto);
       return res.status(StatusCode.SUCCESS).json(result);
     } catch (err) {
       next(err);
@@ -151,7 +176,8 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
   // ---------------- FORGOT PASSWORD ----------------
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this._forgotPasswordUseCase.execute(req.body.email);
+      const forgotDto: ForgotPasswordRequestDto = req.body;
+      const result: ForgotPasswordResponseDto = await this._forgotPasswordUseCase.execute(forgotDto);
       return res.status(StatusCode.SUCCESS).json(result);
     } catch (err) {
       next(err);
@@ -161,13 +187,9 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
   // ---------------- VERIFY OTP ----------------
   async verifyOtp(req: Request, res: Response, next: NextFunction) {
     try {
-        const { email, otp, purpose } = req.body;  
-        console.log(req.body,"req.body from verifyotp")
-      const result = await this._verifyOtpUseCase.execute(
-       email,
-       otp,
-        purpose
-      );
+        const verifyDto: VerifyOtpRequestDto = req.body;  
+        this._logger.info("req.body from verifyotp", { verifyDto });
+      const result: VerifyOtpResponseDto = await this._verifyOtpUseCase.execute(verifyDto);
       return res.status(StatusCode.SUCCESS).json(result);
     } catch (err) {
       next(err);
@@ -177,10 +199,8 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
   // ---------------- RESET PASSWORD ----------------
   async resetPassword(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this._resetPasswordUseCase.execute(
-        req.body.email,
-        req.body.newPassword
-      );
+      const resetDto: ResetPasswordRequestDto = req.body;
+      const result: ResetPasswordResponseDto = await this._resetPasswordUseCase.execute(resetDto);
       return res.status(StatusCode.SUCCESS).json(result);
     } catch (err) {
       next(err);

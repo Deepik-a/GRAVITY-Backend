@@ -11,8 +11,8 @@ export interface UserSignUpDetails {
   status?: "pending" | "verified";
   documentStatus?: "pending" | "verified" | "rejected";
   rejectionReason?: string | null;
+  isBlocked?: boolean;
 }
-
 
 export interface GoogleSignUpDetails {
   name: string;
@@ -24,6 +24,7 @@ export interface GoogleSignUpDetails {
   id?: UniqueEntityID;
   documentStatus?: "pending" | "verified" | "rejected";
   rejectionReason?: string | null;
+  isBlocked?: boolean;
 }
 
 //a user is authenticated with basic details,profile is the user's extended information
@@ -35,8 +36,10 @@ export interface UserProfileDetails {
   phone?: string;
   location?: string;
   bio?: string;
-  isBlocked?:boolean
+  isBlocked?:boolean;
+  role?: string;
 }
+
 
 
 
@@ -49,10 +52,11 @@ export class UserSignUp implements UserSignUpDetails {
     public password: string,
     public role: "user" | "company" ,
     public provider: "local" | "google" = "local",
-    public phone: string="",        // optional → move down
+    public phone = "",        // optional → move down
   public status: "pending" | "verified", // optional → move down
     public documentStatus?: "pending" | "verified" | "rejected",
-    public rejectionReason?: string | null
+    public rejectionReason?: string | null,
+    public isBlocked = false
   ) {}
 }
 
@@ -69,7 +73,8 @@ export class GoogleSignUp implements GoogleSignUpDetails {
     public status?: "pending" | "verified",
     public id?: UniqueEntityID, // Added ID
     public documentStatus?: "pending" | "verified" | "rejected", // Added
-    public rejectionReason?: string | null // Added
+    public rejectionReason?: string | null, // Added
+    public isBlocked = false
   ) {}
 }
 
@@ -85,17 +90,10 @@ export class UserProfile implements UserProfileDetails {
     public phone?: string,
     public location?: string,
     public bio?: string,
-    public isBlocked?:boolean
+    public isBlocked?:boolean,
+    public role?: string
   ) {}
 }
 
 
-//an user that is required to do google login and signup
-export interface AuthenticatedUser {
-  id: UniqueEntityID;
-  name: string;
-  email: string;
-  role: "user" | "company";
-  provider: "local" | "google";
-  googleId?: string;   // optional
-}
+

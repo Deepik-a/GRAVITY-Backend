@@ -1,6 +1,7 @@
 // src/application/interfaces/use-cases/admin/IGetAllCompaniesUseCase.ts
-import { ICompany } from "../../../../domain/entities/Company";
+import { CompanyResponseDto } from "@/application/dtos/admin/CompanyResponseDto";
+// import { GetAllCompaniesRequestDto } from "@/application/dtos/admin/GetAllCompaniesRequestDto";
 
 export interface IGetAllCompaniesUseCase {
-  execute(): Promise<ICompany[]>;
+  execute(): Promise<CompanyResponseDto[]>;
 }

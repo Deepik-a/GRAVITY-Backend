@@ -1,109 +1,103 @@
 import { Request, Response, NextFunction } from "express";
 import { injectable, inject } from "inversify";
-import { TYPES } from "../../../infrastructure/DI/types"
-import { IAdminLoginUseCase } from "../../../application/interfaces/use-cases/admin/IAdminLoginUseCase";
-import { StatusCode } from "../../../domain/enums/StatusCode";
-import { IGetAllUsersUseCase } from "../../../application/interfaces/use-cases/admin/IGetAllUsersUseCase";
-import { IGetAllCompaniesUseCase } from "../../../application/interfaces/use-cases/admin/IGetAllCompaniesUseCase";
-import { IVerifyCompanyUseCase } from "../../../application/interfaces/use-cases/admin/IVerifyCompanyUseCase";
-import { cookieData } from "../../../shared/constants/cookieData";
+import { TYPES } from "@/infrastructure/DI/types";
+import { IAdminLoginUseCase } from "@/application/interfaces/use-cases/admin/IAdminLoginUseCase";
+import { StatusCode } from "@/domain/enums/StatusCode";
+import { IGetAllUsersUseCase } from "@/application/interfaces/use-cases/admin/IGetAllUsersUseCase";
+import { IGetAllCompaniesUseCase } from "@/application/interfaces/use-cases/admin/IGetAllCompaniesUseCase";
+import { IVerifyCompanyUseCase } from "@/application/interfaces/use-cases/admin/IVerifyCompanyUseCase";
+import { cookieData } from "@/shared/constants/cookieData";
+import { AdminLoginRequestDto } from "@/application/dtos/admin/AdminLoginRequestDto";
+import { VerifyCompanyRequestDto } from "@/application/dtos/admin/VerifyCompanyRequestDto";
+import { UserListResponseDto } from "@/application/dtos/admin/UserListResponseDto";
+import { CompanyResponseDto } from "@/application/dtos/admin/CompanyResponseDto";
 
+import { IToggleUserBlockStatusUseCase } from "@/application/interfaces/use-cases/admin/IToggleUserBlockStatusUseCase";
+import { IToggleCompanyBlockStatusUseCase } from "@/application/interfaces/use-cases/admin/IToggleCompanyBlockStatusUseCase";
+import { ILogger } from "@/domain/services/ILogger";
+import { AdminLoginResponseDto } from "@/application/dtos/admin/AdminLoginResponseDto";
+
+// ... existing imports
 
 @injectable()
 export class AdminLoginController {
- constructor(
-  @inject(TYPES.AdminLoginUseCase) private readonly _adminLoginUseCase: IAdminLoginUseCase,
-   @inject(TYPES.GetAllUsersUseCase) private readonly _getAllUsersUseCase: IGetAllUsersUseCase,
-  @inject(TYPES.GetAllCompaniesUseCase)  private readonly _getAllCompaniesUseCase: IGetAllCompaniesUseCase,
-   @inject(TYPES.VerifyCompanyUseCase) private readonly _verifyCompanyUseCase:IVerifyCompanyUseCase
- ) {}
+  constructor(
+    @inject(TYPES.AdminLoginUseCase) private readonly _adminLoginUseCase: IAdminLoginUseCase,
+    @inject(TYPES.GetAllUsersUseCase) private readonly _getAllUsersUseCase: IGetAllUsersUseCase,
+    @inject(TYPES.GetAllCompaniesUseCase)  private readonly _getAllCompaniesUseCase: IGetAllCompaniesUseCase,
+    @inject(TYPES.VerifyCompanyUseCase) private readonly _verifyCompanyUseCase:IVerifyCompanyUseCase,
+    @inject(TYPES.ToggleUserBlockStatusUseCase) private readonly _toggleUserBlockStatusUseCase: IToggleUserBlockStatusUseCase,
+    @inject(TYPES.ToggleCompanyBlockStatusUseCase) private readonly _toggleCompanyBlockStatusUseCase: IToggleCompanyBlockStatusUseCase,
+    @inject(TYPES.Logger) private readonly _logger: ILogger
+  ) {}
 
+  // ... existing methods
 
- async login(req: Request, res: Response, next: NextFunction) {
+async login(req: Request, res: Response, next: NextFunction) {
   try {
-    console.log("🟦 Admin Login Controller Hit");
+    this._logger.info("🟦 Admin Login Controller Hit");
 
-    const { email, password } = req.body;
-    console.log("📨 Incoming Credentials:", { email });
+    const loginDto: AdminLoginRequestDto = req.body;
+    const result: AdminLoginResponseDto = await this._adminLoginUseCase.execute(loginDto);
 
-    // Call use case
-    const result = await this._adminLoginUseCase.execute(email, password);
-    console.log("✅ Use case returned tokens successfully");
-    console.log("🔐 Access Token:", result.accessToken);
-    console.log("🔐 Refresh Token:", result.refreshToken);
-
-    // Cookie creation logs
-    console.log("🍪 Setting access token cookie with options:", {
+    // ✅ Admin Specific Cookies
+    res.cookie("adminAccessToken", result.accessToken, {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
       maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
+      path: "/",
     });
 
-    res.cookie("accessToken", result.accessToken, {
-      httpOnly: cookieData.httpONLY,
-      secure: cookieData.SECURE,
-      sameSite: cookieData.SAME_SITE,
-      maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
-    });
-
-    console.log("🍪 Setting refresh token cookie with options:", {
+    res.cookie("adminRefreshToken", result.refreshToken, {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
       maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
+      path: "/",
     });
-
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: cookieData.httpONLY,
-      secure: cookieData.SECURE,
-      sameSite: cookieData.SAME_SITE,
-      maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
-    });
-
-    console.log("📤 Sending success response");
 
     return res.status(StatusCode.SUCCESS).json({
       message: result.message,
     });
 
   } catch (error) {
-    console.log("❌ Error in admin login controller:", error);
+    this._logger.error("❌ Error in admin login controller:", { error });
     next(error);
   }
 }
 
-
-    async getUsers(req: Request, res: Response, next: NextFunction) {
+  async getUsers(req: Request, res: Response, next: NextFunction) {
     try {
-      const users = await this._getAllUsersUseCase.execute();
+      const users: UserListResponseDto[] = await this._getAllUsersUseCase.execute();
       res.status(StatusCode.SUCCESS).json({ users });
     } catch (err) {
       next(err);
     }
   }
 
-    async getCompanies(req: Request, res: Response, next: NextFunction) {
+  async getCompanies(req: Request, res: Response, next: NextFunction) {
     try {
-      const companies = await this._getAllCompaniesUseCase.execute();
+      const companies: CompanyResponseDto[] = await this._getAllCompaniesUseCase.execute();
       return res.status(StatusCode.SUCCESS).json({ companies });
     } catch (err) {
       next(err);
     }
   }
 
-async verifyCompany(req: Request, res: Response, next: NextFunction) {
+  async verifyCompany(req: Request, res: Response, next: NextFunction) {
     try {
-      const { companyId, approve,reason } = req.body;
-console.log("req.body from verifycompany",req.body)
-      if (!companyId || approve === undefined) {
-        return res.status(400).json({ message: "companyId and approve are required" });
+      const verifyDto: VerifyCompanyRequestDto = req.body;
+      this._logger.info("📨 Verify Company Request:", { verifyDto });
+
+      if (!verifyDto.companyId || verifyDto.approve === undefined) {
+        return res.status(StatusCode.BAD_REQUEST).json({ message: "companyId and approve are required" });
       }
 
-      const updatedCompany = await this._verifyCompanyUseCase.execute(companyId, approve,reason);
+      const updatedCompany: CompanyResponseDto = await this._verifyCompanyUseCase.execute(verifyDto);
 
-      return res.json({
-        message: `Company ${approve ? "approved" : "rejected"} successfully`,
+      return res.status(StatusCode.SUCCESS).json({
+        message: `Company ${verifyDto.approve ? "approved" : "rejected"} successfully`,
         company: updatedCompany,
       });
     } catch (err) {
@@ -111,4 +105,29 @@ console.log("req.body from verifycompany",req.body)
     }
   }
 
+  async toggleUserBlockStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id, isBlocked } = req.body;
+      if (!id || isBlocked === undefined) {
+          return res.status(StatusCode.BAD_REQUEST).json({ message: "id and isBlocked are required" });
+      }
+      const result = await this._toggleUserBlockStatusUseCase.execute({ id, isBlocked });
+      return res.status(StatusCode.SUCCESS).json({ message: `User ${isBlocked ? "blocked" : "unblocked"} successfully`, user: result });
+    } catch (error) {
+       next(error);
+    }
+  }
+
+  async toggleCompanyBlockStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id, isBlocked } = req.body;
+        if (!id || isBlocked === undefined) {
+          return res.status(StatusCode.BAD_REQUEST).json({ message: "id and isBlocked are required" });
+      }
+      const result = await this._toggleCompanyBlockStatusUseCase.execute({ id, isBlocked });
+      return res.status(StatusCode.SUCCESS).json({ message: `Company ${isBlocked ? "blocked" : "unblocked"} successfully`, company: result });
+    } catch (error) {
+       next(error);
+    }
+  }
 }
