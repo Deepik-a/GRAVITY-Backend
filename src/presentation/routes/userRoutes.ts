@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { container } from "../../infrastructure/DI/inversify.config";
-import { TYPES } from "../../infrastructure/DI/types.js";
-import { ProfileController } from "../controllers/userController/ProfileController.js";
+import { container } from "@/infrastructure/DI/inversify.config";
+import { TYPES } from "@/infrastructure/DI/types";
+import { ProfileController } from "@/presentation/controllers/userController/ProfileController";
 import { SessionAuth } from "@/presentation/middlewares/authMiddleware"; 
 
 const router = Router();

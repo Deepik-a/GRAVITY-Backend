@@ -5,6 +5,8 @@ import { StatusCode } from "@/domain/enums/StatusCode";
 import { injectable, inject } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { GetUserProfileRequestDto } from "@/application/dtos/user/ProfileRequestDto";
+import { AuthenticatedUser } from "@/types/auth";
+
 
 @injectable()
 export class ProfileController {
@@ -14,8 +16,7 @@ export class ProfileController {
 
   async getProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const user = req.user;
-
+      const user = req.user as AuthenticatedUser | undefined;
       if (!user?.id) {
         return res
           .status(StatusCode.UNAUTHORIZED)

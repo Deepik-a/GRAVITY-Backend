@@ -1,4 +1,4 @@
-import { UniqueEntityID } from "../value-objects/UniqueEntityID.js";
+import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
 
 export interface UserSignUpDetails {
   id?: UniqueEntityID;
@@ -95,5 +95,25 @@ export class UserProfile implements UserProfileDetails {
   ) {}
 }
 
+export class CompanyProfile {
+  constructor(
+    public id: UniqueEntityID,
+    public name: string,
+    public email: string,
+    public phone?: string,
+    public location?: string,
+    public documentStatus?: string,
+    public isBlocked?: boolean,
+    public profileImage?: string,
+    public documents?: Record<string, string | null>
+  ) {}
+}
 
 
+//?: symbol is not optional chaing
+
+//phone?: string;
+// property phone is optional  UserProfile entity can be string | undefined
+
+//phone:string|undefined;
+// property phone (property phone must be there)can be string or undefined in UserProfile entity

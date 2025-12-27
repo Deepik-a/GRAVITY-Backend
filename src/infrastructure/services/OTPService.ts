@@ -1,10 +1,10 @@
-import redisClient from "../config/redis.js";
-import { EmailService } from "./EmailService.js";
-import { OtpPurpose } from "../../domain/enums/OtpPurpose.js";
-import { IOtpService } from "../../domain/services/IOTPService.js";
-import { Messages } from "../../shared/constants/message.js";
+import redisClient from "@/infrastructure/config/redis";
+import { EmailService } from "@/infrastructure/services/EmailService";
+import { OtpPurpose } from "@/domain/enums/OtpPurpose";
+import { IOtpService } from "@/domain/services/IOTPService";
+import { Messages } from "@/shared/constants/message";
 import { injectable,inject } from "inversify";
-import { TYPES } from "../DI/types.js";
+import { TYPES } from "@/infrastructure/DI/types";
 import { ILogger } from "@/domain/services/ILogger";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";

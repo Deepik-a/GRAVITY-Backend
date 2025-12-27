@@ -1,3 +1,4 @@
+import "tsconfig-paths/register";
 import { env } from "@/infrastructure/config/env";
 import express from "express";
 import cors from "cors";

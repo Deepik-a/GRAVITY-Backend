@@ -1,4 +1,4 @@
-import { OtpPurpose } from "@/domain/enums/OtpPurpose.js";
+import { OtpPurpose } from "@/domain/enums/OtpPurpose";
 import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { IOtpService } from "@/domain/services/IOTPService";
 import { Messages } from "@/shared/constants/message";

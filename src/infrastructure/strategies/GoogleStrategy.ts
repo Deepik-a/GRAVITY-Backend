@@ -1,6 +1,6 @@
 import { OAuth2Client } from "google-auth-library";
-import { VerifiedGoogleUser } from "../../application/dtos/AuthDTOs.js";
-import { env } from "../config/env.js";
+import { VerifiedGoogleUser } from "@/application/dtos/AuthDTOs";
+import { env } from "@/infrastructure/config/env";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 

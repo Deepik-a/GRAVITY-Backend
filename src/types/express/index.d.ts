@@ -1,4 +1,5 @@
 import "express";
+import "passport";
 
 declare global {
   namespace Express {
@@ -8,22 +9,14 @@ declare global {
       name: string;
       role: string;
     }
-
-    interface Request {
-      user?: User;
-    }
   }
-}
 
-// Also augment express-serve-static-core as some versions of @types/express 
-// depend on it for the Request interface definition.
-declare module "express-serve-static-core" {
-  interface Request {
-    user?: {
+  namespace Passport {
+    interface User {
       id: string;
       email: string;
       name: string;
       role: string;
-    };
+    }
   }
 }

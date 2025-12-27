@@ -15,6 +15,8 @@ router.get("/companies", adminAuth.verify, adminAuth.authorize(["admin"]),adminC
 router.post("/verify-company", adminAuth.verify,adminAuth.authorize(["admin"]),adminController.verifyCompany.bind(adminController));
 router.patch("/users/block", adminAuth.verify, adminAuth.authorize(["admin"]), adminController.toggleUserBlockStatus.bind(adminController));
 router.patch("/companies/block", adminAuth.verify, adminAuth.authorize(["admin"]), adminController.toggleCompanyBlockStatus.bind(adminController));
+router.get("/users-search", adminAuth.verify,adminAuth.authorize(["admin"]),adminController.SearchUsers.bind(adminController));
+router.get("/companies-search", adminAuth.verify, adminAuth.authorize(["admin"]), adminController.searchCompanies.bind(adminController));
 
 export default router;
 

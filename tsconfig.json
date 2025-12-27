@@ -1,32 +1,41 @@
-//to change ts to js
-
 {
   "compilerOptions": {
     "target": "ES2020",
-
-    /* 🔑 Switch to CommonJS */
     "module": "CommonJS",
     "moduleResolution": "Node",
-
     "rootDir": "src",
     "outDir": "dist",
-
-    /* Path alias still works (compile-time) */
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"]
+      "@/*": [
+        "src/*"
+      ]
     },
-
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
+    "types": [
+      "node",
+      "express",
+      "passport",
+      "jsonwebtoken",
+      "multer",
+      "cors",
+      "cookie-parser",
+      "nodemailer",
+      "passport-google-oauth20"
+    ],
     "strict": true,
-
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "src/types/**/*.d.ts"
+  ]
 }

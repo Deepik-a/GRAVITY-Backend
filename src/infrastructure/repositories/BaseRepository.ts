@@ -1,6 +1,6 @@
 // infrastructure/repositories/BaseRepository.ts
 import { Model, Document, FilterQuery, UpdateQuery } from "mongoose";
-import { IBaseRepository } from "../../domain/repositories/IBaseRepository";
+import { IBaseRepository } from "@/domain/repositories/IBaseRepository";
 /**
  * Generic BaseRepository wrapping common mongoose operations
  */

@@ -3,8 +3,8 @@
 
 import nodemailer from "nodemailer";
 import { injectable, inject } from "inversify";
-import { env } from "../config/env.js";
-import { TYPES } from "../DI/types.js";
+import { env } from "@/infrastructure/config/env";
+import { TYPES } from "@/infrastructure/DI/types";
 import { ILogger } from "@/domain/services/ILogger";
 
 @injectable()

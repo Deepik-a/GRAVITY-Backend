@@ -1,5 +1,6 @@
 // src/infrastructure/di/types.ts
 
+
 export const TYPES = {
   // Repositories
   AdminRepository: Symbol.for("AdminRepository"),
@@ -21,6 +22,8 @@ export const TYPES = {
   VerifyCompanyUseCase: Symbol.for("VerifyCompanyUseCase"),
   ToggleUserBlockStatusUseCase: Symbol.for("ToggleUserBlockStatusUseCase"),
   ToggleCompanyBlockStatusUseCase: Symbol.for("ToggleCompanyBlockStatusUseCase"),
+  SearchUserUseCase:Symbol.for("SearchUsersUseCase"),
+  SearchCompanyUseCase:Symbol.for("SearchCompanyUseCase"),
 
   // Use Cases - User/Auth
   DetectUserRoleUseCase: Symbol.for("DetectUserRoleUseCase"),

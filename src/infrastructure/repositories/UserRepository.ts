@@ -1,9 +1,9 @@
 import { Types } from "mongoose";
-import { BaseRepository } from "./BaseRepository.js";
-import UserModel from "../database/models/UserModel.js";
-import { IAuthRepository } from "../../domain/repositories/IAuthRepository.js";
-import { UserSignUp, GoogleSignUp, UserProfile } from "../../domain/entities/User.js";
-import { UniqueEntityID } from "../../domain/value-objects/UniqueEntityID.js";
+import { BaseRepository } from "@/infrastructure/repositories/BaseRepository";
+import UserModel from "@/infrastructure/database/models/UserModel";
+import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import { UserSignUp, GoogleSignUp, UserProfile } from "@/domain/entities/User";
+import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
 import { injectable } from "inversify";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
@@ -147,7 +147,7 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     console.log("DEBUG_REPO: user found raw:", user.toObject ? user.toObject() : user);
     console.log("DEBUG_REPO: user.isBlocked:", user.isBlocked, "Type:", typeof user.isBlocked);
 
-    return new UserProfile(
+    return new UserProfile(           //here infrastructure layer is lower layer/inner layer it can depend on domain layer
       new UniqueEntityID(user._id.toString()),
       user.name,
       user.email,
@@ -193,7 +193,7 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
           user.location ?? undefined,
           user.bio ?? undefined,
           user.isBlocked ?? false,
-          user.role
+          user.role??undefined
         )
     );
   }

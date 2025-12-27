@@ -1,4 +1,4 @@
-import { UserProfile } from "../../domain/entities/User.js";
+import { UserProfile } from "@/domain/entities/User";
 
 export class ProfileResponseDTO {
   constructor(

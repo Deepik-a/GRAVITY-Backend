@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String },
     googleId: { type: String },
     provider: { type: String, enum: ["local", "google"], default: "local" },
-    role: { type: String, default: "user" },
+    role: { type: String },
     status: {
       type: String,
     },
@@ -18,9 +18,9 @@ const userSchema = new mongoose.Schema(
     },
 
     // 👇 Optional profile details
-    profileImage: { type: String, default: "" },
-    location: { type: String, default: "" },
-    bio: { type: String, default: "" },
+    profileImage: { type: String },
+    location: { type: String },
+    bio: { type: String },
   },
   { timestamps: true }
 );

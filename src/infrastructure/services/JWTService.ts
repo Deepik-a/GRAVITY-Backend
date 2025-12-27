@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
-import { IJwtService } from "../../domain/services/IJWTService.js";
-import { env } from "../../infrastructure/config/env.js";
+import { IJwtService } from "@/domain/services/IJWTService";
+import { env } from "@/infrastructure/config/env";
 import { injectable, inject } from "inversify";
-import { TYPES } from "../DI/types.js";
+import { TYPES } from "@/infrastructure/DI/types";
 import { ILogger } from "@/domain/services/ILogger";
 
 @injectable()

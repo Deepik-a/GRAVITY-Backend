@@ -20,6 +20,8 @@ import { GetAllCompaniesUseCase } from "@/application/use-cases/admin/GetAllComp
 import { VerifyCompanyUseCase } from "@/application/use-cases/admin/VerifyCompanyUseCase";
 import { ToggleUserBlockStatusUseCase } from "@/application/use-cases/admin/ToggleUserBlockStatusUseCase";
 import { ToggleCompanyBlockStatusUseCase } from "@/application/use-cases/admin/ToggleCompanyBlockStatusUseCase";
+import { SearchUserUseCase } from "@/application/use-cases/admin/SearchUsersUseCase";
+import { SearchCompanyUseCase } from "@/application/use-cases/admin/SearchCompanyUseCase";
 
 // ---------------- Use Cases (User/Auth) ----------------
 import { DetectUserRoleUseCase } from "@/application/use-cases/user/DetectUserRoleUseCase";
@@ -75,6 +77,8 @@ container.bind(TYPES.GetAllCompaniesUseCase).to(GetAllCompaniesUseCase);
 container.bind(TYPES.VerifyCompanyUseCase).to(VerifyCompanyUseCase);
 container.bind(TYPES.ToggleUserBlockStatusUseCase).to(ToggleUserBlockStatusUseCase);
 container.bind(TYPES.ToggleCompanyBlockStatusUseCase).to(ToggleCompanyBlockStatusUseCase);
+container.bind(TYPES.SearchUserUseCase).to(SearchUserUseCase);
+container.bind(TYPES.SearchCompanyUseCase).to(SearchCompanyUseCase);
 
 // ---------------- Bind User/Auth Use Cases ----------------
 container.bind(TYPES.DetectUserRoleUseCase).to(DetectUserRoleUseCase);

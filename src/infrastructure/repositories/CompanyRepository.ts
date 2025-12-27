@@ -1,15 +1,15 @@
 
-import { BaseRepository } from "./BaseRepository.js";
-import CompanyModel from "../database/models/CompanyModel.js";
-import { IAuthRepository } from "../../domain/repositories/IAuthRepository.js";
-import { UserSignUp, GoogleSignUp, UserProfile } from "../../domain/entities/User.js";
-import { ICompany } from "../../domain/entities/Company.js";
-import { UniqueEntityID } from "../../domain/value-objects/UniqueEntityID.js";
-import { ICompanyRepository } from "../../domain/repositories/ICompanyRepository.js";
-import { IStorageService } from "../../domain/services/IStorageService.js";
+import { BaseRepository } from "@/infrastructure/repositories/BaseRepository";
+import CompanyModel from "@/infrastructure/database/models/CompanyModel";
+import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import { UserSignUp, GoogleSignUp, UserProfile } from "@/domain/entities/User";
+import { ICompany } from "@/domain/entities/Company";
+import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
+import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
+import { IStorageService } from "@/domain/services/IStorageService";
 import { ObjectId } from "mongodb";
 import { inject, injectable ,unmanaged} from "inversify";
-import { TYPES } from "../DI/types.js";
+import { TYPES } from "@/infrastructure/DI/types";
 import { ILogger } from "@/domain/services/ILogger";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";

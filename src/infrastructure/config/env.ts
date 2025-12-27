@@ -1,7 +1,7 @@
 
 import { z } from "zod";
 import dotenv from "dotenv";
-import { logger } from "../../domain/services/Logger.js";
+import { logger } from "@/domain/services/Logger";
 
 // 1️⃣ .env → process.env
 dotenv.config();

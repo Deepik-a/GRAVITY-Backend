@@ -8,6 +8,7 @@
   import { ILogger } from "@/domain/services/ILogger";
 
   import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import { AuthenticatedUser } from "@/types/auth";
 
 @injectable()
 export class SessionAuth {
@@ -41,9 +42,11 @@ export class SessionAuth {
             role: payload.role as string,
             email: payload.email as string,
             name: payload.name as string,
-          };
+          } as AuthenticatedUser;
 
-          if (await this._checkBlockStatus(req.user.role, req.user.id)) {
+          const user = req.user as AuthenticatedUser;
+
+          if (await this._checkBlockStatus(user.role, user.id)) {
             this._clearSpecificCookies(res, accessKey, refreshKey);
             return res.status(StatusCode.FORBIDDEN).json({ status: false, message: Messages.AUTH.ACCOUNT_BLOCKED });
           }
@@ -76,7 +79,7 @@ export class SessionAuth {
           role: payload.role as string,
           email: payload.email as string,
           name: payload.name as string,
-        };
+        } as AuthenticatedUser;
         return next();
       }
 
@@ -90,7 +93,8 @@ export class SessionAuth {
 
   authorize(allowedRoles: string[]): RequestHandler {
     return (req: Request, res: Response, next: NextFunction) => {
-      if (!req.user || !allowedRoles.includes(req.user.role)) {
+      const user = req.user as AuthenticatedUser | undefined;
+      if (!user || !allowedRoles.includes(user.role)) {
         return res.status(StatusCode.FORBIDDEN).json({ status: false, message: "Access Denied" });
       }
       next();
