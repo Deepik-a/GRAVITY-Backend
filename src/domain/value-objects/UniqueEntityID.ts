@@ -37,4 +37,7 @@ export class UniqueEntityID {
   toObjectId(): ObjectId {
     return typeof this._value === "string" ? new ObjectId(this._value) : this._value;
   }
+  toJSON() {
+    return this.toString();
+  }
 }

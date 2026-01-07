@@ -11,10 +11,10 @@ export class GetUserProfileUseCase implements IGetUserProfileUseCase {
   constructor(  @inject(TYPES.UserRepository) private _userRepository: IAuthRepository) {}
 
   async execute(dto: GetUserProfileRequestDto): Promise<ProfileResponseDTO> {
-    const { userId } = dto;
-    if (!userId) throw new Error("User ID is required");
+    const { id } = dto;
+    if (!id) throw new Error("User ID is required");
 
-    const profile = await this._userRepository.findById(userId);
+    const profile = await this._userRepository.findById(id);
     if (!profile) throw new Error("User profile not found");
 
     return ProfileMapper.toResponseDTO(profile);

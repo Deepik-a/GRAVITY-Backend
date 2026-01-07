@@ -19,6 +19,8 @@ interface AuthenticatableUser {
   documentStatus?: string;
   rejectionReason?: string | null;
   isBlocked?: boolean;
+  isProfileFilled?: boolean;
+  provider?: string;
 }
 
 interface LoginInput extends LoginRequestDto {
@@ -37,7 +39,7 @@ export class LoginUserUseCase {
 
     // 1️⃣ FRESH CHECK: Always fetch latest data from DB to get current status
     // Input-ൽ നിന്ന് കിട്ടുന്ന 'user' ഒബ്‌ജക്റ്റിനെ ആശ്രയിക്കാതെ നേരിട്ട് സെർച്ച് ചെയ്യുന്നു
-    const freshUser = await (repo as any).findByEmail(email);
+    const freshUser = await (repo as IAuthRepository).findByEmail(email) as unknown as AuthenticatableUser;
     
     if (!freshUser) {
       throw new AppError("User not found", StatusCode.NOT_FOUND);
@@ -47,6 +49,22 @@ export class LoginUserUseCase {
     if (freshUser.isBlocked) {
       throw new AppError(Messages.AUTH.ACCOUNT_BLOCKED, StatusCode.FORBIDDEN);
     }
+
+    // 4️⃣ PROVIDER & PASSWORD VALIDATION
+if (freshUser.provider === "google" && !freshUser.password) {
+  throw new AppError(
+   Messages.AUTH.GOOGLE_USER_LOGIN,
+    StatusCode.BAD_REQUEST
+  );
+}
+
+if (!freshUser.password) {
+  throw new AppError(
+Messages.AUTH.No_PASSWORD,
+    StatusCode.UNAUTHORIZED
+  );
+}
+
 
     // 2️⃣ ROLE CHECK
     if (freshUser.role !== role) {
@@ -84,6 +102,7 @@ export class LoginUserUseCase {
         name: freshUser.name,
         email: freshUser.email,
         phone: freshUser.phone || "",
+        isProfileFilled: freshUser.isProfileFilled,
       },
       role,
       accessToken,

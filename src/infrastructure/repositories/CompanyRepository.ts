@@ -27,6 +27,62 @@ export class CompanyRepository
     super(companyModel); // ✅ required call to BaseRepository
   }
 
+  /* --------------------------------------------------
+      RESOLVE PROFILE URLS HELPER
+    -------------------------------------------------- */
+  private async _resolveProfileUrls(profile: ICompany["profile"]): Promise<ICompany["profile"]> {
+    if (!profile) return null;
+
+    // Resolve brand identity
+    if (profile.brandIdentity) {
+      const keys: (keyof typeof profile.brandIdentity)[] = ["logo", "banner1", "banner2", "profilePicture"];
+      for (const key of keys) {
+        if (profile.brandIdentity[key]) {
+          try {
+            profile.brandIdentity[key] = await this._s3Service.getSignedUrl(profile.brandIdentity[key]);
+          } catch (err) {
+            this._logger.error(`❌ Failed to resolve ${String(key)}`, { error: err });
+          }
+        }
+      }
+    }
+
+    // Resolve team members
+    if (profile.teamMembers && Array.isArray(profile.teamMembers)) {
+      for (const member of profile.teamMembers) {
+        if (member.photo) {
+          try {
+            member.photo = await this._s3Service.getSignedUrl(member.photo);
+          } catch (err) {
+            this._logger.error(`❌ Failed to resolve team member photo: ${member.name}`, { error: err });
+          }
+        }
+      }
+    }
+
+    // Resolve projects
+    if (profile.projects && Array.isArray(profile.projects)) {
+      for (const project of profile.projects) {
+        if (project.beforeImage) {
+          try {
+            project.beforeImage = await this._s3Service.getSignedUrl(project.beforeImage);
+          } catch (err) {
+            this._logger.error(`❌ Failed to resolve project beforeImage: ${project.title}`, { error: err });
+          }
+        }
+        if (project.afterImage) {
+          try {
+            project.afterImage = await this._s3Service.getSignedUrl(project.afterImage);
+          } catch (err) {
+            this._logger.error(`❌ Failed to resolve project afterImage: ${project.title}`, { error: err });
+          }
+        }
+      }
+    }
+
+    return profile;
+  }
+
   // -------------------------------------------
   // 💠 AUTH METHODS (from IAuthRepository)
   // -------------------------------------------
@@ -73,7 +129,8 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
         rawData.status,                             // 8
         rawData.documentStatus,                     // 9
         rawData.rejectionReason,                    // 10
-        rawData.isBlocked ?? false                  // 11 
+        rawData.isBlocked ?? false,                 // 11 
+        !!rawData.profile                           // 12
     );
 }
   async updatePassword(email: string, hashedPassword: string): Promise<void> {
@@ -100,7 +157,9 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       created.status,
       new UniqueEntityID(created._id.toString()),
       created.documentStatus,
-      created.rejectionReason
+      created.rejectionReason,
+      created.isBlocked ?? false,
+      !!created.profile
     );
   }
 
@@ -118,7 +177,8 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     new UniqueEntityID(found._id.toString()),
     found.documentStatus ?? "pending",
     found.rejectionReason,
-    found.isBlocked ?? false 
+    found.isBlocked ?? false,
+    !!found.profile
   );
 }
   async findByGoogleId(googleId: string): Promise<GoogleSignUp | null> {
@@ -134,7 +194,9 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       found.status,
       new UniqueEntityID(found._id.toString()),
       found.documentStatus ?? "pending", // ✅ Default to pending if missing
-      found.rejectionReason
+      found.rejectionReason,
+      found.isBlocked ?? false,
+      !!found.profile
     );
   }
 
@@ -241,6 +303,8 @@ return {
   status: updated.status,
   documentStatus: updated.documentStatus,
   rejectionReason: updated.rejectionReason ?? null,
+  isBlocked: updated.isBlocked,
+  isProfileFilled: updated.isProfileFilled,
   documents: {
     GST_Certificate: updated.documents?.GST_Certificate ?? null,
     RERA_License: updated.documents?.RERA_License ?? null,
@@ -271,63 +335,102 @@ return {
 
   /* --------------------------------------------------
       GET ALL COMPANIES WITH SIGNED URL MAPPING
+      (FULL PROFILE DATA FOR FRONTEND)
     -------------------------------------------------- */
-async getAllCompanies(): Promise<ICompany[]> {
-  this._logger.info("📌 [Repository:getAllCompanies] Fetch triggered");
+  async getAllCompanies(): Promise<ICompany[]> {
+    this._logger.info("📌 [Repository:getAllCompanies] Fetch triggered");
 
-  const companiesFromDb = await this.model.find().lean();
-  this._logger.info(`📦 Found ${companiesFromDb.length} companies in DB`);
+    const companiesFromDb = await this.model.find().lean();
+    this._logger.info(`📦 Found ${companiesFromDb.length} companies in DB`);
 
-  type DocumentField = "GST_Certificate" | "RERA_License" | "Trade_License";
+    type DocumentField = "GST_Certificate" | "RERA_License" | "Trade_License";
 
-  return await Promise.all(
-    companiesFromDb.map(async (c) => {
-      this._logger.info(`\n🔹 Resolving documents for: ${c.name} (${c.email})`);
-      this._logger.info("🧩 Stored Document Keys:", { documents: c.documents });
+    return await Promise.all(
+      companiesFromDb.map(async (c) => {
+        this._logger.info(`\n🔹 Resolving documents for: ${c.name} (${c.email})`);
+        this._logger.info("🧩 Stored Document Keys:", { documents: c.documents });
 
-      const resolvedDocuments: Record<DocumentField, string | null> = {
-        GST_Certificate: null,
-        RERA_License: null,
-        Trade_License: null,
-      };
+        const resolvedDocuments: Record<DocumentField, string | null> = {
+          GST_Certificate: null,
+          RERA_License: null,
+          Trade_License: null,
+        };
 
-      // Use a typed array to iterate safely
-      const documentFields: DocumentField[] = ["GST_Certificate", "RERA_License", "Trade_License"];
+        // Use a typed array to iterate safely
+        const documentFields: DocumentField[] = ["GST_Certificate", "RERA_License", "Trade_License"];
 
-      for (const field of documentFields) {
-        const fileKey = c.documents?.[field];
+        for (const field of documentFields) {
+          const fileKey = c.documents?.[field];
 
-        if (!fileKey) {
-          this._logger.info(`⚠️ No file for ${field}`);
-          continue;
+          if (!fileKey) {
+            this._logger.info(`⚠️ No file for ${field}`);
+            continue;
+          }
+
+          this._logger.info(`📁 Generating signed URL for -> ${field}: ${fileKey}`);
+
+          try {
+            const signed = await this._s3Service.getSignedUrl(fileKey);
+            resolvedDocuments[field] = signed;
+            this._logger.info(
+              `🔑 Signed URL generated successfully (short): ${signed.slice(0, 90)}...`
+            );
+          } catch (err) {
+            this._logger.error(`❌ Failed to generate signed URL for: ${fileKey}`, { error: err });
+          }
         }
 
-        this._logger.info(`📁 Generating signed URL for -> ${field}: ${fileKey}`);
+        // Return full company data, including complete profile with all nested fields
+        type CompanyDoc = typeof c & { profile?: ICompany["profile"] };
+        const rawProfile = (c as CompanyDoc).profile;
+        const mappedProfile: ICompany["profile"] | null = rawProfile
+          ? {
+              companyName: rawProfile.companyName || "",
+              categories: rawProfile.categories || [],
+              services: rawProfile.services || [],
+              consultationFee: rawProfile.consultationFee || 0,
+              establishedYear: rawProfile.establishedYear || 2024,
+              companySize: rawProfile.companySize || "",
+              overview: rawProfile.overview || "",
+              projectsCompleted: rawProfile.projectsCompleted || 0,
+              happyCustomers: rawProfile.happyCustomers || 0,
+              awardsWon: rawProfile.awardsWon || 0,
+              awardsRecognition: rawProfile.awardsRecognition || "",
+              contactOptions: {
+                chatSupport: rawProfile.contactOptions?.chatSupport ?? true,
+                videoCalls: rawProfile.contactOptions?.videoCalls ?? false,
+              },
+              teamMembers: rawProfile.teamMembers || [],
+              projects: rawProfile.projects || [],
+              brandIdentity: {
+                logo: rawProfile.brandIdentity?.logo || undefined,
+                banner1: rawProfile.brandIdentity?.banner1 || undefined,
+                banner2: rawProfile.brandIdentity?.banner2 || undefined,
+                profilePicture: rawProfile.brandIdentity?.profilePicture || undefined,
+              },
+            }
+          : null;
 
-        try {
-          const signed = await this._s3Service.getSignedUrl(fileKey);
-          resolvedDocuments[field] = signed;
-          this._logger.info(`🔑 Signed URL generated successfully (short): ${signed.slice(0, 90)}...`);
-        } catch (err) {
-          this._logger.error(`❌ Failed to generate signed URL for: ${fileKey}`, { error: err });
-        }
-      }
+        const mappedCompany: ICompany = {
+          id: (c._id as ObjectId).toString(),
+          name: c.name,
+          email: c.email,
+          phone: c.phone ?? null,
+          role: c.role,
+          status: c.status,
+          documents: resolvedDocuments,
+          documentStatus: c.documentStatus,
+          rejectionReason: c.rejectionReason ?? null,
+          location: c.location ?? null,
+          isBlocked: c.isBlocked,
+          isProfileFilled: c.isProfileFilled,
+          profile: await this._resolveProfileUrls(mappedProfile),
+        };
 
-      return {
-        id: (c._id as ObjectId).toString(),
-        name: c.name,
-        email: c.email,
-        phone: c.phone ?? null,
-        role: c.role,
-        status: c.status,
-        documentStatus: c.documentStatus,
-        documents: resolvedDocuments,
-        rejectionReason: c.rejectionReason,
-        isBlocked: c.isBlocked
-      };
-    })
-  );
-}
+        return mappedCompany;
+      })
+    );
+  }
 
 async updateBlockStatus(companyId: string, isBlocked: boolean): Promise<ICompany | null> {
   const updated = await CompanyModel.findByIdAndUpdate(
@@ -352,7 +455,58 @@ async updateBlockStatus(companyId: string, isBlocked: boolean): Promise<ICompany
         Trade_License: updated.documents?.Trade_License ?? null,
     },
     rejectionReason: updated.rejectionReason,
-    isBlocked: updated.isBlocked
+    isBlocked: updated.isBlocked,
+    isProfileFilled: updated.isProfileFilled
+  };
+}
+
+  async updateProfile(companyId: string, profileData: NonNullable<ICompany["profile"]>): Promise<ICompany | null> {
+    const updated = await this.model.findByIdAndUpdate(
+      companyId,
+      { 
+        $set: { 
+          profile: profileData, 
+          isProfileFilled: true,
+          name: profileData.companyName || "" // Sync root name with profile company name
+        } 
+      },
+      { new: true }
+    ).lean<ICompany>();
+
+    if (!updated) return null;
+    
+    // Resolve URLs before returning
+    if (updated.profile) {
+      updated.profile = await this._resolveProfileUrls(updated.profile);
+    }
+    
+    return updated;
+  }
+
+async deleteProfile(companyId: string): Promise<ICompany | null> {
+  const updated = await this.model.findByIdAndUpdate(
+    companyId,
+    { $set: { profile: null, isProfileFilled: false } },
+    { new: true }
+  ).lean<ICompany>();
+
+  if (!updated) return null;
+  return updated;
+}
+
+async getProfile(companyId: string): Promise<ICompany | null> {
+  const company = await this.model.findById(companyId).lean<ICompany>();
+  if (!company) return null;
+
+  if (company.profile) {
+    company.profile = await this._resolveProfileUrls(company.profile);
+  }
+
+  // Also fix the ID mapping if needed (BaseRepository might store as _id)
+  return {
+    ...company,
+    id: (company as { _id?: ObjectId })._id?.toString() || company.id
   };
 }
 }
+

@@ -33,24 +33,28 @@ export class SessionAuth {
       }
 
       if (accessToken) {
-      
-        const payload = this._jwtService.verifyAccessToken(accessToken);
-        this._logger.info("Token Payload Found:", payload); // ലോഗ് ചേർക്കുക
-        if (payload) {
-          req.user = {
-            id: (payload.userId || payload.id) as string,
-            role: payload.role as string,
-            email: payload.email as string,
-            name: payload.name as string,
-          } as AuthenticatedUser;
+        try {
+          const payload = this._jwtService.verifyAccessToken(accessToken);
+          this._logger.info("Token Payload Found:", payload); 
+          if (payload) {
+            req.user = {
+              id: (payload.userId || payload.id) as string,
+              role: payload.role as string,
+              email: payload.email as string,
+              name: payload.name as string,
+            } as AuthenticatedUser;
 
-          const user = req.user as AuthenticatedUser;
+            const user = req.user as AuthenticatedUser;
 
-          if (await this._checkBlockStatus(user.role, user.id)) {
-            this._clearSpecificCookies(res, accessKey, refreshKey);
-            return res.status(StatusCode.FORBIDDEN).json({ status: false, message: Messages.AUTH.ACCOUNT_BLOCKED });
+            if (await this._checkBlockStatus(user.role, user.id)) {
+              this._clearSpecificCookies(res, accessKey, refreshKey);
+              return res.status(StatusCode.FORBIDDEN).json({ status: false, message: Messages.AUTH.ACCOUNT_BLOCKED });
+            }
+            return next();
           }
-          return next();
+        } catch {
+          this._logger.info("Access token expired or invalid, checking refresh token...");
+          // Don't return here, let it fall through to refreshToken check
         }
       }
 
@@ -84,7 +88,6 @@ export class SessionAuth {
       }
 
       return this._endSpecificSession(res, accessKey, refreshKey);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       this._logger.error("Auth Catch Error:", { error });
       return this._endSpecificSession(res, isAdminRoute ? "adminAccessToken" : "userAccessToken", isAdminRoute ? "adminRefreshToken" : "userRefreshToken");

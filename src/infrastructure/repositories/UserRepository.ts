@@ -143,9 +143,7 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
 
     if (!user) return null;
     
-    // Debug logging for block status investigation
-    console.log("DEBUG_REPO: user found raw:", user.toObject ? user.toObject() : user);
-    console.log("DEBUG_REPO: user.isBlocked:", user.isBlocked, "Type:", typeof user.isBlocked);
+    // Debug logging for block status investigation - REMOVED
 
     return new UserProfile(           //here infrastructure layer is lower layer/inner layer it can depend on domain layer
       new UniqueEntityID(user._id.toString()),
@@ -175,7 +173,9 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       updated.profileImage ?? undefined,
       updated.phone ?? undefined,
       updated.location ?? undefined,
-      updated.bio ?? undefined
+      updated.bio ?? undefined,
+      updated.isBlocked,
+      updated.role
     );
   }
 

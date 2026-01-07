@@ -28,4 +28,11 @@ updateDocumentStatus(
 
   // Update block status
   updateBlockStatus(companyId: string, isBlocked: boolean): Promise<ICompany | null>;
+
+  // Profile methods
+  updateProfile(companyId: string, profileData: NonNullable<ICompany["profile"]>): Promise<ICompany | null>;
+  deleteProfile(companyId: string): Promise<ICompany | null>;
+  getProfile(companyId: string): Promise<ICompany | null>;
 }
+
+

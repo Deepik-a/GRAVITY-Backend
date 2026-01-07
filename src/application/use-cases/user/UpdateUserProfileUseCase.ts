@@ -1,7 +1,7 @@
 import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { ProfileResponseDTO } from "@/application/dtos/ProfileResponseDTO";
 import { ProfileMapper } from "@/application/mappers/ProfileMapper";
-import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
+
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { IUpdateUserProfileUseCase } from "@/application/interfaces/use-cases/user/IUpdateUserProfileUseCase";
@@ -15,17 +15,14 @@ export class UpdateUserProfileUseCase implements IUpdateUserProfileUseCase {
   constructor( @inject(TYPES.AuthRepository) private _userRepository: IAuthRepository) {}
 
   async execute(dto: UpdateUserProfileRequestDto): Promise<ProfileResponseDTO> {
-    if (!dto.userId) throw new Error("User ID is required");
+    if (!dto.id) throw new Error("User ID is required");
 
-    // ✅ Convert string to UniqueEntityID before updating
-    const uniqueId = new UniqueEntityID(dto.userId);
+    // ✅ Separate ID from updates to avoid trying to update the _id field
+    const { id, ...updates } = dto;
 
     const updated = await this._userRepository.updateUserProfile(
-      dto.userId,
-      {
-        ...dto,
-        userId: uniqueId, // ✅ pass domain value object
-      }
+      id,
+      updates
     );
 
     if (!updated) throw new Error("Failed to update profile");

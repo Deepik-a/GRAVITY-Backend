@@ -7,6 +7,8 @@ export const TYPES = {
   UserRepository: Symbol.for("UserRepository"),
   CompanyRepository: Symbol.for("CompanyRepository"),
   AuthRepository: Symbol.for("AuthRepository"),
+  SlotRepository: Symbol.for("SlotRepository"),
+  BookingRepository: Symbol.for("BookingRepository"),
   
   // Services
   EmailService: Symbol.for("EmailService"),
@@ -38,15 +40,30 @@ export const TYPES = {
 
   // Use Cases - Company
   UploadCompanyDocumentsUseCase: Symbol.for("UploadCompanyDocumentsUseCase"),
+  UpdateCompanyProfileUseCase: Symbol.for("UpdateCompanyProfileUseCase"),
+  DeleteCompanyProfileUseCase: Symbol.for("DeleteCompanyProfileUseCase"),
+  GetCompanyProfileUseCase: Symbol.for("GetCompanyProfileUseCase"),
+  SetSlotConfigUseCase: Symbol.for("SetSlotConfigUseCase"),
+  GetSlotConfigUseCase: Symbol.for("GetSlotConfigUseCase"),
+  DeleteSlotConfigUseCase: Symbol.for("DeleteSlotConfigUseCase"),
+  GetCompanyBookingsUseCase: Symbol.for("GetCompanyBookingsUseCase"),
 
 // Use Cases - User
   GetUserProfileUseCase: Symbol.for("GetUserProfileUseCase"),
+  UpdateUserProfileUseCase: Symbol.for("UpdateUserProfileUseCase"),
+  GetAvailableSlotsUseCase: Symbol.for("GetAvailableSlotsUseCase"),
+  BookSlotUseCase: Symbol.for("BookSlotUseCase"),
+  GetVerifiedCompaniesUseCase: Symbol.for("GetVerifiedCompaniesUseCase"),
+  GetUserBookingsUseCase: Symbol.for("GetUserBookingsUseCase"),
 
   // Controllers
   AdminController: Symbol.for("AdminController"),
   AuthController: Symbol.for("AuthController"),
   CompanyDocumentController: Symbol.for("CompanyDocumentController"),
+  CompanyProfileController: Symbol.for("CompanyProfileController"),
   ProfileController:Symbol.for("ProfileController"),
+  SlotController: Symbol.for("SlotController"),
+  CompanyController: Symbol.for("CompanyController"),
 
   // Middleware
   SessionAuth: Symbol.for("SessionAuth"),

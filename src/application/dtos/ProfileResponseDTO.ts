@@ -2,7 +2,7 @@ import { UserProfile } from "@/domain/entities/User";
 
 export class ProfileResponseDTO {
   constructor(
-    public userId: string,
+    public id: string,
     public name: string,
     public email: string,
     public profileImage?: string,
@@ -14,7 +14,7 @@ export class ProfileResponseDTO {
   // Map from domain entity → DTO
   static fromDomain(profile: UserProfile): ProfileResponseDTO {
     return new ProfileResponseDTO(
-      profile.userId.toString(), // Convert UniqueEntityID to string
+      profile.id.toString(), // Convert UniqueEntityID to string
       profile.name,
       profile.email,
       profile.profileImage,

@@ -33,6 +33,7 @@ export interface LoginResponseDto {
     name: string;
     email: string;
     phone: string;
+    isProfileFilled?: boolean;
   };
   role: string;
   accessToken: string;
@@ -66,12 +67,14 @@ export interface VerifiedGoogleUser {
 }
 
 export interface GoogleUserResponseDto {
+  id: string; // ✅ Added id
   name: string;
   email: string;
   googleId: string;
   token: string;
   role: "user" | "company";
   documentStatus?: "pending" | "verified" | "rejected";
+  isProfileFilled?: boolean;
 }
 
 export interface GoogleAuthResponseDto {

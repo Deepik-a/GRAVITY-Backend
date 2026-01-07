@@ -66,7 +66,6 @@ export class GoogleAuthUseCase implements IGoogleAuthUseCase {
     }
 
     // ⛔ FRESH BLOCK CHECK (This will now use the latest value from DB)
-    console.log("Current block status from DB:", user.isBlocked);
     if (user.isBlocked) {
       throw new AppError(Messages.AUTH.ACCOUNT_BLOCKED, StatusCode.FORBIDDEN);
     }
@@ -81,7 +80,7 @@ export class GoogleAuthUseCase implements IGoogleAuthUseCase {
     }
 
     // 5. GENERATE JWT
-    const subject = (user as any).id?.toString() || (user as any).googleId;
+    const subject = (user as { id?: string; googleId?: string }).id?.toString() || (user as { googleId: string }).googleId;
     const payload = { userId: subject, role: user.role, status: user.status };
 
     const accessToken = this._jwtService.signAccessToken(payload);

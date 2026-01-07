@@ -6,7 +6,7 @@ import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 
 interface UpdateProfileInput {
-  userId: string;
+  id: string;
   profileImage?: string;
   phone?: string;
   location?: string;
@@ -19,16 +19,16 @@ export class UpdateUserProfileUseCase implements IUpdateUserProfileUseCase {
   constructor( @inject(TYPES.AuthRepository) private _userRepository: IAuthRepository) {}
 
   async execute(data: UpdateProfileInput): Promise<ProfileResponseDTO> {
-    if (!data.userId) throw new Error("User ID is required");
+    if (!data.id) throw new Error("User ID is required");
 
     // ✅ Convert string to UniqueEntityID before updating
-    const uniqueId = new UniqueEntityID(data.userId);
+    const uniqueId = new UniqueEntityID(data.id);
 
     const updated = await this._userRepository.updateUserProfile(
-      data.userId,
+      data.id,
       {
         ...data,
-        userId: uniqueId, // ✅ pass domain value object
+        id: uniqueId, // ✅ pass domain value object
       }
     );
 

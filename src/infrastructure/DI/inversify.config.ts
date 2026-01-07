@@ -7,6 +7,8 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { AdminRepository } from "@/infrastructure/repositories/AdminRepository";
 import { UserRepository } from "@/infrastructure/repositories/UserRepository";
 import { CompanyRepository } from "@/infrastructure/repositories/CompanyRepository";
+import { SlotRepository } from "@/infrastructure/repositories/SlotRepository";
+import { BookingRepository } from "@/infrastructure/repositories/BookingRepository";
 
 // ---------------- Services ----------------
 import { JwtService } from "@/infrastructure/services/JWTService";
@@ -33,6 +35,11 @@ import { RegisterUseCase } from "@/application/use-cases/user/RegisterUseCase";
 import { ResendOtpUseCase } from "@/application/use-cases/user/ResendOtpUseCase";
 import { GoogleAuthUseCase } from "@/application/use-cases/user/GoogleAuthUseCase";
 import { GetUserProfileUseCase } from "@/application/use-cases/user/GetUserProfileUseCase";
+import { UpdateUserProfileUseCase } from "@/application/use-cases/user/UpdateUserProfileUseCase";
+import { GetAvailableSlotsUseCase } from "@/application/use-cases/user/GetAvailableSlotsUseCase";
+import { BookSlotUseCase } from "@/application/use-cases/user/BookSlotUseCase";
+import { GetVerifiedCompaniesUseCase } from "@/application/use-cases/user/GetVerifiedCompaniesUseCase";
+import { GetUserBookingsUseCase } from "@/application/use-cases/user/GetUserBookingsUseCase";
 
 
 
@@ -41,15 +48,25 @@ import { GetUserProfileUseCase } from "@/application/use-cases/user/GetUserProfi
 
 // ---------------- Use Cases (Company) ----------------
 import { UploadCompanyDocumentsUseCase } from "@/application/use-cases/company/UploadCompanyDocumentsUseCase";
+import { UpdateCompanyProfileUseCase } from "@/application/use-cases/company/UpdateCompanyProfileUseCase";
+import { DeleteCompanyProfileUseCase } from "@/application/use-cases/company/DeleteCompanyProfileUseCase";
+import { GetCompanyProfileUseCase } from "@/application/use-cases/company/GetCompanyProfileUseCase";
+import { SetSlotConfigUseCase } from "@/application/use-cases/company/SetSlotConfigUseCase";
+import { GetSlotConfigUseCase } from "@/application/use-cases/company/GetSlotConfigUseCase";
+import { DeleteSlotConfigUseCase } from "@/application/use-cases/company/DeleteSlotConfigUseCase";
+import { GetCompanyBookingsUseCase } from "@/application/use-cases/company/GetCompanyBookingsUseCase";
 
 // ---------------- Controllers ----------------
 import { AdminLoginController } from "@/presentation/controllers/adminController/AdminController";
 import { AuthController } from "@/presentation/controllers/AuthController";
 import { CompanyDocumentController } from "@/presentation/controllers/companyController/CompanyDocumentController";
+import { CompanyProfileController } from "@/presentation/controllers/companyController/CompanyProfileController";
 import { ProfileController } from "@/presentation/controllers/userController/ProfileController";
+import { SlotController } from "@/presentation/controllers/SlotController";
+import { CompanyController } from "@/presentation/controllers/userController/CompanyController";
 
 // ---------------- Middleware ----------------
-import { SessionAuth } from "@/presentation/middlewares/authMiddleware";
+import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
 import { EmailService } from "@/infrastructure/services/EmailService";
 import { LoggerService } from "@/domain/services/Logger";
 
@@ -59,6 +76,8 @@ const container = new Container();
 container.bind(TYPES.AdminRepository).to(AdminRepository); //OCP
 container.bind(TYPES.UserRepository).to(UserRepository);
 container.bind(TYPES.CompanyRepository).to(CompanyRepository);
+container.bind(TYPES.SlotRepository).to(SlotRepository);
+container.bind(TYPES.BookingRepository).to(BookingRepository);
 container.bind(TYPES.AuthRepository).to(UserRepository); // Same repo for login //LSp
 
 // ---------------- Bind Services ----------------
@@ -90,16 +109,31 @@ container.bind(TYPES.RegisterUseCase).to(RegisterUseCase);
 container.bind(TYPES.ResendOtpUseCase).to(ResendOtpUseCase);
 container.bind(TYPES.GoogleAuthUseCase).to(GoogleAuthUseCase);
 container.bind(TYPES.GetUserProfileUseCase).to(GetUserProfileUseCase);
+container.bind(TYPES.UpdateUserProfileUseCase).to(UpdateUserProfileUseCase);
+container.bind(TYPES.GetAvailableSlotsUseCase).to(GetAvailableSlotsUseCase);
+container.bind(TYPES.BookSlotUseCase).to(BookSlotUseCase);
+container.bind(TYPES.GetVerifiedCompaniesUseCase).to(GetVerifiedCompaniesUseCase);
+container.bind(TYPES.GetUserBookingsUseCase).to(GetUserBookingsUseCase);
 
 
 // ---------------- Bind Company Use Cases ----------------
 container.bind(TYPES.UploadCompanyDocumentsUseCase).to(UploadCompanyDocumentsUseCase);
+container.bind(TYPES.UpdateCompanyProfileUseCase).to(UpdateCompanyProfileUseCase);
+container.bind(TYPES.DeleteCompanyProfileUseCase).to(DeleteCompanyProfileUseCase);
+container.bind(TYPES.GetCompanyProfileUseCase).to(GetCompanyProfileUseCase);
+container.bind(TYPES.SetSlotConfigUseCase).to(SetSlotConfigUseCase);
+container.bind(TYPES.GetSlotConfigUseCase).to(GetSlotConfigUseCase);
+container.bind(TYPES.DeleteSlotConfigUseCase).to(DeleteSlotConfigUseCase);
+container.bind(TYPES.GetCompanyBookingsUseCase).to(GetCompanyBookingsUseCase);
 
 // ---------------- Bind Controllers ----------------
 container.bind(TYPES.AdminController).to(AdminLoginController);
 container.bind(TYPES.AuthController).to(AuthController);
 container.bind(TYPES.CompanyDocumentController).to(CompanyDocumentController);
+container.bind(TYPES.CompanyProfileController).to(CompanyProfileController);
 container.bind(TYPES.ProfileController).to(ProfileController);
+container.bind(TYPES.SlotController).to(SlotController);
+container.bind(TYPES.CompanyController).to(CompanyController);
 
 // ---------------- Bind Middleware ----------------
 container.bind(TYPES.SessionAuth).to(SessionAuth);

@@ -1,17 +1,76 @@
 import { Router } from "express";
-import multer from "multer";
+import { upload } from "@/presentation/middlewares/MulterUpload";
 import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { CompanyDocumentController } from "@/presentation/controllers/companyController/CompanyDocumentController";
-const upload = multer({ storage: multer.memoryStorage() });
+import { CompanyProfileController } from "@/presentation/controllers/companyController/CompanyProfileController";
+import { SlotController } from "@/presentation/controllers/SlotController";
+import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
 const router = Router();
 
-const controller = container.get<CompanyDocumentController>(TYPES.CompanyDocumentController);
+const docController = container.get<CompanyDocumentController>(TYPES.CompanyDocumentController);
+const profileController = container.get<CompanyProfileController>(TYPES.CompanyProfileController);
+const slotController = container.get<SlotController>(TYPES.SlotController);
+const companyAuth = container.get<SessionAuth>(TYPES.SessionAuth);
 
 router.post(
   "/upload-documents",
   upload.array("documents", 3),
-  controller.upload.bind(controller)
+  docController.upload.bind(docController)
+);
+
+router.get(
+  "/profile/:companyId",
+  profileController.getProfile.bind(profileController)
+);
+
+router.put(
+  "/profile",
+  companyAuth.verify,
+  companyAuth.authorize(["company"]),
+  profileController.updateProfile.bind(profileController)
+);
+
+router.post(
+  "/profile/image",
+  companyAuth.verify,
+  companyAuth.authorize(["company"]),
+  upload.single("image"),
+  profileController.uploadProfileImage.bind(profileController)
+);
+
+router.delete(
+  "/profile",
+  companyAuth.verify,
+  companyAuth.authorize(["company"]),
+  profileController.deleteProfile.bind(profileController)
+);
+
+// Slot Management
+router.get(
+  "/get-bookings",
+  companyAuth.verify,
+  companyAuth.authorize(["company"]),
+  slotController.getCompanyBookings.bind(slotController)
+);
+router.get(
+  "/slots/config", 
+  companyAuth.verify, 
+  companyAuth.authorize(["company"]), 
+  slotController.getConfig.bind(slotController)
+);
+router.post(
+  "/slots/config", 
+  companyAuth.verify, 
+  companyAuth.authorize(["company"]), 
+  slotController.setConfig.bind(slotController)
+);
+router.delete(
+  "/slots/config", 
+  companyAuth.verify, 
+  companyAuth.authorize(["company"]), 
+  slotController.deleteConfig.bind(slotController)
 );
 
 export default router;
+

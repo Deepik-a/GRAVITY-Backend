@@ -6,7 +6,7 @@ export const ProfileMapper = {
   // Convert domain entity → DTO
   toResponseDTO(profile: UserProfile): ProfileResponseDTO {
     return new ProfileResponseDTO(
-      profile.userId.toString(),
+      profile.id.toString(),
       profile.name,
       profile.email,
       profile.profileImage,
@@ -20,7 +20,7 @@ export const ProfileMapper = {
   // Optional: Convert DTO → domain entity (for updates, etc.)
   toDomain(dto: ProfileResponseDTO): UserProfile {
     return new UserProfile(
-      new UniqueEntityID(dto.userId),
+      new UniqueEntityID(dto.id),
       dto.name,
       dto.email,
       dto.profileImage,

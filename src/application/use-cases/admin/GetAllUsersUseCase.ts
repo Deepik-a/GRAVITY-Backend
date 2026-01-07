@@ -13,7 +13,7 @@ export class GetAllUsersUseCase implements IGetAllUsersUseCase {
     // dto can be used for filters/pagination in the future
     const users = await this._userRepo.getAllUsers();
     return users.map(user => ({
-      id: user.userId.toString(),
+      id: user.id.toString(),
       name: user.name,
       email: user.email,
       phone: user.phone,

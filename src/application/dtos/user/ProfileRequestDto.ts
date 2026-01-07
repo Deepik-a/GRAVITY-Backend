@@ -1,9 +1,10 @@
 export interface GetUserProfileRequestDto {
-  userId: string;
+  id: string;
 }
 
 export interface UpdateUserProfileRequestDto {
-  userId: string;
+  id: string;
+  name?: string;
   profileImage?: string;
   phone?: string;
   location?: string;

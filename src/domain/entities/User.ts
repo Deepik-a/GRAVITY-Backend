@@ -12,6 +12,7 @@ export interface UserSignUpDetails {
   documentStatus?: "pending" | "verified" | "rejected";
   rejectionReason?: string | null;
   isBlocked?: boolean;
+  isProfileFilled?: boolean;
 }
 
 export interface GoogleSignUpDetails {
@@ -25,11 +26,12 @@ export interface GoogleSignUpDetails {
   documentStatus?: "pending" | "verified" | "rejected";
   rejectionReason?: string | null;
   isBlocked?: boolean;
+  isProfileFilled?: boolean;
 }
 
 //a user is authenticated with basic details,profile is the user's extended information
 export interface UserProfileDetails {
-  userId: UniqueEntityID;
+  id: UniqueEntityID;
   name: string;
   email: string;
   profileImage?: string;
@@ -56,7 +58,8 @@ export class UserSignUp implements UserSignUpDetails {
   public status: "pending" | "verified", // optional → move down
     public documentStatus?: "pending" | "verified" | "rejected",
     public rejectionReason?: string | null,
-    public isBlocked = false
+    public isBlocked = false,
+    public isProfileFilled = false
   ) {}
 }
 
@@ -74,7 +77,8 @@ export class GoogleSignUp implements GoogleSignUpDetails {
     public id?: UniqueEntityID, // Added ID
     public documentStatus?: "pending" | "verified" | "rejected", // Added
     public rejectionReason?: string | null, // Added
-    public isBlocked = false
+    public isBlocked = false,
+    public isProfileFilled = false
   ) {}
 }
 
@@ -83,7 +87,7 @@ export class GoogleSignUp implements GoogleSignUpDetails {
 //Entity for Profile
 export class UserProfile implements UserProfileDetails {
   constructor(
-    public userId: UniqueEntityID,
+    public id: UniqueEntityID,
     public name: string,
     public email: string,
     public profileImage?: string,
@@ -93,6 +97,48 @@ export class UserProfile implements UserProfileDetails {
     public isBlocked?:boolean,
     public role?: string
   ) {}
+}
+
+export interface TeamMember {
+  id: number;
+  name: string;
+  qualification: string;
+  role: string;
+  photo?: string;
+}
+
+export interface Project {
+  id: number;
+  title: string;
+  description: string;
+  beforeImage?: string;
+  afterImage?: string;
+}
+
+export interface ProfileData {
+  companyName?: string;
+  categories: string[];
+  services: string[];
+  consultationFee: number;
+  establishedYear: number;
+  companySize: string;
+  overview: string;
+  projectsCompleted: number;
+  happyCustomers: number;
+  awardsWon: number;
+  awardsRecognition: string;
+  contactOptions: {
+    chatSupport: boolean;
+    videoCalls: boolean;
+  };
+  teamMembers: TeamMember[];
+  projects: Project[];
+  brandIdentity: {
+    logo?: string;
+    banner1?: string;
+    banner2?: string;
+    profilePicture?: string;
+  };
 }
 
 export class CompanyProfile {
@@ -105,7 +151,9 @@ export class CompanyProfile {
     public documentStatus?: string,
     public isBlocked?: boolean,
     public profileImage?: string,
-    public documents?: Record<string, string | null>
+    public documents?: Record<string, string | null>,
+    public isProfileFilled?: boolean,
+    public profile?: ProfileData
   ) {}
 }
 

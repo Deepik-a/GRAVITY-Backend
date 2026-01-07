@@ -2,7 +2,7 @@
 
 export class ProfileResponseDTO {
   constructor(
-    public userId: string,
+    public id: string,
     public name: string,
     public email: string,
     public profileImage?: string,

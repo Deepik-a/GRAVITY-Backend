@@ -9,7 +9,7 @@ import AuthRoutes from "@/presentation/routes/AuthRoutes";
 import UserRoutes from "@/presentation/routes/UserRoutes";
 import CompanyRoutes from "@/presentation/routes/CompanyRoutes";
 import { connectRedis } from "@/infrastructure/config/redis";
-import { errorHandler } from "@/presentation/middlewares/errorMiddleware";
+import { errorHandler } from "@/presentation/middlewares/ErrorMiddleware";
 import cookieParser from "cookie-parser";
 import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";

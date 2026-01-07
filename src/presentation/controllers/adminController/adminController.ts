@@ -154,6 +154,7 @@ export class AdminLoginController {
   ) {
     try {
       const { id, isBlocked } = req.body;
+
       if (!id || isBlocked === undefined) {
         return res
           .status(StatusCode.BAD_REQUEST)

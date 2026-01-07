@@ -72,6 +72,7 @@ export class AuthController {
 async login(req: Request, res: Response, next: NextFunction) {
   try {
     const loginDto: LoginRequestDto = req.body;
+     this._logger.info("Req.body from login", { loginDto });
     const { repo, role, user }: DetectRoleResponseDto = await this._detectUserRoleUseCase.execute(loginDto.email);
     
     if (!user) throw new AppError("User not found", StatusCode.NOT_FOUND);

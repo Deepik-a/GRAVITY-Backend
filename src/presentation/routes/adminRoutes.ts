@@ -2,7 +2,7 @@ import { Router } from "express";
 import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { AdminLoginController } from "@/presentation/controllers/adminController/AdminController"; // import class
-import { SessionAuth } from "@/presentation/middlewares/authMiddleware"; // import class/interface
+import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware"; // import class/interface
 
 const router = Router();
 

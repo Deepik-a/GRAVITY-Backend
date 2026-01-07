@@ -16,6 +16,8 @@ export const Messages = {
     OTP_VERIFY_SUCCESS: "OTP verified successfully",
     AUTH_FAILED: "Authentication failed",
     ACCOUNT_BLOCKED: "Your account has been blocked. Please contact admin.",
+    GOOGLE_USER_LOGIN: "This email is registered via Google Sign-In. No password reset required.",
+    No_PASSWORD: "Password is not available for this account. Please contact the administrator or use the forgot password option.",
   },
   
   USER: {

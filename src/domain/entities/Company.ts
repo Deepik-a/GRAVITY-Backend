@@ -16,5 +16,45 @@ export interface ICompany {
   rejectionReason?: string | null;   // <--- add here
   location?: string | null;
   isBlocked?: boolean;
+  isProfileFilled?: boolean;
+  profile?: {
+    companyName?: string;
+    categories: string[];
+    services: string[];
+    consultationFee: number;
+    establishedYear: number;
+    companySize: string;
+    overview: string;
+    projectsCompleted: number;
+    happyCustomers: number;
+    awardsWon: number;
+    awardsRecognition: string;
+    contactOptions: {
+      chatSupport: boolean;
+      videoCalls: boolean;
+    };
+    teamMembers: {
+      id: number;
+      name: string;
+      qualification: string;
+      role: string;
+      photo?: string;
+    }[];
+    projects: {
+      id: number;
+      title: string;
+      description: string;
+      beforeImage?: string;
+      afterImage?: string;
+      date?: string;
+    }[];
+    brandIdentity: {
+      logo?: string;
+      banner1?: string;
+      banner2?: string;
+      profilePicture?: string;
+    };
+  } | null;
 }
+
 
