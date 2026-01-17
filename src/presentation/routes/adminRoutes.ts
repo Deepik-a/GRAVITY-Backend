@@ -2,11 +2,13 @@ import { Router } from "express";
 import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { AdminLoginController } from "@/presentation/controllers/adminController/AdminController"; // import class
+import { SlotController } from "@/presentation/controllers/SlotController";
 import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware"; // import class/interface
 
 const router = Router();
 
 const adminController = container.get<AdminLoginController>(TYPES.AdminController);
+const slotController = container.get<SlotController>(TYPES.SlotController);
 const adminAuth = container.get<SessionAuth>(TYPES.SessionAuth);
 
 router.post("/login", adminController.login.bind(adminController));
@@ -17,6 +19,13 @@ router.patch("/users/block", adminAuth.verify, adminAuth.authorize(["admin"]), a
 router.patch("/companies/block", adminAuth.verify, adminAuth.authorize(["admin"]), adminController.toggleCompanyBlockStatus.bind(adminController));
 router.get("/users-search", adminAuth.verify,adminAuth.authorize(["admin"]),adminController.SearchUsers.bind(adminController));
 router.get("/companies-search", adminAuth.verify, adminAuth.authorize(["admin"]), adminController.searchCompanies.bind(adminController));
+router.get("/bookings", adminAuth.verify, adminAuth.authorize(["admin"]), slotController.getAllBookings.bind(slotController));
+
+import { RevenueController } from "@/presentation/controllers/RevenueController";
+const revenueController = container.get<RevenueController>(TYPES.RevenueController);
+
+router.get("/revenue", adminAuth.verify, adminAuth.authorize(["admin"]), revenueController.getAdminRevenue.bind(revenueController));
+router.post("/payout", adminAuth.verify, adminAuth.authorize(["admin"]), revenueController.initiatePayout.bind(revenueController));
 
 export default router;
 

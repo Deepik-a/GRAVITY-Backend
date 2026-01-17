@@ -9,6 +9,8 @@ import { GetAvailableSlotsUseCase } from "@/application/use-cases/user/GetAvaila
 import { BookSlotUseCase } from "@/application/use-cases/user/BookSlotUseCase";
 import { GetUserBookingsUseCase } from "@/application/use-cases/user/GetUserBookingsUseCase";
 import { GetCompanyBookingsUseCase } from "@/application/use-cases/company/GetCompanyBookingsUseCase";
+import { ConfirmBookingUseCase } from "@/application/use-cases/company/ConfirmBookingUseCase";
+import { GetAllBookingsUseCase } from "@/application/use-cases/admin/GetAllBookingsUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { AuthenticatedUser } from "@/types/auth";
 
@@ -21,8 +23,39 @@ export class SlotController {
     @inject(TYPES.GetAvailableSlotsUseCase) private _getAvailableSlotsUseCase: GetAvailableSlotsUseCase,
     @inject(TYPES.BookSlotUseCase) private _bookSlotUseCase: BookSlotUseCase,
     @inject(TYPES.GetCompanyBookingsUseCase) private _getCompanyBookingsUseCase: GetCompanyBookingsUseCase,
-    @inject(TYPES.GetUserBookingsUseCase) private _getUserBookingsUseCase: GetUserBookingsUseCase
+    @inject(TYPES.GetUserBookingsUseCase) private _getUserBookingsUseCase: GetUserBookingsUseCase,
+    @inject(TYPES.ConfirmBookingUseCase) private _confirmBookingUseCase: ConfirmBookingUseCase,
+    @inject(TYPES.GetAllBookingsUseCase) private _getAllBookingsUseCase: GetAllBookingsUseCase
   ) {}
+
+  async getAllBookings(req: Request, res: Response): Promise<void> {
+    try {
+      const bookings = await this._getAllBookingsUseCase.execute();
+      res.status(StatusCode.SUCCESS).json(bookings);
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+      } else {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        res.status(StatusCode.INTERNAL_ERROR).json({ message });
+      }
+    }
+  }
+
+  async confirmBooking(req: Request, res: Response): Promise<void> {
+    try {
+      const { bookingId } = req.params;
+      const booking = await this._confirmBookingUseCase.execute(bookingId);
+      res.status(StatusCode.SUCCESS).json(booking);
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+      } else {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        res.status(StatusCode.INTERNAL_ERROR).json({ message });
+      }
+    }
+  }
 
   async getUserBookings(req: Request, res: Response): Promise<void> {
     try {

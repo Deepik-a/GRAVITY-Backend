@@ -58,8 +58,9 @@ export class CompanyProfileController {
         return res.status(StatusCode.BAD_REQUEST).json({ message: "No image file provided" });
       }
 
-      const imageUrl = await this._storageService.uploadFile(file);
-      return res.status(StatusCode.SUCCESS).json({ url: imageUrl });
+      const key = await this._storageService.uploadFile(file);
+      const signedUrl = await this._storageService.getSignedUrl(key);
+      return res.status(StatusCode.SUCCESS).json({ url: signedUrl });
     } catch (err) {
       this._logger.error("🔥 Upload profile image error:", { error: err });
       next(err);

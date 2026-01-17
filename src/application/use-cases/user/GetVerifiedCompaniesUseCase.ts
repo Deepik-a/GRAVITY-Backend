@@ -9,15 +9,25 @@ export class GetVerifiedCompaniesUseCase {
     @inject(TYPES.CompanyRepository) private _companyRepository: ICompanyRepository
   ) {}
 
-  async execute(): Promise<ICompany[]> {
-    const allCompanies = await this._companyRepository.getAllCompanies();
-    
-    // Filter only verified companies with filled profiles
-    return allCompanies.filter(
-      (company) => 
-        company.documentStatus === "verified" && 
-        company.isProfileFilled === true &&
-        company.isBlocked !== true
-    );
+  async execute(params: {
+    query?: string;
+    page: number;
+    limit: number;
+    category?: string[];
+    services?: string[];
+    companySize?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    minExperience?: number;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }): Promise<{
+    data: ICompany[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    return await this._companyRepository.getCompanies(params);
   }
 }

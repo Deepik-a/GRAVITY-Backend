@@ -7,6 +7,11 @@ export interface IBookingDocument extends Document {
   startTime: string;
   endTime: string;
   status: "pending" | "confirmed" | "cancelled";
+  price: number;
+  adminCommission: number;
+  paymentStatus: "pending" | "paid" | "failed";
+  payoutStatus: "pending" | "completed";
+  stripeSessionId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,9 +23,22 @@ const BookingSchema = new Schema<IBookingDocument>(
     date: { type: Date, required: true },
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
+    price: { type: Number, required: true, default: 0 },
+    adminCommission: { type: Number, required: true, default: 0 },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
+    },
+    stripeSessionId: { type: String },
     status: {
       type: String,
       enum: ["pending", "confirmed", "cancelled"],
+      default: "pending",
+    },
+    payoutStatus: {
+      type: String,
+      enum: ["pending", "completed"],
       default: "pending",
     },
   },

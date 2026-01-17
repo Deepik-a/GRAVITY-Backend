@@ -8,6 +8,8 @@ import AdminRoutes from "@/presentation/routes/AdminRoutes";
 import AuthRoutes from "@/presentation/routes/AuthRoutes";
 import UserRoutes from "@/presentation/routes/UserRoutes";
 import CompanyRoutes from "@/presentation/routes/CompanyRoutes";
+import PaymentRoutes from "@/presentation/routes/PaymentRoutes";
+import SubscriptionRoutes from "@/presentation/routes/SubscriptionRoutes";
 import { connectRedis } from "@/infrastructure/config/redis";
 import { errorHandler } from "@/presentation/middlewares/ErrorMiddleware";
 import cookieParser from "cookie-parser";
@@ -37,6 +39,9 @@ app.use(
   })
 );
 
+// MUST NOT use express.json() before Stripe webhook as it needs raw body for signature verification
+app.use("/payments/webhook", express.raw({ type: "application/json" }));
+
 app.use(express.json());
 
 // ------------ ROUTES ------------
@@ -45,6 +50,8 @@ app.use("/admin", AdminRoutes);
 app.use("/company", CompanyRoutes);
 app.use("/auth", AuthRoutes);
 app.use("/user",UserRoutes);
+app.use("/payments", PaymentRoutes);
+app.use("/subscriptions", SubscriptionRoutes);
 
 // ------------ ERROR MIDDLEWARE ------------
 app.use(errorHandler);

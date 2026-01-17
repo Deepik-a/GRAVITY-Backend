@@ -15,6 +15,7 @@ export const GoogleUserMapper = {
       role: user.role, 
       documentStatus: user.documentStatus, 
       isProfileFilled: user.isProfileFilled,
+      isSubscribed: user.isSubscribed,
     };
   }
 };

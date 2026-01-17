@@ -1,0 +1,94 @@
+import { Request, Response } from "express";
+import { inject, injectable } from "inversify";
+import { TYPES } from "@/infrastructure/DI/types";
+import { CreateCheckoutSessionUseCase } from "@/application/use-cases/payment/CreateCheckoutSessionUseCase";
+import { CreateSubscriptionCheckoutSessionUseCase } from "@/application/use-cases/payment/CreateSubscriptionCheckoutSessionUseCase";
+import { StripeWebhookUseCase } from "@/application/use-cases/payment/StripeWebhookUseCase";
+import { StatusCode } from "@/domain/enums/StatusCode";
+import { AppError } from "@/shared/error/AppError";
+
+@injectable()
+export class PaymentController {
+  constructor(
+    @inject(TYPES.CreateCheckoutSessionUseCase) private _createCheckoutSessionUseCase: CreateCheckoutSessionUseCase,
+    @inject(TYPES.CreateSubscriptionCheckoutSessionUseCase) private _createSubscriptionCheckoutSessionUseCase: CreateSubscriptionCheckoutSessionUseCase,
+    @inject(TYPES.StripeWebhookUseCase) private _stripeWebhookUseCase: StripeWebhookUseCase
+  ) {}
+
+  async createCheckoutSession(req: Request, res: Response): Promise<void> {
+    try {
+      const { bookingId } = req.body;
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+      
+      const sessionUrl = await this._createCheckoutSessionUseCase.execute(
+        bookingId,
+        `${frontendUrl}/User/payment-success`,
+        `${frontendUrl}/User/payment-failure`
+      );
+
+      res.status(StatusCode.SUCCESS).json({ url: sessionUrl });
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+      } else {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        res.status(StatusCode.INTERNAL_ERROR).json({ message });
+      }
+    }
+  }
+
+  async createSubscriptionCheckout(req: Request, res: Response): Promise<void> {
+    try {
+      const { planId, companyId } = req.body;
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+      // Redirect to Company Dashboard after payment
+      const sessionUrl = await this._createSubscriptionCheckoutSessionUseCase.execute(
+        companyId,
+        planId,
+        `${frontendUrl}/Company/payment-success`,
+        `${frontendUrl}/Company/payment-failure`
+      );
+
+      res.status(StatusCode.SUCCESS).json({ url: sessionUrl });
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+      } else {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        res.status(StatusCode.INTERNAL_ERROR).json({ message });
+      }
+    }
+  }
+
+  async handleWebhook(req: Request, res: Response): Promise<void> {
+    try {
+      const sig = req.headers["stripe-signature"] as string;
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+      
+      const result = await this._stripeWebhookUseCase.execute(req.body, sig, webhookSecret);
+      res.status(StatusCode.SUCCESS).json(result);
+    } catch (error: unknown) {
+       const message = error instanceof Error ? error.message : "Unknown error";
+       res.status(StatusCode.BAD_REQUEST).send(`Webhook Error: ${message}`);
+    }
+  }
+
+  async verifySession(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionId } = req.query;
+      if (!sessionId) {
+        throw new AppError("Session ID is required", StatusCode.BAD_REQUEST);
+      }
+      const result = await this._stripeWebhookUseCase.verifySession(sessionId as string);
+      res.status(StatusCode.SUCCESS).json(result);
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+      } else {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        res.status(StatusCode.INTERNAL_ERROR).json({ message });
+      }
+    }
+  }
+}

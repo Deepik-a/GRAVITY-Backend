@@ -1,5 +1,6 @@
 export interface GetUserProfileRequestDto {
   id: string;
+  role?: string;
 }
 
 export interface UpdateUserProfileRequestDto {

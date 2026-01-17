@@ -22,6 +22,11 @@ export interface ResetPasswordRequestDto {
   newPassword: string;
 }
 
+export interface ChangePasswordDto {
+  oldPassword: string;
+  newPassword: string;
+}
+
 export interface ResendOtpRequestDto {
   email: string;
 }
@@ -34,6 +39,7 @@ export interface LoginResponseDto {
     email: string;
     phone: string;
     isProfileFilled?: boolean;
+    isSubscribed?: boolean;
   };
   role: string;
   accessToken: string;
@@ -75,6 +81,7 @@ export interface GoogleUserResponseDto {
   role: "user" | "company";
   documentStatus?: "pending" | "verified" | "rejected";
   isProfileFilled?: boolean;
+  isSubscribed?: boolean;
 }
 
 export interface GoogleAuthResponseDto {

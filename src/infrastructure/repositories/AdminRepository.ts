@@ -145,6 +145,7 @@ export class AdminRepository implements IAdminRepository {
           undefined, // profileImage
           resolvedDocs,
           c.isProfileFilled,
+          c.isSubscribed,
           resolvedProfile as ProfileData
         );
       })

@@ -33,6 +33,31 @@ updateDocumentStatus(
   updateProfile(companyId: string, profileData: NonNullable<ICompany["profile"]>): Promise<ICompany | null>;
   deleteProfile(companyId: string): Promise<ICompany | null>;
   getProfile(companyId: string): Promise<ICompany | null>;
+
+  // Get companies with search, filter, pagination, and sort
+  getCompanies(params: {
+    query?: string;
+    page: number;
+    limit: number;
+    category?: string[];
+    services?: string[];
+    companySize?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    minExperience?: number;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }): Promise<{
+    data: ICompany[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>;
+
+  updateSubscription(companyId: string, subscription: any): Promise<void>;
+  findCompanyById(id: string): Promise<ICompany | null>;
+  update(id: string, updates: Partial<ICompany>): Promise<ICompany | null>;
 }
 
 

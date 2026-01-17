@@ -1,6 +1,6 @@
 
 import { BaseRepository } from "@/infrastructure/repositories/BaseRepository";
-import CompanyModel from "@/infrastructure/database/models/CompanyModel";
+import CompanyModel, { ICompany as ICompanyDoc } from "@/infrastructure/database/models/CompanyModel";
 import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { UserSignUp, GoogleSignUp, UserProfile } from "@/domain/entities/User";
 import { ICompany } from "@/domain/entities/Company";
@@ -16,7 +16,7 @@ import { StatusCode } from "@/domain/enums/StatusCode";
   
 @injectable()
 export class CompanyRepository
-  extends BaseRepository<typeof CompanyModel.prototype>
+  extends BaseRepository<any>
   implements IAuthRepository, ICompanyRepository
 {
   constructor(
@@ -30,7 +30,7 @@ export class CompanyRepository
   /* --------------------------------------------------
       RESOLVE PROFILE URLS HELPER
     -------------------------------------------------- */
-  private async _resolveProfileUrls(profile: ICompany["profile"]): Promise<ICompany["profile"]> {
+  private async _resolveProfileUrls(profile: any): Promise<any> {
     if (!profile) return null;
 
     // Resolve brand identity
@@ -99,14 +99,19 @@ export class CompanyRepository
     });
 
     return new UserSignUp(
-      new UniqueEntityID(created._id),
+      new UniqueEntityID((created._id as ObjectId).toString()),
       created.name,
       created.email,
-      created.password,
+      created.password || "",
       created.role,
-      created.provider,
+      (created as any).provider,
       created.phone ?? "",
-      created.status ?? "pending"
+      created.status ?? "pending",
+      undefined, // documentStatus
+      undefined, // rejectionReason
+      created.isBlocked ?? false,
+      !!created.profile,
+      created.isSubscribed ?? false
     );
   }
 
@@ -122,15 +127,16 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
         new UniqueEntityID(rawData._id.toString()), // 1
         rawData.name,                               // 2
         rawData.email,                              // 3
-        rawData.password,                           // 4
+        rawData.password || "",                     // 4
         rawData.role,                               // 5
-        rawData.provider,                           // 6
+        (rawData as any).provider,                  // 6
         rawData.phone,                              // 7
         rawData.status,                             // 8
         rawData.documentStatus,                     // 9
         rawData.rejectionReason,                    // 10
         rawData.isBlocked ?? false,                 // 11 
-        !!rawData.profile                           // 12
+        !!rawData.profile,                          // 12
+        rawData.isSubscribed ?? false               // 13
     );
 }
   async updatePassword(email: string, hashedPassword: string): Promise<void> {
@@ -153,13 +159,14 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       created.email,
       created.googleId ?? "",
       created.role,
-      created.provider,
+      (created as any).provider,
       created.status,
       new UniqueEntityID(created._id.toString()),
       created.documentStatus,
       created.rejectionReason,
       created.isBlocked ?? false,
-      !!created.profile
+      !!created.profile,
+      created.isSubscribed ?? false
     );
   }
 
@@ -172,13 +179,14 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     found.email,
     found.googleId ?? "",
     found.role,
-    found.provider,
+    (found as any).provider,
     found.status,
     new UniqueEntityID(found._id.toString()),
     found.documentStatus ?? "pending",
     found.rejectionReason,
     found.isBlocked ?? false,
-    !!found.profile
+    !!found.profile,
+    found.isSubscribed ?? false
   );
 }
   async findByGoogleId(googleId: string): Promise<GoogleSignUp | null> {
@@ -190,13 +198,14 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       found.email,
       found.googleId ?? "",
       found.role,
-      found.provider,
+      (found as any).provider,
       found.status,
       new UniqueEntityID(found._id.toString()),
       found.documentStatus ?? "pending", // ✅ Default to pending if missing
       found.rejectionReason,
       found.isBlocked ?? false,
-      !!found.profile
+      !!found.profile,
+      found.isSubscribed ?? false
     );
   }
 
@@ -208,10 +217,10 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       new UniqueEntityID(found._id.toString()),
       found.name,
       found.email,
-      found.profileImage,
-      found.phone,
-      found.location,
-      found.bio
+      (found as any).profileImage || undefined,
+      found.phone || undefined,
+      (found as any).location || undefined,
+      (found as any).bio || undefined
     );
   }
 
@@ -223,10 +232,10 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       new UniqueEntityID(updated._id.toString()),
       updated.name,
       updated.email,
-      updated.profileImage,
-      updated.phone,
-      updated.location,
-      updated.bio
+      (updated as any).profileImage || undefined,
+      updated.phone || undefined,
+      (updated as any).location || undefined,
+      (updated as any).bio || undefined
     );
   }
 /* --------------------------------------------------
@@ -305,6 +314,11 @@ return {
   rejectionReason: updated.rejectionReason ?? null,
   isBlocked: updated.isBlocked,
   isProfileFilled: updated.isProfileFilled,
+  isSubscribed: updated.isSubscribed,
+  subscription: updated.subscription ? {
+    ...updated.subscription,
+    planId: updated.subscription.planId?.toString()
+  } : undefined,
   documents: {
     GST_Certificate: updated.documents?.GST_Certificate ?? null,
     RERA_License: updated.documents?.RERA_License ?? null,
@@ -424,6 +438,11 @@ return {
           location: c.location ?? null,
           isBlocked: c.isBlocked,
           isProfileFilled: c.isProfileFilled,
+          isSubscribed: c.isSubscribed,
+          subscription: c.subscription ? {
+            ...c.subscription,
+            planId: c.subscription.planId?.toString()
+          } : undefined,
           profile: await this._resolveProfileUrls(mappedProfile),
         };
 
@@ -456,7 +475,12 @@ async updateBlockStatus(companyId: string, isBlocked: boolean): Promise<ICompany
     },
     rejectionReason: updated.rejectionReason,
     isBlocked: updated.isBlocked,
-    isProfileFilled: updated.isProfileFilled
+    isProfileFilled: updated.isProfileFilled,
+    isSubscribed: updated.isSubscribed,
+    subscription: updated.subscription ? {
+      ...updated.subscription,
+      planId: updated.subscription.planId?.toString()
+    } : undefined
   };
 }
 
@@ -474,13 +498,7 @@ async updateBlockStatus(companyId: string, isBlocked: boolean): Promise<ICompany
     ).lean<ICompany>();
 
     if (!updated) return null;
-    
-    // Resolve URLs before returning
-    if (updated.profile) {
-      updated.profile = await this._resolveProfileUrls(updated.profile);
-    }
-    
-    return updated;
+    return this._mapToCompany(updated);
   }
 
 async deleteProfile(companyId: string): Promise<ICompany | null> {
@@ -488,25 +506,187 @@ async deleteProfile(companyId: string): Promise<ICompany | null> {
     companyId,
     { $set: { profile: null, isProfileFilled: false } },
     { new: true }
-  ).lean<ICompany>();
+  ).lean();
 
   if (!updated) return null;
-  return updated;
+  return this._mapToCompany(updated);
 }
 
 async getProfile(companyId: string): Promise<ICompany | null> {
-  const company = await this.model.findById(companyId).lean<ICompany>();
+  const company = await this.model.findById(companyId).lean();
   if (!company) return null;
+  return this._mapToCompany(company);
+}
 
-  if (company.profile) {
-    company.profile = await this._resolveProfileUrls(company.profile);
+  async getCompanies(params: {
+    query?: string;
+    page: number;
+    limit: number;
+    category?: string[];
+    services?: string[];
+    companySize?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    minExperience?: number;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }): Promise<{
+    data: ICompany[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const {
+      query,
+      page,
+      limit,
+      category,
+      services,
+      companySize,      minPrice,
+      maxPrice,
+      minExperience,
+      sortBy,
+      sortOrder = "desc",
+    } = params;
+
+    const skip = (page - 1) * limit;
+    const currentYear = new Date().getFullYear();
+
+    const filter: Record<string, any> = {
+      isBlocked: false,
+      documentStatus: "verified",
+      isProfileFilled: true,
+    };
+
+    if (query) {
+      filter.$or = [
+        { name: { $regex: query, $options: "i" } },
+        { "profile.companyName": { $regex: query, $options: "i" } },
+        { email: { $regex: query, $options: "i" } },
+      ];
+    }
+
+    if (category && category.length > 0) {
+      filter["profile.categories"] = { $in: category };
+    }
+
+    if (services && services.length > 0) {
+      filter["profile.services"] = { $in: services };
+    }
+
+    if (companySize) {
+      filter["profile.companySize"] = companySize;
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      filter["profile.consultationFee"] = {};
+      if (minPrice !== undefined) filter["profile.consultationFee"].$gte = minPrice;
+      if (maxPrice !== undefined) filter["profile.consultationFee"].$lte = maxPrice;
+    }
+
+    if (minExperience !== undefined) {
+      filter["profile.establishedYear"] = { $lte: currentYear - minExperience };
+    }
+
+    const sort: Record<string, any> = {};
+    if (sortBy) {
+      if (sortBy === "experience") {
+        sort["profile.establishedYear"] = sortOrder === "asc" ? -1 : 1; // More experience means lower year
+      } else if (sortBy === "price") {
+        sort["profile.consultationFee"] = sortOrder === "asc" ? 1 : -1;
+      } else {
+        sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+      }
+    } else {
+      sort.createdAt = -1;
+    }
+
+    const [companies, total] = await Promise.all([
+      this.model.find(filter).sort(sort).skip(skip).limit(limit).lean(),
+      this.model.countDocuments(filter),
+    ]);
+
+    const resolvedData = await Promise.all(
+      companies.map(async (c) => {
+        const mappedCompany: ICompany = {
+          id: (c as any)._id.toString(),
+          name: c.name,
+          email: c.email,
+          phone: c.phone ?? null,
+          role: c.role,
+          status: c.status,
+          documents: c.documents,
+          documentStatus: c.documentStatus,
+          rejectionReason: c.rejectionReason ?? null,
+          location: c.location ?? null,
+          isBlocked: c.isBlocked,
+          isProfileFilled: c.isProfileFilled,
+          isSubscribed: c.isSubscribed,
+          subscription: c.subscription ? {
+            ...c.subscription,
+            planId: c.subscription.planId?.toString()
+          } : undefined,
+          profile: await this._resolveProfileUrls(c.profile),
+        };
+        return mappedCompany;
+      })
+    );
+
+    return {
+      data: resolvedData,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  // Also fix the ID mapping if needed (BaseRepository might store as _id)
-  return {
-    ...company,
-    id: (company as { _id?: ObjectId })._id?.toString() || company.id
-  };
-}
+   async updateSubscription(companyId: string, subscription: any): Promise<void> {
+    console.log(`[CompanyRepository] Updating subscription for company: ${companyId}`);
+    // Sync root isSubscribed with subscription.status
+    const isSubscribed = subscription.status === 'active';
+    await this.model.findByIdAndUpdate(companyId, { $set: { subscription, isSubscribed } });
+  }
+
+  async findCompanyById(id: string): Promise<ICompany | null> {
+    const found = await this.model.findById(id).lean();
+    if (!found) return null;
+    return this._mapToCompany(found);
+  }
+
+  // Helper to map and resolve
+  private async _mapToCompany(c: any): Promise<ICompany> {
+     // Cast to explicit Record<string, any> to avoid TS errors on dynamic properties
+     const doc = c as Record<string, any>;
+     const mappedCompany: ICompany = {
+          id: doc._id.toString(),
+          name: doc.name,
+          email: doc.email,
+          phone: doc.phone ?? null,
+          role: doc.role,
+          status: doc.status,
+          documents: doc.documents,
+          documentStatus: doc.documentStatus,
+          rejectionReason: doc.rejectionReason ?? null,
+          location: doc.location ?? null,
+          isBlocked: doc.isBlocked,
+          isProfileFilled: doc.isProfileFilled,
+          isSubscribed: doc.isSubscribed,
+          walletBalance: doc.walletBalance || 0,
+          subscription: doc.subscription ? {
+            ...doc.subscription,
+            planId: doc.subscription.planId?.toString()
+          } : undefined,
+          profile: await this._resolveProfileUrls(doc.profile),
+    };
+    return mappedCompany;
+  }
+
+  async update(id: string, updates: Partial<ICompany>): Promise<ICompany | null> {
+    const updated = await this.model.findByIdAndUpdate(id, { $set: updates }, { new: true }).lean();
+    if (!updated) return null;
+    return this._mapToCompany(updated);
+  }
 }
 

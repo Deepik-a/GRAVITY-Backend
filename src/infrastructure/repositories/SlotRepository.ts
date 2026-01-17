@@ -1,12 +1,12 @@
 import { BaseRepository } from "@/infrastructure/repositories/BaseRepository";
-import SlotConfigModel, { ISlotConfigDocument } from "@/infrastructure/database/models/SlotConfigModel";
+import SlotConfigModel from "@/infrastructure/database/models/SlotConfigModel";
 import { ISlotRepository } from "@/domain/repositories/ISlotRepository";
 import { ISlotConfig } from "@/domain/entities/SlotConfig";
 import { injectable } from "inversify";
 
 @injectable()
 export class SlotRepository
-  extends BaseRepository<ISlotConfigDocument>
+  extends BaseRepository<any>
   implements ISlotRepository
 {
   constructor() {

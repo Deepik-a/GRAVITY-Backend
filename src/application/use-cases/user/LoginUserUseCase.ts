@@ -20,6 +20,7 @@ interface AuthenticatableUser {
   rejectionReason?: string | null;
   isBlocked?: boolean;
   isProfileFilled?: boolean;
+  isSubscribed?: boolean;
   provider?: string;
 }
 
@@ -103,6 +104,7 @@ Messages.AUTH.No_PASSWORD,
         email: freshUser.email,
         phone: freshUser.phone || "",
         isProfileFilled: freshUser.isProfileFilled,
+        isSubscribed: freshUser.isSubscribed,
       },
       role,
       accessToken,

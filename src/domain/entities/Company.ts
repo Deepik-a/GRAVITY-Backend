@@ -13,10 +13,20 @@ export interface ICompany {
   };
 
   documentStatus: "pending" | "verified" | "rejected";
-  rejectionReason?: string | null;   // <--- add here
+  rejectionReason?: string | null;
+  subscription?: {
+    planId?: string | null;
+    status: "active" | "expired" | "cancelled" | "none";
+    startDate?: Date | null;
+    endDate?: Date | null;
+    stripeSubscriptionId?: string | null;
+    stripeCustomerId?: string | null;
+  };
   location?: string | null;
   isBlocked?: boolean;
   isProfileFilled?: boolean;
+  isSubscribed?: boolean;
+  walletBalance?: number;
   profile?: {
     companyName?: string;
     categories: string[];

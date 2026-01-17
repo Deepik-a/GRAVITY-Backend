@@ -15,6 +15,8 @@ const companyAuth = container.get<SessionAuth>(TYPES.SessionAuth);
 
 router.post(
   "/upload-documents",
+  companyAuth.verify,
+  companyAuth.authorize(["company"]),
   upload.array("documents", 3),
   docController.upload.bind(docController)
 );
@@ -53,6 +55,12 @@ router.get(
   companyAuth.authorize(["company"]),
   slotController.getCompanyBookings.bind(slotController)
 );
+router.patch(
+  "/bookings/:bookingId/confirm",
+  companyAuth.verify,
+  companyAuth.authorize(["company"]),
+  slotController.confirmBooking.bind(slotController)
+);
 router.get(
   "/slots/config", 
   companyAuth.verify, 
@@ -70,6 +78,16 @@ router.delete(
   companyAuth.verify, 
   companyAuth.authorize(["company"]), 
   slotController.deleteConfig.bind(slotController)
+);
+
+import { RevenueController } from "@/presentation/controllers/RevenueController";
+const revenueController = container.get<RevenueController>(TYPES.RevenueController);
+
+router.get(
+  "/wallet",
+  companyAuth.verify,
+  companyAuth.authorize(["company"]),
+  revenueController.getCompanyWallet.bind(revenueController)
 );
 
 export default router;

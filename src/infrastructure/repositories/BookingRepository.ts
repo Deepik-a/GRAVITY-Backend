@@ -1,5 +1,5 @@
 import { BaseRepository } from "@/infrastructure/repositories/BaseRepository";
-import BookingModel, { IBookingDocument } from "@/infrastructure/database/models/BookingModel";
+import BookingModel from "@/infrastructure/database/models/BookingModel";
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { IBooking } from "@/domain/entities/Booking";
 
@@ -7,11 +7,25 @@ import { injectable } from "inversify";
 
 @injectable()
 export class BookingRepository
-  extends BaseRepository<IBookingDocument>
+  extends BaseRepository<any>
   implements IBookingRepository
 {
   constructor() {
     super(BookingModel);
+  }
+
+  async findById(id: string): Promise<IBooking | null> {
+    const found = await this.model.findById(id).lean();
+    return found ? this._mapToEntity(found) : null;
+  }
+
+  async updateById(id: string, updates: Partial<IBooking>): Promise<IBooking | null> {
+    const updated = await this.model.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true }
+    ).lean();
+    return updated ? this._mapToEntity(updated) : null;
   }
 
   async createBooking(booking: IBooking): Promise<IBooking> {
@@ -47,6 +61,15 @@ export class BookingRepository
     return bookings.map(b => this._mapToEntity(b));
   }
 
+  async getAllBookings(): Promise<IBooking[]> {
+    const bookings = await this.model.find()
+      .populate("userId")
+      .populate("companyId")
+      .sort({ createdAt: -1 })
+      .lean();
+    return bookings.map(b => this._mapToEntity(b));
+  }
+
   async cancelBooking(bookingId: string): Promise<boolean> {
     const result = await this.model.updateOne(
       { _id: bookingId },
@@ -64,6 +87,11 @@ export class BookingRepository
       startTime: string;
       endTime: string;
       status: "pending" | "confirmed" | "cancelled";
+      price: number;
+      adminCommission: number;
+      paymentStatus: "pending" | "paid" | "failed";
+      payoutStatus: "pending" | "completed";
+      stripeSessionId?: string;
       createdAt: Date;
       updatedAt: Date;
     };
@@ -75,6 +103,11 @@ export class BookingRepository
       startTime: d.startTime,
       endTime: d.endTime,
       status: d.status,
+      price: d.price,
+      adminCommission: d.adminCommission,
+      paymentStatus: d.paymentStatus,
+      payoutStatus: d.payoutStatus,
+      stripeSessionId: d.stripeSessionId,
       createdAt: d.createdAt,
       updatedAt: d.updatedAt,
     };

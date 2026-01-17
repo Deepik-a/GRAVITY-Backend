@@ -20,7 +20,7 @@ export class SessionAuth {
   ) {}
 
   verify: RequestHandler = async (req, res, next) => {
-      const isAdminRoute = req.originalUrl.startsWith("/admin");
+      const isAdminRoute = req.originalUrl.startsWith("/admin") || req.originalUrl.includes("/admin/");
       const accessKey = isAdminRoute ? "adminAccessToken" : "userAccessToken";
       const refreshKey = isAdminRoute ? "adminRefreshToken" : "userRefreshToken";
     try {
@@ -67,7 +67,13 @@ export class SessionAuth {
           return res.status(StatusCode.FORBIDDEN).json({ status: false, message: Messages.AUTH.ACCOUNT_BLOCKED });
         }
 
-        const {  ...data } = payload;
+       // പേലോഡിൽ നിന്ന് ആവശ്യമുള്ളവ മാത്രം നേരിട്ട് എടുക്കാം
+const data = {
+  userId: payload.userId || payload.id,
+  role: payload.role,
+  email: payload.email,
+  name: payload.name
+};
         const newAccessToken = this._jwtService.signAccessToken(data);
 
         res.cookie(accessKey, newAccessToken, {
@@ -94,15 +100,22 @@ export class SessionAuth {
     }
   };
 
-  authorize(allowedRoles: string[]): RequestHandler {
-    return (req: Request, res: Response, next: NextFunction) => {
-      const user = req.user as AuthenticatedUser | undefined;
-      if (!user || !allowedRoles.includes(user.role)) {
-        return res.status(StatusCode.FORBIDDEN).json({ status: false, message: "Access Denied" });
-      }
-      next();
-    };
-  }
+authorize(allowedRoles: string[]): RequestHandler {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user as AuthenticatedUser | undefined;
+
+    console.log("User Role:", user?.role); // Debugging
+    console.log("Allowed Roles:", allowedRoles); // Debugging
+
+    if (!user || !allowedRoles.includes(user.role)) {
+      return res.status(StatusCode.FORBIDDEN).json({ 
+        status: false, 
+        message: "Access Denied" 
+      });
+    }
+    next();
+  };
+}
 
   private _clearSpecificCookies(res: Response, accessKey: string, refreshKey: string) {
     res.clearCookie(accessKey, { path: "/" });

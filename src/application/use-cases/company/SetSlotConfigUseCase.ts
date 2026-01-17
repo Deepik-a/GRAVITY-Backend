@@ -1,4 +1,6 @@
+import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { ISlotRepository } from "@/domain/repositories/ISlotRepository";
+import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { ISlotConfig } from "@/domain/entities/SlotConfig";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
@@ -8,40 +10,113 @@ import { StatusCode } from "@/domain/enums/StatusCode";
 @injectable()
 export class SetSlotConfigUseCase {
   constructor(
-    @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository
+    @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository,
+    @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
+    @inject(TYPES.CompanyRepository) private _companyRepository: ICompanyRepository
   ) {}
 
   async execute(config: ISlotConfig): Promise<ISlotConfig> {
-    // 1. Validations
-    this.validate(config);
+    // 0. Check Company Subscription
+    const company = await this._companyRepository.getProfile(config.companyId);
+    if (!company) {
+      throw new AppError("Company not found", StatusCode.NOT_FOUND);
+    }
 
-    // 2. 5-Minute Rule Check
+    const sub = company.subscription;
+    if (!company.isSubscribed) {
+      throw new AppError(`Active subscription required to configure slots. (isSubscribed: ${company.isSubscribed}, Status: ${sub?.status || 'none'})`, StatusCode.FORBIDDEN);
+    }
+
+    if (sub?.endDate && new Date() > new Date(sub.endDate)) {
+        throw new AppError("Subscription expired. Please renew to manage slots.", StatusCode.FORBIDDEN);
+    }
+
+
     const existingConfig = await this._slotRepository.getConfigByCompanyId(config.companyId);
-    if (existingConfig && existingConfig.createdAt) {
-      const now = new Date();
-      const createdAt = new Date(existingConfig.createdAt);
-      const diffInMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+    
+    // 1. Validations (passing existingConfig to allow historical dates)
+    this.validate(config, existingConfig);
 
-      if (diffInMinutes > 5) {
+    const toDateStr = (date: Date | string | undefined | null) => {
+      if (!date) return "";
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return "";
+      return d.toISOString().split("T")[0];
+    };
+
+    // 2. Editing restrictions for existing config
+    if (existingConfig) {
+      // Check if fields other than exceptionalDays have changed
+      const fieldsToCheck: (keyof ISlotConfig)[] = [
+        "startDate", "endDate", "startTime", "endTime", "slotDuration", "bufferTime", "weekdays"
+      ];
+      
+      const hasOtherChanges = fieldsToCheck.some(field => {
+        const oldValue = existingConfig[field as keyof typeof existingConfig];
+        const newValue = config[field as keyof typeof config];
+        
+        if (field === "weekdays") {
+          const oldArr = Array.isArray(oldValue) ? oldValue : [];
+          const newArr = Array.isArray(newValue) ? newValue : [];
+          return JSON.stringify([...oldArr].sort()) !== JSON.stringify([...newArr].sort());
+        }
+        
+        if (field === "startDate" || field === "endDate") {
+            return toDateStr(oldValue as string | Date) !== toDateStr(newValue as string | Date);
+        }
+
+        return String(oldValue ?? "") !== String(newValue ?? "");
+      });
+
+      if (hasOtherChanges) {
         throw new AppError(
-          "Editing of slot rules is only allowed within 5 minutes of creation. Please delete and create a new rule if needed.",
+          "Only exceptional days (holidays) can be modified for an existing rule. Other details cannot be edited.",
           StatusCode.BAD_REQUEST
         );
+      }
+
+      // Check for days with more than 5 bookings in the range
+      const bookings = await this._bookingRepository.getCompanyBookings(config.companyId);
+      const bookingCounts: Record<string, number> = {};
+      
+      bookings.forEach(b => {
+        const dateStr = toDateStr(b.date);
+        if (dateStr) {
+          bookingCounts[dateStr] = (bookingCounts[dateStr] || 0) + 1;
+        }
+      });
+
+      const startDate = new Date(config.startDate);
+      const endDate = new Date(config.endDate);
+      
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dateStr = toDateStr(d);
+        if (dateStr && bookingCounts[dateStr] > 5) {
+          throw new AppError(
+            `Editing is not possible: ${dateStr} already has ${bookingCounts[dateStr]} bookings (limit is 5).`,
+            StatusCode.BAD_REQUEST
+          );
+        }
       }
     }
 
     return await this._slotRepository.setConfig(config);
   }
 
-  private validate(config: ISlotConfig) {
+  private validate(config: ISlotConfig, existingConfig: ISlotConfig | null) {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
     const startDate = new Date(config.startDate);
     const endDate = new Date(config.endDate);
 
-    if (startDate < now) {
-      throw new AppError("Start date cannot be in the past.", StatusCode.BAD_REQUEST);
+    const toDateStr = (date: Date | string) => new Date(date).toISOString().split("T")[0];
+
+    // Only block past start date if it's a new config or the start date is being changed
+    if (!existingConfig || toDateStr(existingConfig.startDate) !== toDateStr(config.startDate)) {
+        if (startDate < now) {
+            throw new AppError("Start date cannot be in the past.", StatusCode.BAD_REQUEST);
+        }
     }
 
     if (endDate <= startDate) {

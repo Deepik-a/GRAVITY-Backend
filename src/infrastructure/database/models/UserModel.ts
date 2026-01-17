@@ -21,6 +21,7 @@ const userSchema = new mongoose.Schema(
     profileImage: { type: String },
     location: { type: String },
     bio: { type: String },
+    favourites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Company" }],
   },
   { timestamps: true }
 );

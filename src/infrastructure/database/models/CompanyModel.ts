@@ -11,9 +11,15 @@ export interface ICompany extends Document {
   googleId?: string | null;
 
   role: "user" | "company";
+  provider: "local" | "google";
   status: "verified" | "pending";
   isBlocked: boolean;
   isProfileFilled: boolean;
+  isSubscribed: boolean;
+  walletBalance: number;
+  profileImage?: string | null;
+  location?: string | null;
+  bio?: string | null;
 
   documents: {
     GST_Certificate?: string | null;
@@ -22,7 +28,15 @@ export interface ICompany extends Document {
   };
 
   documentStatus: "pending" | "verified" | "rejected";
-  rejectionReason?: string | null;      // <-- NEW
+  rejectionReason?: string | null;
+  subscription?: {
+    planId?: ObjectId | null;
+    status: "active" | "expired" | "cancelled" | "none";
+    startDate?: Date | null;
+    endDate?: Date | null;
+    stripeSubscriptionId?: string | null;
+    stripeCustomerId?: string | null;
+  };
   profile?: {
     companyName?: string;
     categories: string[];
@@ -76,6 +90,14 @@ const CompanySchema = new Schema<ICompany>(
       enum: ["user", "company"],
       required: true,
     },
+    provider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local"
+    },
+    profileImage: { type: String, default: null },
+    location: { type: String, default: null },
+    bio: { type: String, default: null },
 
     status: {
       type: String,
@@ -92,6 +114,14 @@ const CompanySchema = new Schema<ICompany>(
       type: Boolean,
       default: false,
     },
+    isSubscribed: {
+      type: Boolean,
+      default: false,
+    },
+    walletBalance: {
+      type: Number,
+      default: 0,
+    },
 
     documents: {
       GST_Certificate: { type: String, default: null },
@@ -107,7 +137,19 @@ const CompanySchema = new Schema<ICompany>(
 
     rejectionReason: {
       type: String,
-      default: null,     // <-- NEW
+      default: null,
+    },
+    subscription: {
+      planId: { type: Schema.Types.ObjectId, ref: "SubscriptionPlan", default: null },
+      status: { 
+        type: String, 
+        enum: ["active", "expired", "cancelled", "none"], 
+        default: "none" 
+      },
+      startDate: { type: Date, default: null },
+      endDate: { type: Date, default: null },
+      stripeSubscriptionId: { type: String, default: null },
+      stripeCustomerId: { type: String, default: null },
     },
     profile: {
       type: {

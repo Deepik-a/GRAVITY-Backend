@@ -48,9 +48,52 @@ router.patch(
   profileController.deleteProfileField.bind(profileController)
 );
 
+router.get(
+  "/profile/favourites",
+  userAuth.verify,
+  userAuth.authorize(["user", "company"]),
+  profileController.getFavourites.bind(profileController)
+);
+
+router.post(
+  "/profile/favourites",
+  userAuth.verify,
+  userAuth.authorize(["user", "company"]),
+  profileController.toggleFavourite.bind(profileController)
+);
+
+router.put(
+  "/profile/password",
+  userAuth.verify,
+  userAuth.authorize(["user", "company"]),
+  profileController.changePassword.bind(profileController)
+);
+
 // Slot Selection and Booking
-router.get("/slots/available", slotController.getAvailableSlots.bind(slotController));
+router.get("/slots/available", userAuth.verify, userAuth.authorize(["user"]), slotController.getAvailableSlots.bind(slotController));
 router.post("/slots/book", userAuth.verify, userAuth.authorize(["user"]), slotController.bookSlot.bind(slotController));
 router.get("/bookings", userAuth.verify, userAuth.authorize(["user"]), slotController.getUserBookings.bind(slotController));
+
+import { ReviewController } from "@/presentation/controllers/ReviewController";
+
+const reviewController = container.get<ReviewController>(TYPES.ReviewController);
+
+// ... existing routes
+
+// Reviews
+router.post(
+  "/reviews",
+  userAuth.verify,
+  userAuth.authorize(["user"]),
+  reviewController.submitReview.bind(reviewController)
+);
+
+router.get(
+  "/companies/:companyId/reviews",
+  // Public or User? Let's generic public access if needed, or userAuth
+  // userAuth.verify, 
+  // userAuth.authorize(["user", "company"]), // Optional: Authenticated only?
+  reviewController.getCompanyReviews.bind(reviewController)
+);
 
 export default router;

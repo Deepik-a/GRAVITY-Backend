@@ -1,19 +1,60 @@
-import { Types } from "mongoose";
+import { Types, Document } from "mongoose";
+import bcrypt from "bcryptjs";
 import { BaseRepository } from "@/infrastructure/repositories/BaseRepository";
 import UserModel from "@/infrastructure/database/models/UserModel";
 import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { UserSignUp, GoogleSignUp, UserProfile } from "@/domain/entities/User";
+import { ICompany } from "@/domain/entities/Company";
+import { IUserRepository } from "@/domain/repositories/IUserRepository";
+import { IStorageService } from "@/domain/services/IStorageService";
+import { ILogger } from "@/domain/services/ILogger";
+import { inject, injectable } from "inversify";
+import { TYPES } from "@/infrastructure/DI/types";
 import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
-import { injectable } from "inversify";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 @injectable()
 export class UserRepository
-  extends BaseRepository<typeof UserModel.prototype>
-  implements IAuthRepository
+  extends BaseRepository<any>
+  implements IAuthRepository, IUserRepository
 {
-  constructor() {
+  constructor(
+    @inject(TYPES.StorageService) private readonly _s3Service: IStorageService,
+    @inject(TYPES.Logger) private readonly _logger: ILogger
+  ) {
     super(UserModel);
+  }
+
+  /* --------------------------------------------------
+      RESOLVE URLS HELPERS
+    -------------------------------------------------- */
+  private async _resolveUserImageUrl(url?: string): Promise<string | undefined> {
+    if (!url || url.startsWith("http") || url.startsWith("data:")) return url;
+    try {
+      return await this._s3Service.getSignedUrl(url);
+    } catch (err) {
+      this._logger.error(`❌ Failed to resolve user profile image: ${url}`, { error: err });
+      return url;
+    }
+  }
+
+  private async _resolveCompanyProfileUrls(profile: Record<string, any> | null): Promise<Record<string, any> | null> {
+    if (!profile) return null;
+
+    // Resolve brand identity
+    if (profile.brandIdentity) {
+      const keys = ["logo", "banner1", "banner2", "profilePicture"];
+      for (const key of keys) {
+        if (profile.brandIdentity[key] && !profile.brandIdentity[key].startsWith("http")) {
+          try {
+            profile.brandIdentity[key] = await this._s3Service.getSignedUrl(profile.brandIdentity[key]);
+          } catch (err) {
+            this._logger.error(`❌ Failed to resolve company ${key}`, { error: err });
+          }
+        }
+      }
+    }
+    return profile;
   }
 
  
@@ -149,7 +190,7 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       new UniqueEntityID(user._id.toString()),
       user.name,
       user.email,
-      user.profileImage ?? undefined,
+      await this._resolveUserImageUrl(user.profileImage ?? undefined),
       user.phone ?? undefined,
       user.location ?? undefined,
       user.bio ?? undefined,
@@ -170,7 +211,7 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       new UniqueEntityID(updated._id.toString()),
       updated.name,
       updated.email,
-      updated.profileImage ?? undefined,
+      await this._resolveUserImageUrl(updated.profileImage ?? undefined),
       updated.phone ?? undefined,
       updated.location ?? undefined,
       updated.bio ?? undefined,
@@ -211,12 +252,67 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       new UniqueEntityID(updated._id.toString()),
       updated.name,
       updated.email,
-      updated.profileImage ?? undefined,
+      await this._resolveUserImageUrl(updated.profileImage ?? undefined),
       updated.phone ?? undefined,
       updated.location ?? undefined,
       updated.bio ?? undefined,
       updated.isBlocked,
       updated.role
     );
+  }
+
+  // Toggle Favourite
+  async toggleFavourite(userId: string, companyId: string): Promise<string[]> {
+    const user = await this.model.findById(userId);
+    if (!user) throw new AppError("User not found", StatusCode.NOT_FOUND);
+
+    const isFavourite = user.favourites.some((id: Types.ObjectId) => id.toString() === companyId);
+    
+    if (isFavourite) {
+      await this.model.findByIdAndUpdate(userId, { $pull: { favourites: companyId } });
+    } else {
+      await this.model.findByIdAndUpdate(userId, { $addToSet: { favourites: companyId } });
+    }
+
+    const updatedUser = await this.model.findById(userId).select("favourites");
+    return updatedUser?.favourites.map((id: Types.ObjectId) => id.toString()) || [];
+  }
+
+  // Get Favourites
+  async getFavourites(userId: string): Promise<ICompany[]> {
+    const user = await this.model.findById(userId).populate("favourites").exec();
+    if (!user) throw new AppError("User not found", StatusCode.NOT_FOUND);
+    
+    const favourites = (user.favourites as unknown as ({ toObject?: () => any } & Record<string, any>)[]) || [];
+    
+    // Resolve URLs for each favourite company
+    return await Promise.all(
+      favourites.map(async (company) => {
+        const companyObj = company.toObject ? company.toObject() : company;
+        if (companyObj.profile) {
+          companyObj.profile = await this._resolveCompanyProfileUrls(companyObj.profile);
+        }
+        return {
+          ...companyObj,
+          id: companyObj._id?.toString() || companyObj.id
+        };
+      })
+    );
+  }
+
+  // Change Password
+  async changePassword(userId: string, hashedPassword: string): Promise<void> {
+    const result = await this.model.findByIdAndUpdate(
+      userId,
+      { $set: { password: hashedPassword } }
+    );
+    if (!result) throw new AppError("User not found", StatusCode.NOT_FOUND);
+  }
+
+  // Verify Password
+  async verifyPassword(userId: string, password: string): Promise<boolean> {
+    const user = await this.model.findById(userId);
+    if (!user || !user.password) return false;
+    return await bcrypt.compare(password, user.password);
   }
 }

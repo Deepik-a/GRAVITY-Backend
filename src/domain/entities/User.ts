@@ -13,6 +13,7 @@ export interface UserSignUpDetails {
   rejectionReason?: string | null;
   isBlocked?: boolean;
   isProfileFilled?: boolean;
+  isSubscribed?: boolean;
 }
 
 export interface GoogleSignUpDetails {
@@ -27,6 +28,7 @@ export interface GoogleSignUpDetails {
   rejectionReason?: string | null;
   isBlocked?: boolean;
   isProfileFilled?: boolean;
+  isSubscribed?: boolean;
 }
 
 //a user is authenticated with basic details,profile is the user's extended information
@@ -40,6 +42,7 @@ export interface UserProfileDetails {
   bio?: string;
   isBlocked?:boolean;
   role?: string;
+  favourites?: string[];
 }
 
 
@@ -59,7 +62,8 @@ export class UserSignUp implements UserSignUpDetails {
     public documentStatus?: "pending" | "verified" | "rejected",
     public rejectionReason?: string | null,
     public isBlocked = false,
-    public isProfileFilled = false
+    public isProfileFilled = false,
+    public isSubscribed = false
   ) {}
 }
 
@@ -78,7 +82,8 @@ export class GoogleSignUp implements GoogleSignUpDetails {
     public documentStatus?: "pending" | "verified" | "rejected", // Added
     public rejectionReason?: string | null, // Added
     public isBlocked = false,
-    public isProfileFilled = false
+    public isProfileFilled = false,
+    public isSubscribed = false
   ) {}
 }
 
@@ -95,7 +100,8 @@ export class UserProfile implements UserProfileDetails {
     public location?: string,
     public bio?: string,
     public isBlocked?:boolean,
-    public role?: string
+    public role?: string,
+    public favourites: string[] = []
   ) {}
 }
 
@@ -153,6 +159,7 @@ export class CompanyProfile {
     public profileImage?: string,
     public documents?: Record<string, string | null>,
     public isProfileFilled?: boolean,
+    public isSubscribed?: boolean,
     public profile?: ProfileData
   ) {}
 }

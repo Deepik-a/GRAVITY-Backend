@@ -8,13 +8,18 @@ import { TYPES } from "@/infrastructure/DI/types";
 
 @injectable()
 export class GetUserProfileUseCase implements IGetUserProfileUseCase {
-  constructor(  @inject(TYPES.UserRepository) private _userRepository: IAuthRepository) {}
+  constructor(
+    @inject(TYPES.UserRepository) private _userRepository: IAuthRepository,
+    @inject(TYPES.CompanyRepository) private _companyRepository: IAuthRepository
+  ) {}
 
   async execute(dto: GetUserProfileRequestDto): Promise<ProfileResponseDTO> {
-    const { id } = dto;
+    const { id, role } = dto;
     if (!id) throw new Error("User ID is required");
 
-    const profile = await this._userRepository.findById(id);
+    const repo = role === "company" ? this._companyRepository : this._userRepository;
+    const profile = await repo.findById(id);
+    
     if (!profile) throw new Error("User profile not found");
 
     return ProfileMapper.toResponseDTO(profile);

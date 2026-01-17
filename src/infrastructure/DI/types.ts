@@ -16,6 +16,12 @@ export const TYPES = {
   OtpService: Symbol.for("OtpService"),
   StorageService: Symbol.for("StorageService"),
   Logger:Symbol.for("Logger"),
+  StripeService: Symbol.for("StripeService"),
+
+  // Use Cases - Payment
+  CreateCheckoutSessionUseCase: Symbol.for("CreateCheckoutSessionUseCase"),
+  CreateSubscriptionCheckoutSessionUseCase: Symbol.for("CreateSubscriptionCheckoutSessionUseCase"),
+  StripeWebhookUseCase: Symbol.for("StripeWebhookUseCase"),
 
   // Use Cases - Admin
   AdminLoginUseCase: Symbol.for("AdminLoginUseCase"),
@@ -26,6 +32,7 @@ export const TYPES = {
   ToggleCompanyBlockStatusUseCase: Symbol.for("ToggleCompanyBlockStatusUseCase"),
   SearchUserUseCase:Symbol.for("SearchUsersUseCase"),
   SearchCompanyUseCase:Symbol.for("SearchCompanyUseCase"),
+  GetAllBookingsUseCase: Symbol.for("GetAllBookingsUseCase"),
 
   // Use Cases - User/Auth
   DetectUserRoleUseCase: Symbol.for("DetectUserRoleUseCase"),
@@ -47,6 +54,7 @@ export const TYPES = {
   GetSlotConfigUseCase: Symbol.for("GetSlotConfigUseCase"),
   DeleteSlotConfigUseCase: Symbol.for("DeleteSlotConfigUseCase"),
   GetCompanyBookingsUseCase: Symbol.for("GetCompanyBookingsUseCase"),
+  ConfirmBookingUseCase: Symbol.for("ConfirmBookingUseCase"),
 
 // Use Cases - User
   GetUserProfileUseCase: Symbol.for("GetUserProfileUseCase"),
@@ -55,6 +63,9 @@ export const TYPES = {
   BookSlotUseCase: Symbol.for("BookSlotUseCase"),
   GetVerifiedCompaniesUseCase: Symbol.for("GetVerifiedCompaniesUseCase"),
   GetUserBookingsUseCase: Symbol.for("GetUserBookingsUseCase"),
+  ToggleFavouriteUseCase: Symbol.for("ToggleFavouriteUseCase"),
+  GetFavouritesUseCase: Symbol.for("GetFavouritesUseCase"),
+  ChangePasswordUseCase: Symbol.for("ChangePasswordUseCase"),
 
   // Controllers
   AdminController: Symbol.for("AdminController"),
@@ -64,7 +75,28 @@ export const TYPES = {
   ProfileController:Symbol.for("ProfileController"),
   SlotController: Symbol.for("SlotController"),
   CompanyController: Symbol.for("CompanyController"),
+  PaymentController: Symbol.for("PaymentController"),
 
   // Middleware
   SessionAuth: Symbol.for("SessionAuth"),
+  
+  // Subscription
+  SubscriptionRepository: Symbol.for("SubscriptionRepository"),
+  CreateSubscriptionPlanUseCase: Symbol.for("CreateSubscriptionPlanUseCase"),
+  GetSubscriptionPlansUseCase: Symbol.for("GetSubscriptionPlansUseCase"),
+  SubscriptionController: Symbol.for("SubscriptionController"),
+
+  // Reviews
+  ReviewRepository: Symbol.for("ReviewRepository"),
+  SubmitReviewUseCase: Symbol.for("SubmitReviewUseCase"),
+  GetCompanyReviewsUseCase: Symbol.for("GetCompanyReviewsUseCase"),
+  ReviewController: Symbol.for("ReviewController"),
+
+  // Finance / Wallet
+  TransactionRepository: Symbol.for("TransactionRepository"),
+  GetAdminRevenueUseCase: Symbol.for("GetAdminRevenueUseCase"),
+  InitiateCompanyPayoutUseCase: Symbol.for("InitiateCompanyPayoutUseCase"),
+  GetCompanyWalletUseCase: Symbol.for("GetCompanyWalletUseCase"),
+  RevenueController: Symbol.for("RevenueController"),
+  WalletController: Symbol.for("WalletController"),
 };
