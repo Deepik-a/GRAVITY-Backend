@@ -10,8 +10,10 @@ export interface IBookingDocument extends Document {
   price: number;
   adminCommission: number;
   paymentStatus: "pending" | "paid" | "failed";
+  serviceStatus: "pending" | "completed";
   payoutStatus: "pending" | "completed";
   stripeSessionId?: string;
+  isRescheduled?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +43,12 @@ const BookingSchema = new Schema<IBookingDocument>(
       enum: ["pending", "completed"],
       default: "pending",
     },
+    serviceStatus: {
+      type: String,
+      enum: ["pending", "completed"],
+      default: "pending",
+    },
+    isRescheduled: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

@@ -38,10 +38,15 @@ export class CompanyRepository
       const keys: (keyof typeof profile.brandIdentity)[] = ["logo", "banner1", "banner2", "profilePicture"];
       for (const key of keys) {
         if (profile.brandIdentity[key]) {
-          try {
-            profile.brandIdentity[key] = await this._s3Service.getSignedUrl(profile.brandIdentity[key]);
-          } catch (err) {
-            this._logger.error(`❌ Failed to resolve ${String(key)}`, { error: err });
+          const url = profile.brandIdentity[key];
+          if (url.startsWith("http") || url.startsWith("data:")) {
+            // Already a full URL
+          } else {
+            try {
+              profile.brandIdentity[key] = await this._s3Service.getSignedUrl(url);
+            } catch (err) {
+              this._logger.error(`❌ Failed to resolve ${String(key)}`, { error: err });
+            }
           }
         }
       }
@@ -51,10 +56,14 @@ export class CompanyRepository
     if (profile.teamMembers && Array.isArray(profile.teamMembers)) {
       for (const member of profile.teamMembers) {
         if (member.photo) {
-          try {
-            member.photo = await this._s3Service.getSignedUrl(member.photo);
-          } catch (err) {
-            this._logger.error(`❌ Failed to resolve team member photo: ${member.name}`, { error: err });
+          if (member.photo.startsWith("http") || member.photo.startsWith("data:")) {
+            // Already a full URL
+          } else {
+            try {
+              member.photo = await this._s3Service.getSignedUrl(member.photo);
+            } catch (err) {
+              this._logger.error(`❌ Failed to resolve team member photo: ${member.name}`, { error: err });
+            }
           }
         }
       }
@@ -64,17 +73,25 @@ export class CompanyRepository
     if (profile.projects && Array.isArray(profile.projects)) {
       for (const project of profile.projects) {
         if (project.beforeImage) {
-          try {
-            project.beforeImage = await this._s3Service.getSignedUrl(project.beforeImage);
-          } catch (err) {
-            this._logger.error(`❌ Failed to resolve project beforeImage: ${project.title}`, { error: err });
+          if (project.beforeImage.startsWith("http") || project.beforeImage.startsWith("data:")) {
+            // Already a full URL
+          } else {
+            try {
+              project.beforeImage = await this._s3Service.getSignedUrl(project.beforeImage);
+            } catch (err) {
+              this._logger.error(`❌ Failed to resolve project beforeImage: ${project.title}`, { error: err });
+            }
           }
         }
         if (project.afterImage) {
-          try {
-            project.afterImage = await this._s3Service.getSignedUrl(project.afterImage);
-          } catch (err) {
-            this._logger.error(`❌ Failed to resolve project afterImage: ${project.title}`, { error: err });
+          if (project.afterImage.startsWith("http") || project.afterImage.startsWith("data:")) {
+            // Already a full URL
+          } else {
+            try {
+              project.afterImage = await this._s3Service.getSignedUrl(project.afterImage);
+            } catch (err) {
+              this._logger.error(`❌ Failed to resolve project afterImage: ${project.title}`, { error: err });
+            }
           }
         }
       }
@@ -220,7 +237,9 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       (found as any).profileImage || undefined,
       found.phone || undefined,
       (found as any).location || undefined,
-      (found as any).bio || undefined
+      (found as any).bio || undefined,
+      found.isBlocked || false,
+      found.role || "company"
     );
   }
 
@@ -384,11 +403,15 @@ return {
           this._logger.info(`📁 Generating signed URL for -> ${field}: ${fileKey}`);
 
           try {
-            const signed = await this._s3Service.getSignedUrl(fileKey);
-            resolvedDocuments[field] = signed;
-            this._logger.info(
-              `🔑 Signed URL generated successfully (short): ${signed.slice(0, 90)}...`
-            );
+            if (fileKey.startsWith("http") || fileKey.startsWith("data:")) {
+              resolvedDocuments[field] = fileKey;
+            } else {
+              const signed = await this._s3Service.getSignedUrl(fileKey);
+              resolvedDocuments[field] = signed;
+              this._logger.info(
+                `🔑 Signed URL generated successfully (short): ${signed.slice(0, 90)}...`
+              );
+            }
           } catch (err) {
             this._logger.error(`❌ Failed to generate signed URL for: ${fileKey}`, { error: err });
           }

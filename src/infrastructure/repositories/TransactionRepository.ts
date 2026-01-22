@@ -4,6 +4,7 @@ import { ITransactionRepository } from "@/domain/repositories/ITransactionReposi
 import { ITransaction } from "@/domain/entities/Transaction";
 import { injectable } from "inversify";
 
+
 @injectable()
 export class TransactionRepository extends BaseRepository<ITransactionDocument> implements ITransactionRepository {
   constructor() {
@@ -15,34 +16,137 @@ export class TransactionRepository extends BaseRepository<ITransactionDocument> 
     return this._mapToEntity(created.toObject());
   }
 
+  async findTransactionById(id: string): Promise<ITransaction | null> {
+    const transaction = await this.model.findById(id)
+      .populate("userId", "name email")
+      .populate("companyId", "name email")
+      .populate("bookingId")
+      .populate("subscriptionPlanId")
+      .lean();
+    
+    return transaction ? this._mapToEntity(transaction) : null;
+  }
+
   async findByCompanyId(companyId: string): Promise<ITransaction[]> {
-    const transactions = await this.model.find({ toCompany: companyId })
+    const transactions = await this.model.find({ companyId })
+      .populate("userId", "name email")
+      .populate("companyId", "name email")
       .sort({ createdAt: -1 })
       .lean();
     return transactions.map(t => this._mapToEntity(t));
   }
 
-  async findAll(): Promise<ITransaction[]> {
-    const transactions = await this.model.find()
-      .populate("toCompany")
-      .populate("fromUser")
+  async findByUserId(userId: string): Promise<ITransaction[]> {
+    const transactions = await this.model.find({ userId })
+      .populate("userId", "name email")
+      .populate("companyId", "name email")
       .sort({ createdAt: -1 })
       .lean();
     return transactions.map(t => this._mapToEntity(t));
+  }
+
+  async findAll(filters?: {
+    type?: string;
+    status?: string;
+    userId?: string;
+    companyId?: string;
+    bookingId?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<ITransaction[]> {
+    const query: Record<string, any> = {};
+    
+    if (filters) {
+      if (filters.type) query.type = filters.type;
+      if (filters.status) query.status = filters.status;
+      if (filters.userId) query.userId = filters.userId;
+      if (filters.companyId) query.companyId = filters.companyId;
+      if (filters.bookingId) query.bookingId = filters.bookingId;
+      if (filters.startDate || filters.endDate) {
+        query.createdAt = {};
+        if (filters.startDate) query.createdAt.$gte = filters.startDate;
+        if (filters.endDate) query.createdAt.$lte = filters.endDate;
+      }
+    }
+
+    const transactions = await this.model.find(query)
+      .populate("userId", "name email")
+      .populate("companyId", "name email")
+      .populate("bookingId")
+      .populate("subscriptionPlanId", "name price")
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    return transactions.map(t => this._mapToEntity(t));
+  }
+
+  async update(id: string, transaction: Partial<ITransaction>): Promise<ITransaction | null> {
+    const updated = await this.model.findByIdAndUpdate(id, transaction, { new: true })
+      .populate("userId", "name email")
+      .populate("companyId", "name email")
+      .lean();
+    
+    return updated ? this._mapToEntity(updated) : null;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await this.model.findByIdAndDelete(id);
+    return !!result;
+  }
+
+  async getTotalRevenue(): Promise<number> {
+    const result = await this.model.aggregate([
+      { $match: { type: { $in: ["booking_payment", "subscription_payment"] }, status: "completed" } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]);
+    return result[0]?.total || 0;
+  }
+
+  async getTotalCommissions(): Promise<number> {
+    const result = await this.model.aggregate([
+      { $match: { type: "admin_commission", status: "completed" } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]);
+    return result[0]?.total || 0;
+  }
+
+  async getRevenueByType(): Promise<{ type: string; total: number }[]> {
+    const result = await this.model.aggregate([
+      { $match: { status: "completed" } },
+      { $group: { _id: "$type", total: { $sum: "$amount" } } },
+      { $project: { type: "$_id", total: 1, _id: 0 } }
+    ]);
+    return result;
   }
 
   private _mapToEntity(doc: unknown): ITransaction {
     const d = doc as any;
     return {
       id: d._id.toString(),
-      bookingId: d.bookingId?.toString(),
       type: d.type,
       amount: d.amount,
       status: d.status,
-      fromUser: d.fromUser?._id ? d.fromUser._id.toString() : d.fromUser?.toString(),
-      toCompany: d.toCompany?._id ? d.toCompany._id.toString() : d.toCompany?.toString(),
+      bookingId: d.bookingId?._id?.toString() || d.bookingId?.toString(),
+      subscriptionPlanId: d.subscriptionPlanId?._id?.toString() || d.subscriptionPlanId?.toString(),
+      userId: d.userId?._id?.toString() || d.userId?.toString(),
+      companyId: d.companyId?._id?.toString() || d.companyId?.toString(),
+      description: d.description,
+      commissionRate: d.commissionRate,
+      commissionAmount: d.commissionAmount,
+      netAmount: d.netAmount,
+      stripeSessionId: d.stripeSessionId,
+      stripePaymentIntentId: d.stripePaymentIntentId,
+      userDetails: d.userId?.name ? {
+        name: d.userId.name,
+        email: d.userId.email || ""
+      } : undefined,
+      companyDetails: d.companyId?.name ? {
+        name: d.companyId.name,
+        email: d.companyId.email || ""
+      } : undefined,
       createdAt: d.createdAt,
       updatedAt: d.updatedAt,
     };
   }
 }
+

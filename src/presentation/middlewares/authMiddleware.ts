@@ -110,7 +110,7 @@ authorize(allowedRoles: string[]): RequestHandler {
     if (!user || !allowedRoles.includes(user.role)) {
       return res.status(StatusCode.FORBIDDEN).json({ 
         status: false, 
-        message: "Access Denied" 
+        message: `Access Denied. Your role is: ${user?.role || "none"}. Required roles: ${allowedRoles.join(", ")}` 
       });
     }
     next();
@@ -132,6 +132,11 @@ private async _checkBlockStatus(role: string, userId: string): Promise<boolean> 
   if (role === "admin") return false;
 
   // 2. റോൾ അനുസരിച്ച് ശരിയായ റിപ്പോസിറ്ററി തിരഞ്ഞെടുക്കുന്നു
+  if (!role) {
+    this._logger.error("❌ Block Check Failure: Role is missing", { userId });
+    return true; // Assume blocked for safety
+  }
+
   const repo = role === "company" ? this._companyRepository : this._userRepository;
   
   // 3. ഡാറ്റാബേസിൽ നിന്ന് യൂസറെ സെർച്ച് ചെയ്യുന്നു
@@ -139,12 +144,13 @@ private async _checkBlockStatus(role: string, userId: string): Promise<boolean> 
 
   // ഡീബഗ്ഗിംഗിനായി ഈ ലോഗുകൾ ഉപയോഗിക്കുക
   this._logger.info(`🔍 Block Check: Role=${role}, ID=${userId}, isBlocked=${user?.isBlocked}`);
-  this._logger.info("Raw User Data from Repo:", { 
-  id: userId, 
-  isBlockedInDB: user?.isBlocked 
-});
+  
+  if (!user) {
+    this._logger.warn("⚠️ Block Check Warning: User not found in database", { role, userId });
+    return true; // Deny access if user record is gone
+  }
 
   // യൂസർ ഇല്ലെങ്കിലോ ബ്ലോക്ക് ട്രൂ ആണെങ്കിലോ ട്രൂ റിട്ടേൺ ചെയ്യും
-  return !!user?.isBlocked;
+  return !!user.isBlocked;
 }
 }

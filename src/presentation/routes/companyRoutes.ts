@@ -22,6 +22,13 @@ router.post(
 );
 
 router.get(
+  "/me",
+  companyAuth.verify,
+  companyAuth.authorize(["company"]),
+  profileController.getProfile.bind(profileController)
+);
+
+router.get(
   "/profile/:companyId",
   profileController.getProfile.bind(profileController)
 );
@@ -56,10 +63,10 @@ router.get(
   slotController.getCompanyBookings.bind(slotController)
 );
 router.patch(
-  "/bookings/:bookingId/confirm",
+  "/bookings/:bookingId/reschedule",
   companyAuth.verify,
   companyAuth.authorize(["company"]),
-  slotController.confirmBooking.bind(slotController)
+  slotController.rescheduleBooking.bind(slotController)
 );
 router.get(
   "/slots/config", 

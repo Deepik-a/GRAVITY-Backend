@@ -31,10 +31,9 @@ router.post(
   paymentController.handleWebhook.bind(paymentController)
 );
  
-// Verify session - needs auth
+// Verify session - NO auth needed as we verify sessionId with Stripe
 router.get(
   "/verify-session",
-  userAuth.verify,
   paymentController.verifySession.bind(paymentController)
 );
  

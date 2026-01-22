@@ -76,7 +76,7 @@ export class PaymentController {
 
   async verifySession(req: Request, res: Response): Promise<void> {
     try {
-      const { sessionId } = req.query;
+      const sessionId = (req.query.sessionId || req.params.sessionId) as string;
       if (!sessionId) {
         throw new AppError("Session ID is required", StatusCode.BAD_REQUEST);
       }

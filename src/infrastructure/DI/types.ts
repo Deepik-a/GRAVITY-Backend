@@ -54,7 +54,7 @@ export const TYPES = {
   GetSlotConfigUseCase: Symbol.for("GetSlotConfigUseCase"),
   DeleteSlotConfigUseCase: Symbol.for("DeleteSlotConfigUseCase"),
   GetCompanyBookingsUseCase: Symbol.for("GetCompanyBookingsUseCase"),
-  ConfirmBookingUseCase: Symbol.for("ConfirmBookingUseCase"),
+  RescheduleBookingUseCase: Symbol.for("RescheduleBookingUseCase"),
 
 // Use Cases - User
   GetUserProfileUseCase: Symbol.for("GetUserProfileUseCase"),
@@ -66,6 +66,7 @@ export const TYPES = {
   ToggleFavouriteUseCase: Symbol.for("ToggleFavouriteUseCase"),
   GetFavouritesUseCase: Symbol.for("GetFavouritesUseCase"),
   ChangePasswordUseCase: Symbol.for("ChangePasswordUseCase"),
+  CompleteBookingUseCase: Symbol.for("CompleteBookingUseCase"),
 
   // Controllers
   AdminController: Symbol.for("AdminController"),
@@ -97,6 +98,16 @@ export const TYPES = {
   GetAdminRevenueUseCase: Symbol.for("GetAdminRevenueUseCase"),
   InitiateCompanyPayoutUseCase: Symbol.for("InitiateCompanyPayoutUseCase"),
   GetCompanyWalletUseCase: Symbol.for("GetCompanyWalletUseCase"),
+  GetAllTransactionsUseCase: Symbol.for("GetAllTransactionsUseCase"),
   RevenueController: Symbol.for("RevenueController"),
   WalletController: Symbol.for("WalletController"),
+  TransactionController: Symbol.for("TransactionController"),
+
+  // Chat
+  ChatRepository: Symbol.for("ChatRepository"),
+  GetMessagesUseCase: Symbol.for("GetMessagesUseCase"),
+  GetConversationsUseCase: Symbol.for("GetConversationsUseCase"),
+  SendMessageUseCase: Symbol.for("SendMessageUseCase"),
+  ChatController: Symbol.for("ChatController"),
 };
+

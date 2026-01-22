@@ -15,35 +15,34 @@ export class InitiateCompanyPayoutUseCase {
   async execute(bookingId: string): Promise<boolean> {
     const booking = await this._bookingRepository.findById(bookingId);
     if (!booking) throw new Error("Booking not found");
-    // Ensure booking contains necessary price info
-    const price = booking.price || 0;
     
     if (booking.paymentStatus !== "paid") {
       throw new Error("Booking payment is not completed yet.");
     }
     
+    if (booking.serviceStatus !== "completed") {
+      throw new Error("Service must be marked as completed by the user before payout.");
+    }
+
     if (booking.payoutStatus === "completed") {
       throw new Error("Payout already completed for this booking.");
     }
-    
-    const now = new Date();
-    const bookingDate = new Date(booking.date);
-    // Add 2 days
-    const payoutEligibilityDate = new Date(bookingDate);
-    payoutEligibilityDate.setDate(payoutEligibilityDate.getDate() + 2);
-    
-    if (now < payoutEligibilityDate) {
-      throw new Error("Payout is only available 2 days after the slot usage.");
+
+    // Find the pending payout transaction
+    const transactions = await this._transactionRepository.findAll({ 
+      bookingId, 
+      type: "company_payout",
+      status: "pending_transfer" 
+    });
+
+    if (transactions.length === 0) {
+      throw new Error("No pending payout transaction found for this booking. Please ensure the user has marked it as completed.");
     }
+
+    const payoutTransaction = transactions[0];
+    const settlementAmount = payoutTransaction.amount;
     
-    const adminCommission = booking.adminCommission || (price * 0.1);
-    const companyShareAppx = price - adminCommission;
-    
-    // 1. Update Booking status
-    // Note: updating booking to payoutStatus="completed" should be done.
-    // IBookingRepository needs to support generic update or we need updateById in Entity
-    
-    // Since we added payoutStatus to BookingModel, we can update it.
+    // 1. Update Booking payout status
     await this._bookingRepository.updateById(bookingId, { payoutStatus: "completed" });
     
     // 2. Add to Company Wallet
@@ -51,19 +50,17 @@ export class InitiateCompanyPayoutUseCase {
     if (!company) throw new Error("Company not found");
     
     const currentBalance = company.walletBalance || 0;
-    const newBalance = currentBalance + companyShareAppx;
+    const newBalance = currentBalance + settlementAmount;
     
     await this._companyRepository.update(booking.companyId, { walletBalance: newBalance });
     
-    // 3. Create History Transaction
-    await this._transactionRepository.createTransaction({
-      bookingId: bookingId,
-      type: "company_payout",
-      amount: companyShareAppx,
-      status: "completed",
-      toCompany: booking.companyId,
-      createdAt: new Date(),
-    } as any); // Casting as any to bypass strict type check if Transaction entity has optional fields mismatch
+    // 3. Update Transaction status
+    if (payoutTransaction.id) {
+      await this._transactionRepository.update(payoutTransaction.id, { 
+        status: "completed",
+        description: payoutTransaction.description + " (Confirmed by Admin)"
+      });
+    }
     
     return true;
   }

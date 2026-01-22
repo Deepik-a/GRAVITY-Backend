@@ -50,6 +50,7 @@ import { GetUserBookingsUseCase } from "@/application/use-cases/user/GetUserBook
 import { ToggleFavouriteUseCase } from "@/application/use-cases/user/ToggleFavouriteUseCase";
 import { GetFavouritesUseCase } from "@/application/use-cases/user/GetFavouritesUseCase";
 import { ChangePasswordUseCase } from "@/application/use-cases/user/ChangePasswordUseCase";
+import { CompleteBookingUseCase } from "@/application/use-cases/user/CompleteBookingUseCase";
 
 
 
@@ -65,7 +66,7 @@ import { SetSlotConfigUseCase } from "@/application/use-cases/company/SetSlotCon
 import { GetSlotConfigUseCase } from "@/application/use-cases/company/GetSlotConfigUseCase";
 import { DeleteSlotConfigUseCase } from "@/application/use-cases/company/DeleteSlotConfigUseCase";
 import { GetCompanyBookingsUseCase } from "@/application/use-cases/company/GetCompanyBookingsUseCase";
-import { ConfirmBookingUseCase } from "@/application/use-cases/company/ConfirmBookingUseCase";
+import { RescheduleBookingUseCase } from "@/application/use-cases/company/RescheduleBookingUseCase";
 
 // ---------------- Controllers ----------------
 import { AdminLoginController } from "@/presentation/controllers/adminController/AdminController";
@@ -136,6 +137,7 @@ container.bind(TYPES.GetUserBookingsUseCase).to(GetUserBookingsUseCase);
 container.bind(TYPES.ToggleFavouriteUseCase).to(ToggleFavouriteUseCase);
 container.bind(TYPES.GetFavouritesUseCase).to(GetFavouritesUseCase);
 container.bind(TYPES.ChangePasswordUseCase).to(ChangePasswordUseCase);
+container.bind(TYPES.CompleteBookingUseCase).to(CompleteBookingUseCase);
 
 
 // ---------------- Bind Company Use Cases ----------------
@@ -147,7 +149,7 @@ container.bind(TYPES.SetSlotConfigUseCase).to(SetSlotConfigUseCase);
 container.bind(TYPES.GetSlotConfigUseCase).to(GetSlotConfigUseCase);
 container.bind(TYPES.DeleteSlotConfigUseCase).to(DeleteSlotConfigUseCase);
 container.bind(TYPES.GetCompanyBookingsUseCase).to(GetCompanyBookingsUseCase);
-container.bind(TYPES.ConfirmBookingUseCase).to(ConfirmBookingUseCase);
+container.bind(TYPES.RescheduleBookingUseCase).to(RescheduleBookingUseCase);
 
 // ---------------- Bind Controllers ----------------
 container.bind(TYPES.AdminController).to(AdminLoginController);
@@ -180,22 +182,42 @@ import { SubmitReviewUseCase } from "@/application/use-cases/user/SubmitReviewUs
 import { GetCompanyReviewsUseCase } from "@/application/use-cases/company/GetCompanyReviewsUseCase";
 import { ReviewController } from "@/presentation/controllers/ReviewController";
 
+// ---------------- Chat ----------------
+import { ChatRepository } from "@/infrastructure/repositories/ChatRepository";
+import { SendMessageUseCase } from "@/application/use-cases/chat/SendMessageUseCase";
+import { GetMessagesUseCase } from "@/application/use-cases/chat/GetMessagesUseCase";
+import { GetConversationsUseCase } from "@/application/use-cases/chat/GetConversationsUseCase";
+import { ChatController } from "@/presentation/controllers/ChatController";
+
 container.bind(TYPES.ReviewRepository).to(ReviewRepository);
 container.bind(TYPES.SubmitReviewUseCase).to(SubmitReviewUseCase);
 container.bind(TYPES.GetCompanyReviewsUseCase).to(GetCompanyReviewsUseCase);
 container.bind(TYPES.ReviewController).to(ReviewController);
+
+// Chat Bindings
+container.bind(TYPES.ChatRepository).to(ChatRepository);
+container.bind(TYPES.SendMessageUseCase).to(SendMessageUseCase);
+container.bind(TYPES.GetMessagesUseCase).to(GetMessagesUseCase);
+container.bind(TYPES.GetConversationsUseCase).to(GetConversationsUseCase);
+container.bind(TYPES.ChatController).to(ChatController);
+
 
 // ---------------- Finance ----------------
 import { TransactionRepository } from "@/infrastructure/repositories/TransactionRepository";
 import { GetAdminRevenueUseCase } from "@/application/use-cases/admin/GetAdminRevenueUseCase";
 import { InitiateCompanyPayoutUseCase } from "@/application/use-cases/admin/InitiateCompanyPayoutUseCase";
 import { GetCompanyWalletUseCase } from "@/application/use-cases/company/GetCompanyWalletUseCase";
+import { GetAllTransactionsUseCase } from "@/application/use-cases/admin/GetAllTransactionsUseCase";
 import { RevenueController } from "@/presentation/controllers/RevenueController";
+import { TransactionController } from "@/presentation/controllers/adminController/TransactionController";
 
 container.bind(TYPES.TransactionRepository).to(TransactionRepository);
 container.bind(TYPES.GetAdminRevenueUseCase).to(GetAdminRevenueUseCase);
 container.bind(TYPES.InitiateCompanyPayoutUseCase).to(InitiateCompanyPayoutUseCase);
 container.bind(TYPES.GetCompanyWalletUseCase).to(GetCompanyWalletUseCase);
+container.bind(TYPES.GetAllTransactionsUseCase).to(GetAllTransactionsUseCase);
 container.bind(TYPES.RevenueController).to(RevenueController);
+container.bind(TYPES.TransactionController).to(TransactionController);
 
 export { container };
+

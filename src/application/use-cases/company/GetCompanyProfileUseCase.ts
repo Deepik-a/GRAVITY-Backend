@@ -19,6 +19,12 @@ export class GetCompanyProfileUseCase implements IGetCompanyProfileUseCase {
       throw new AppError("Company not found", StatusCode.NOT_FOUND);
     }
 
+    if (company.isBlocked) {
+       // If public is viewing a blocked company, return forbidden but with a different message 
+       // than the one used for the requester's own block status to avoid interceptor issues.
+       throw new AppError("This business account has been suspended.", StatusCode.FORBIDDEN);
+    }
+
     return company;
   }
 }

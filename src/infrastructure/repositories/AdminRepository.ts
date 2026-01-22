@@ -58,7 +58,7 @@ export class AdminRepository implements IAdminRepository {
     const data = await Promise.all(
       users.map(async (user) => {
         let profileImage = user.profileImage ?? undefined;
-        if (profileImage && !profileImage.startsWith("http")) {
+        if (profileImage && !profileImage.startsWith("http") && !profileImage.startsWith("data:")) {
           try {
             profileImage = await this._s3Service.getSignedUrl(profileImage);
           } catch (err) {
@@ -121,16 +121,20 @@ export class AdminRepository implements IAdminRepository {
         const resolvedDocs: Record<string, string | null> = {};
         if (c.documents) {
           for (const [key, value] of Object.entries(c.documents)) {
-             if (value && typeof value === "string") {
-               try {
-                 resolvedDocs[key] = await this._s3Service.getSignedUrl(value);
-               } catch (err) {
-                 this._logger.error(`❌ Failed to resolve doc: ${key}`, { error: err });
-                 resolvedDocs[key] = value;
-               }
-             } else {
-               resolvedDocs[key] = value as string | null;
-             }
+            if (value && typeof value === "string") {
+              if (value.startsWith("http") || value.startsWith("data:")) {
+                resolvedDocs[key] = value;
+              } else {
+                try {
+                  resolvedDocs[key] = await this._s3Service.getSignedUrl(value);
+                } catch (err) {
+                  this._logger.error(`❌ Failed to resolve doc: ${key}`, { error: err });
+                  resolvedDocs[key] = value;
+                }
+              }
+            } else {
+              resolvedDocs[key] = value as string | null;
+            }
           }
         }
 
@@ -168,10 +172,15 @@ export class AdminRepository implements IAdminRepository {
       const keys = ["logo", "banner1", "banner2", "profilePicture"] as const;
       for (const key of keys) {
         if (profile.brandIdentity[key]) {
-          try {
-            profile.brandIdentity[key] = await this._s3Service.getSignedUrl(profile.brandIdentity[key] as string);
-          } catch (err) {
-            this._logger.error(`❌ Failed to resolve ${key}`, { error: err });
+          const url = profile.brandIdentity[key] as string;
+          if (url.startsWith("http") || url.startsWith("data:")) {
+            // Already a full URL
+          } else {
+            try {
+              profile.brandIdentity[key] = await this._s3Service.getSignedUrl(url);
+            } catch (err) {
+              this._logger.error(`❌ Failed to resolve ${key}`, { error: err });
+            }
           }
         }
       }
@@ -181,10 +190,14 @@ export class AdminRepository implements IAdminRepository {
     if (profile.teamMembers && Array.isArray(profile.teamMembers)) {
       for (const member of profile.teamMembers) {
         if (member.photo) {
-          try {
-            member.photo = await this._s3Service.getSignedUrl(member.photo);
-          } catch (err) {
-            this._logger.error(`❌ Failed to resolve team member photo: ${member.name}`, { error: err });
+          if (member.photo.startsWith("http") || member.photo.startsWith("data:")) {
+            // Already a full URL
+          } else {
+            try {
+              member.photo = await this._s3Service.getSignedUrl(member.photo);
+            } catch (err) {
+              this._logger.error(`❌ Failed to resolve team member photo: ${member.name}`, { error: err });
+            }
           }
         }
       }
@@ -194,17 +207,25 @@ export class AdminRepository implements IAdminRepository {
     if (profile.projects && Array.isArray(profile.projects)) {
       for (const project of profile.projects) {
         if (project.beforeImage) {
-          try {
-            project.beforeImage = await this._s3Service.getSignedUrl(project.beforeImage);
-          } catch (err) {
-            this._logger.error(`❌ Failed to resolve project beforeImage: ${project.title}`, { error: err });
+          if (project.beforeImage.startsWith("http") || project.beforeImage.startsWith("data:")) {
+             // Already a full URL
+          } else {
+            try {
+              project.beforeImage = await this._s3Service.getSignedUrl(project.beforeImage);
+            } catch (err) {
+              this._logger.error(`❌ Failed to resolve project beforeImage: ${project.title}`, { error: err });
+            }
           }
         }
         if (project.afterImage) {
-          try {
-            project.afterImage = await this._s3Service.getSignedUrl(project.afterImage);
-          } catch (err) {
-            this._logger.error(`❌ Failed to resolve project afterImage: ${project.title}`, { error: err });
+          if (project.afterImage.startsWith("http") || project.afterImage.startsWith("data:")) {
+            // Already a full URL
+          } else {
+            try {
+              project.afterImage = await this._s3Service.getSignedUrl(project.afterImage);
+            } catch (err) {
+              this._logger.error(`❌ Failed to resolve project afterImage: ${project.title}`, { error: err });
+            }
           }
         }
       }

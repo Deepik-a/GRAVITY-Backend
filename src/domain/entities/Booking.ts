@@ -9,6 +9,7 @@ export interface IBooking {
   price?: number;
   adminCommission?: number;
   paymentStatus?: "pending" | "paid" | "failed";
+  serviceStatus?: "pending" | "completed";
   payoutStatus?: "pending" | "completed";
   stripeSessionId?: string;
   userDetails?: {
@@ -20,6 +21,7 @@ export interface IBooking {
     name: string;
     logo?: string;
   };
+  isRescheduled?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

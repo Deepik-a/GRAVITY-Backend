@@ -3,6 +3,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { ISubscriptionRepository } from "@/domain/repositories/ISubscriptionRepository";
+import { ITransactionRepository } from "@/domain/repositories/ITransactionRepository";
 import { StripeService } from "@/infrastructure/services/StripeService";
 import { Stripe } from "stripe";
 
@@ -12,7 +13,8 @@ export class StripeWebhookUseCase {
     @inject(TYPES.StripeService) private _stripeService: StripeService,
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
     @inject(TYPES.CompanyRepository) private _companyRepository: ICompanyRepository,
-    @inject(TYPES.SubscriptionRepository) private _subscriptionRepository: ISubscriptionRepository
+    @inject(TYPES.SubscriptionRepository) private _subscriptionRepository: ISubscriptionRepository,
+    @inject(TYPES.TransactionRepository) private _transactionRepository: ITransactionRepository
   ) {}
 
   async execute(payload: string | Buffer, signature: string, secret: string) {
@@ -34,10 +36,7 @@ export class StripeWebhookUseCase {
       if (type === "booking") {
         const bookingId = session.metadata?.bookingId;
         if (bookingId) {
-          await this._bookingRepository.updateById(bookingId, {
-            paymentStatus: "paid",
-            status: "confirmed",
-          });
+          await this.processBookingPayment(bookingId, session);
         }
       } else if (type === "subscription") {
         const companyId = session.metadata?.companyId;
@@ -67,35 +66,112 @@ export class StripeWebhookUseCase {
     console.log(`[StripeWebhook] Verifying session: ${sessionId}`);
     const session = await this._stripeService.retrieveSession(sessionId);
     
-    if (session.payment_status === 'paid') {
+    if (session.payment_status === "paid") {
        const type = session.metadata?.type;
-       if (type === 'subscription') {
+       if (type === "subscription") {
          const companyId = session.metadata?.companyId;
          const planId = session.metadata?.planId;
          if (companyId && planId) {
             await this.handleSubscriptionSuccess(companyId, planId, session);
             return { success: true, message: "Subscription activated" };
          }
-       } else if (type === 'booking') {
+       } else if (type === "booking") {
           const bookingId = session.metadata?.bookingId;
           if (bookingId) {
-              await this._bookingRepository.updateById(bookingId, {
-                paymentStatus: "paid",
-                status: "confirmed",
-              });
-              return { success: true, message: "Booking confirmed" };
+              const result = await this.processBookingPayment(bookingId, session);
+              return { success: true, message: result ? "Booking confirmed" : "Booking already processed" };
           }
        }
     }
     return { success: false, message: "Payment not completed or session not found" };
   }
 
+  private async processBookingPayment(bookingId: string, session: Stripe.Checkout.Session): Promise<boolean> {
+    console.log(`[StripeWebhook] Processing booking payment for ID: ${bookingId}`);
+    const booking = await this._bookingRepository.findById(bookingId);
+    
+    if (!booking) {
+      console.error(`[StripeWebhook] Booking not found: ${bookingId}`);
+      return false;
+    }
+
+    if (booking.paymentStatus === "paid") {
+      console.log(`[StripeWebhook] Booking ${bookingId} already marked as paid.`);
+      return false;
+    }
+
+    // Get company to check subscription status
+    const company = await this._companyRepository.findCompanyById(booking.companyId);
+    const isSubscribed = company?.isSubscribed || false;
+    
+    // Calculate commission: 10% if not subscribed, 5% if subscribed
+    const commissionRate = isSubscribed ? 5 : 10;
+    const commissionAmount = (booking.price || 0) * (commissionRate / 100);
+    const netAmount = (booking.price || 0) - commissionAmount;
+
+    // Update booking - ensure it's confirmed AND paid
+    await this._bookingRepository.updateById(bookingId, {
+      paymentStatus: "paid",
+      status: "confirmed",
+      adminCommission: commissionAmount,
+    });
+
+    // Create booking payment transaction
+    await this._transactionRepository.createTransaction({
+      type: "booking_payment",
+      amount: booking.price || 0,
+      status: "completed",
+      bookingId: bookingId,
+      userId: booking.userId,
+      companyId: booking.companyId,
+      description: `Booking payment for ${booking.date}`,
+      commissionRate,
+      commissionAmount,
+      netAmount,
+      stripeSessionId: session.id,
+      stripePaymentIntentId: session.payment_intent as string,
+    });
+
+    // Create admin commission transaction
+    await this._transactionRepository.createTransaction({
+      type: "admin_commission",
+      amount: commissionAmount,
+      status: "completed",
+      bookingId: bookingId,
+      companyId: booking.companyId,
+      description: `Admin commission (${commissionRate}%) from booking`,
+      commissionRate,
+      commissionAmount,
+    });
+
+    // Create company payout transaction (pending_transfer status as per recent transaction updates)
+    await this._transactionRepository.createTransaction({
+      type: "company_payout",
+      amount: netAmount,
+      status: "pending_transfer",
+      bookingId: bookingId,
+      companyId: booking.companyId,
+      description: "Payout to company for booking",
+      netAmount,
+    });
+
+    console.log("[StripeWebhook] Booking " + bookingId + " processed successfully.");
+    return true;
+  }
+
   private async handleSubscriptionSuccess(companyId: string, planId: string, session: Stripe.Checkout.Session) {
-    console.log(`[StripeWebhook] Handling success for company: ${companyId}, plan: ${planId}`);
+    console.log("[StripeWebhook] Handling success for company: " + companyId + ", plan: " + planId);
+    
+    // Check if company already has this subscription active to prevent double-processing
+    const company = await this._companyRepository.findCompanyById(companyId);
+    if (company?.subscription?.stripeSubscriptionId === session.payment_intent) {
+        console.log("[StripeWebhook] Subscription already processed for company " + companyId);
+        return;
+    }
+
     const plan = await this._subscriptionRepository.getPlanById(planId);
     if (!plan) {
-      // In a real app, use a logger service here
-      // console.error(`Plan not found for subscription payment: ${planId}`); 
+      console.error("[StripeWebhook] Plan not found for subscription payment: " + planId); 
       return;
     }
 
@@ -114,8 +190,20 @@ export class StripeWebhookUseCase {
       startDate,
       endDate,
       isSubscribed: true,
-      stripeSubscriptionId: session.payment_intent as string, // Since mode=payment, we store payment ID
+      stripeSubscriptionId: session.payment_intent as string, 
       stripeCustomerId: session.customer as string,
+    });
+
+    // Create subscription payment transaction
+    await this._transactionRepository.createTransaction({
+      type: "subscription_payment",
+      amount: plan.price,
+      status: "completed",
+      subscriptionPlanId: plan._id,
+      companyId: companyId,
+      description: "Subscription payment for " + plan.name + " (" + plan.duration + ")",
+      stripeSessionId: session.id,
+      stripePaymentIntentId: session.payment_intent as string,
     });
   }
 }

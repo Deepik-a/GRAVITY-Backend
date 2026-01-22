@@ -9,6 +9,7 @@ export class ProfileResponseDTO {
     public phone?: string,
     public location?: string,
     public bio?: string,
-    public isBlocked?: boolean
+    public isBlocked?: boolean,
+    public role?: string
   ) {}
 }

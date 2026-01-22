@@ -7,6 +7,7 @@ import { injectable } from "inversify";
 
 @injectable()
 export class BookingRepository
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extends BaseRepository<any>
   implements IBookingRepository
 {
@@ -90,8 +91,10 @@ export class BookingRepository
       price: number;
       adminCommission: number;
       paymentStatus: "pending" | "paid" | "failed";
+      serviceStatus: "pending" | "completed";
       payoutStatus: "pending" | "completed";
       stripeSessionId?: string;
+      isRescheduled?: boolean;
       createdAt: Date;
       updatedAt: Date;
     };
@@ -105,9 +108,11 @@ export class BookingRepository
       status: d.status,
       price: d.price,
       adminCommission: d.adminCommission,
-      paymentStatus: d.paymentStatus,
-      payoutStatus: d.payoutStatus,
+      paymentStatus: d.paymentStatus || "pending",
+      serviceStatus: d.serviceStatus || "pending",
+      payoutStatus: d.payoutStatus || "pending",
       stripeSessionId: d.stripeSessionId,
+      isRescheduled: d.isRescheduled || false,
       createdAt: d.createdAt,
       updatedAt: d.updatedAt,
     };

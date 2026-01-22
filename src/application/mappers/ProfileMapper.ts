@@ -14,6 +14,7 @@ export const ProfileMapper = {
       profile.location,
       profile.bio,
       profile.isBlocked,
+      profile.role
     );
   },
 
@@ -28,6 +29,7 @@ export const ProfileMapper = {
       dto.location,
       dto.bio,
       dto.isBlocked,
+      dto.role
     );
   }
 };

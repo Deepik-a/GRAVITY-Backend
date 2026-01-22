@@ -8,7 +8,9 @@ export class ProfileResponseDTO {
     public profileImage?: string,
     public phone?: string,
     public location?: string,
-    public bio?: string
+    public bio?: string,
+    public isBlocked?: boolean,
+    public role?: string
   ) {}
 
   // Map from domain entity → DTO
@@ -20,7 +22,9 @@ export class ProfileResponseDTO {
       profile.profileImage,
       profile.phone,
       profile.location,
-      profile.bio
+      profile.bio,
+      profile.isBlocked,
+      profile.role
     );
   }
 }

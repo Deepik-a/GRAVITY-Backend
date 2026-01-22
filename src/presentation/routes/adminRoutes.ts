@@ -27,5 +27,11 @@ const revenueController = container.get<RevenueController>(TYPES.RevenueControll
 router.get("/revenue", adminAuth.verify, adminAuth.authorize(["admin"]), revenueController.getAdminRevenue.bind(revenueController));
 router.post("/payout", adminAuth.verify, adminAuth.authorize(["admin"]), revenueController.initiatePayout.bind(revenueController));
 
+import { TransactionController } from "@/presentation/controllers/adminController/TransactionController";
+const transactionController = container.get<TransactionController>(TYPES.TransactionController);
+
+router.get("/transactions", adminAuth.verify, adminAuth.authorize(["admin"]), transactionController.getAllTransactions.bind(transactionController));
+
 export default router;
+
 

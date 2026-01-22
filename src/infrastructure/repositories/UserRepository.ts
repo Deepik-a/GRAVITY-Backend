@@ -194,7 +194,7 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       user.phone ?? undefined,
       user.location ?? undefined,
       user.bio ?? undefined,
-      user.isBlocked,
+      user.isBlocked ?? false,
       user.role
     );
   }

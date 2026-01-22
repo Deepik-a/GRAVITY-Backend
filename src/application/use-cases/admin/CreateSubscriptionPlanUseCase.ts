@@ -12,6 +12,11 @@ export class CreateSubscriptionPlanUseCase {
   ) {}
 
   async execute(dto: CreateSubscriptionPlanDto): Promise<SubscriptionPlan> {
+    const allowedNames = ["basic plan", "upgrade plan", "premium plan"];
+    if (!allowedNames.includes(dto.name)) {
+        throw new Error(`Invalid plan name. Allowed names are: ${allowedNames.join(", ")}`);
+    }
+
     return this.subscriptionRepository.createPlan({
         ...dto,
         isActive: true

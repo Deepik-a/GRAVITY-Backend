@@ -10,6 +10,7 @@ import UserRoutes from "@/presentation/routes/UserRoutes";
 import CompanyRoutes from "@/presentation/routes/CompanyRoutes";
 import PaymentRoutes from "@/presentation/routes/PaymentRoutes";
 import SubscriptionRoutes from "@/presentation/routes/SubscriptionRoutes";
+import ChatRoutes from "@/presentation/routes/ChatRoutes";
 import { connectRedis } from "@/infrastructure/config/redis";
 import { errorHandler } from "@/presentation/middlewares/ErrorMiddleware";
 import cookieParser from "cookie-parser";
@@ -17,11 +18,16 @@ import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { ILogger } from "@/domain/services/ILogger";
 
+import { createServer } from "http";
+import { SocketManager } from "@/infrastructure/sockets/SocketManager";
+
 const logger = container.get<ILogger>(TYPES.Logger);
 
 logger.info("hello from index.ts good");
 
 const app = express();
+const httpServer = createServer(app);
+new SocketManager(httpServer);
 logger.info("hello before public file");
 
 // must come before routes/middleware that use req.cookies
@@ -52,6 +58,7 @@ app.use("/auth", AuthRoutes);
 app.use("/user",UserRoutes);
 app.use("/payments", PaymentRoutes);
 app.use("/subscriptions", SubscriptionRoutes);
+app.use("/chat", ChatRoutes);
 
 // ------------ ERROR MIDDLEWARE ------------
 app.use(errorHandler);
@@ -72,7 +79,7 @@ const uri = env.MONGO_URI;
     logger.info("MongoDB connected");
 
     // START SERVER
-    app.listen(env.PORT, () => logger.info(`Server running on port ${env.PORT}`));
+    httpServer.listen(env.PORT, () => logger.info(`Server running on port ${env.PORT}`));
   } catch (error) {
     logger.error("Startup error:", { error });
     process.exit(1);

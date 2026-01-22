@@ -21,7 +21,9 @@ export class CompanyProfileController {
   async getProfile(req: Request, res: Response, next: NextFunction) {
     this._logger.info("📥 Get profile endpoint hit");
     try {
-      const { companyId } = req.params;
+      // Use companyId from params, or fallback to the authenticated user's ID
+      const companyId = req.params.companyId || (req.user as any)?.id;
+      
       if (!companyId) {
         return res.status(StatusCode.BAD_REQUEST).json({ message: "Company ID is required" });
       }

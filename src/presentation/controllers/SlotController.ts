@@ -9,8 +9,9 @@ import { GetAvailableSlotsUseCase } from "@/application/use-cases/user/GetAvaila
 import { BookSlotUseCase } from "@/application/use-cases/user/BookSlotUseCase";
 import { GetUserBookingsUseCase } from "@/application/use-cases/user/GetUserBookingsUseCase";
 import { GetCompanyBookingsUseCase } from "@/application/use-cases/company/GetCompanyBookingsUseCase";
-import { ConfirmBookingUseCase } from "@/application/use-cases/company/ConfirmBookingUseCase";
 import { GetAllBookingsUseCase } from "@/application/use-cases/admin/GetAllBookingsUseCase";
+import { CompleteBookingUseCase } from "@/application/use-cases/user/CompleteBookingUseCase";
+import { RescheduleBookingUseCase } from "@/application/use-cases/company/RescheduleBookingUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { AuthenticatedUser } from "@/types/auth";
 
@@ -24,8 +25,9 @@ export class SlotController {
     @inject(TYPES.BookSlotUseCase) private _bookSlotUseCase: BookSlotUseCase,
     @inject(TYPES.GetCompanyBookingsUseCase) private _getCompanyBookingsUseCase: GetCompanyBookingsUseCase,
     @inject(TYPES.GetUserBookingsUseCase) private _getUserBookingsUseCase: GetUserBookingsUseCase,
-    @inject(TYPES.ConfirmBookingUseCase) private _confirmBookingUseCase: ConfirmBookingUseCase,
-    @inject(TYPES.GetAllBookingsUseCase) private _getAllBookingsUseCase: GetAllBookingsUseCase
+    @inject(TYPES.GetAllBookingsUseCase) private _getAllBookingsUseCase: GetAllBookingsUseCase,
+    @inject(TYPES.CompleteBookingUseCase) private _completeBookingUseCase: CompleteBookingUseCase,
+    @inject(TYPES.RescheduleBookingUseCase) private _rescheduleBookingUseCase: RescheduleBookingUseCase
   ) {}
 
   async getAllBookings(req: Request, res: Response): Promise<void> {
@@ -42,20 +44,7 @@ export class SlotController {
     }
   }
 
-  async confirmBooking(req: Request, res: Response): Promise<void> {
-    try {
-      const { bookingId } = req.params;
-      const booking = await this._confirmBookingUseCase.execute(bookingId);
-      res.status(StatusCode.SUCCESS).json(booking);
-    } catch (error: unknown) {
-      if (error instanceof AppError) {
-        res.status(error.statusCode).json({ message: error.message });
-      } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
-        res.status(StatusCode.INTERNAL_ERROR).json({ message });
-      }
-    }
-  }
+
 
   async getUserBookings(req: Request, res: Response): Promise<void> {
     try {
@@ -180,6 +169,42 @@ export class SlotController {
       }
       const booking = await this._bookSlotUseCase.execute({ ...req.body, userId });
       res.status(StatusCode.CREATED).json(booking);
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+      } else {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        res.status(StatusCode.INTERNAL_ERROR).json({ message });
+      }
+    }
+  }
+
+  async completeBooking(req: Request, res: Response): Promise<void> {
+    try {
+      const { bookingId } = req.params;
+      const userId = (req.user as AuthenticatedUser)?.id;
+      if (!userId) {
+        res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+        return;
+      }
+      const result = await this._completeBookingUseCase.execute(bookingId, userId);
+      res.status(StatusCode.SUCCESS).json(result);
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+      } else {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        res.status(StatusCode.INTERNAL_ERROR).json({ message });
+      }
+    }
+  }
+
+  async rescheduleBooking(req: Request, res: Response): Promise<void> {
+    try {
+      const { bookingId } = req.params;
+      const { newDate, newStartTime } = req.body;
+      await this._rescheduleBookingUseCase.execute(bookingId, new Date(newDate), newStartTime);
+      res.status(StatusCode.SUCCESS).json({ message: "Booking rescheduled successfully" });
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
