@@ -2,32 +2,32 @@ import { Request, Response } from "express";
 import { AppError } from "@/shared/error/AppError";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { SetSlotConfigUseCase } from "@/application/use-cases/company/SetSlotConfigUseCase";
-import { GetSlotConfigUseCase } from "@/application/use-cases/company/GetSlotConfigUseCase";
-import { DeleteSlotConfigUseCase } from "@/application/use-cases/company/DeleteSlotConfigUseCase";
-import { GetAvailableSlotsUseCase } from "@/application/use-cases/user/GetAvailableSlotsUseCase";
-import { BookSlotUseCase } from "@/application/use-cases/user/BookSlotUseCase";
-import { GetUserBookingsUseCase } from "@/application/use-cases/user/GetUserBookingsUseCase";
-import { GetCompanyBookingsUseCase } from "@/application/use-cases/company/GetCompanyBookingsUseCase";
-import { GetAllBookingsUseCase } from "@/application/use-cases/admin/GetAllBookingsUseCase";
-import { CompleteBookingUseCase } from "@/application/use-cases/user/CompleteBookingUseCase";
-import { RescheduleBookingUseCase } from "@/application/use-cases/company/RescheduleBookingUseCase";
+import { ISetSlotConfigUseCase } from "@/application/interfaces/use-cases/company/ISetSlotConfigUseCase";
+import { IGetSlotConfigUseCase } from "@/application/interfaces/use-cases/company/IGetSlotConfigUseCase";
+import { IDeleteSlotConfigUseCase } from "@/application/interfaces/use-cases/company/IDeleteSlotConfigUseCase";
+import { IGetAvailableSlotsUseCase } from "@/application/interfaces/use-cases/user/IGetAvailableSlotsUseCase";
+import { IBookSlotUseCase } from "@/application/interfaces/use-cases/user/IBookSlotUseCase";
+import { IGetUserBookingsUseCase } from "@/application/interfaces/use-cases/user/IGetUserBookingsUseCase";
+import { IGetCompanyBookingsUseCase } from "@/application/interfaces/use-cases/company/IGetCompanyBookingsUseCase";
+import { IGetAllBookingsUseCase } from "@/application/interfaces/use-cases/admin/IGetAllBookingsUseCase";
+import { ICompleteBookingUseCase } from "@/application/interfaces/use-cases/user/ICompleteBookingUseCase";
+import { IRescheduleBookingUseCase } from "@/application/interfaces/use-cases/company/IRescheduleBookingUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { AuthenticatedUser } from "@/types/auth";
 
 @injectable()
 export class SlotController {
   constructor(
-    @inject(TYPES.SetSlotConfigUseCase) private _setSlotConfigUseCase: SetSlotConfigUseCase,
-    @inject(TYPES.GetSlotConfigUseCase) private _getSlotConfigUseCase: GetSlotConfigUseCase,
-    @inject(TYPES.DeleteSlotConfigUseCase) private _deleteSlotConfigUseCase: DeleteSlotConfigUseCase,
-    @inject(TYPES.GetAvailableSlotsUseCase) private _getAvailableSlotsUseCase: GetAvailableSlotsUseCase,
-    @inject(TYPES.BookSlotUseCase) private _bookSlotUseCase: BookSlotUseCase,
-    @inject(TYPES.GetCompanyBookingsUseCase) private _getCompanyBookingsUseCase: GetCompanyBookingsUseCase,
-    @inject(TYPES.GetUserBookingsUseCase) private _getUserBookingsUseCase: GetUserBookingsUseCase,
-    @inject(TYPES.GetAllBookingsUseCase) private _getAllBookingsUseCase: GetAllBookingsUseCase,
-    @inject(TYPES.CompleteBookingUseCase) private _completeBookingUseCase: CompleteBookingUseCase,
-    @inject(TYPES.RescheduleBookingUseCase) private _rescheduleBookingUseCase: RescheduleBookingUseCase
+    @inject(TYPES.SetSlotConfigUseCase) private _setSlotConfigUseCase: ISetSlotConfigUseCase,
+    @inject(TYPES.GetSlotConfigUseCase) private _getSlotConfigUseCase: IGetSlotConfigUseCase,
+    @inject(TYPES.DeleteSlotConfigUseCase) private _deleteSlotConfigUseCase: IDeleteSlotConfigUseCase,
+    @inject(TYPES.GetAvailableSlotsUseCase) private _getAvailableSlotsUseCase: IGetAvailableSlotsUseCase,
+    @inject(TYPES.BookSlotUseCase) private _bookSlotUseCase: IBookSlotUseCase,
+    @inject(TYPES.GetCompanyBookingsUseCase) private _getCompanyBookingsUseCase: IGetCompanyBookingsUseCase,
+    @inject(TYPES.GetUserBookingsUseCase) private _getUserBookingsUseCase: IGetUserBookingsUseCase,
+    @inject(TYPES.GetAllBookingsUseCase) private _getAllBookingsUseCase: IGetAllBookingsUseCase,
+    @inject(TYPES.CompleteBookingUseCase) private _completeBookingUseCase: ICompleteBookingUseCase,
+    @inject(TYPES.RescheduleBookingUseCase) private _rescheduleBookingUseCase: IRescheduleBookingUseCase
   ) {}
 
   async getAllBookings(req: Request, res: Response): Promise<void> {

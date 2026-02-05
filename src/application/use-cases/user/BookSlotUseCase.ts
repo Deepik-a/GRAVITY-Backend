@@ -6,8 +6,11 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 
+import { IBookSlotUseCase } from "@/application/interfaces/use-cases/user/IBookSlotUseCase";
+
+
 @injectable()
-export class BookSlotUseCase {
+export class BookSlotUseCase implements IBookSlotUseCase {
   constructor(
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
     @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository
@@ -23,11 +26,12 @@ export class BookSlotUseCase {
     // TODO: More rigorous verification (duration, weekdays etc.) could be added here
     // but for now we assume the frontend selects valid slots from GetAvailableSlots
 
-    const alreadyBooked = await this._bookingRepository.getBookingsByCompanyAndDate(companyId, date);
-    if (alreadyBooked.some(b => b.startTime === startTime)) {
-      throw new AppError("This slot is already booked.", StatusCode.CONFLICT);
+    const isSlotAvailable = await this._bookingRepository.checkSlotAvailability(companyId, date, startTime);
+    if (!isSlotAvailable) {
+      throw new AppError("This slot has already been taken by someone else.", StatusCode.CONFLICT);
     }
 
+  
     // Calculate endTime
     const [h, m] = startTime.split(":").map(Number);
     const endMins = h * 60 + m + config.slotDuration;

@@ -3,8 +3,10 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { IReviewRepository } from "@/domain/repositories/IReviewRepository";
 import { IReview } from "@/domain/entities/Review";
 
+import { ISubmitReviewUseCase } from "@/application/interfaces/use-cases/user/ISubmitReviewUseCase";
+
 @injectable()
-export class SubmitReviewUseCase {
+export class SubmitReviewUseCase implements ISubmitReviewUseCase {
   constructor(
     @inject(TYPES.ReviewRepository) private _reviewRepository: IReviewRepository
   ) {}

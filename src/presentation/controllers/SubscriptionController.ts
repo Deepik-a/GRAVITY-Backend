@@ -2,14 +2,14 @@
 import { Request, Response, NextFunction } from "express";
 import { injectable, inject } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { CreateSubscriptionPlanUseCase } from "@/application/use-cases/admin/CreateSubscriptionPlanUseCase";
-import { GetSubscriptionPlansUseCase } from "@/application/use-cases/subscription/GetSubscriptionPlansUseCase";
+import { ICreateSubscriptionPlanUseCase } from "@/application/interfaces/use-cases/admin/ICreateSubscriptionPlanUseCase";
+import { IGetSubscriptionPlansUseCase } from "@/application/interfaces/use-cases/subscription/IGetSubscriptionPlansUseCase";
 
 @injectable()
 export class SubscriptionController {
   constructor(
-    @inject(TYPES.CreateSubscriptionPlanUseCase) private createPlanUseCase: CreateSubscriptionPlanUseCase,
-    @inject(TYPES.GetSubscriptionPlansUseCase) private getPlansUseCase: GetSubscriptionPlansUseCase
+    @inject(TYPES.CreateSubscriptionPlanUseCase) private createPlanUseCase: ICreateSubscriptionPlanUseCase,
+    @inject(TYPES.GetSubscriptionPlansUseCase) private getPlansUseCase: IGetSubscriptionPlansUseCase
   ) {}
 
   async createPlan(req: Request, res: Response, next: NextFunction) {

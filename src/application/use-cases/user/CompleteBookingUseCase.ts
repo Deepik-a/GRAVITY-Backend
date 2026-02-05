@@ -4,8 +4,10 @@ import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { ITransactionRepository } from "@/domain/repositories/ITransactionRepository";
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 
+import { ICompleteBookingUseCase } from "@/application/interfaces/use-cases/user/ICompleteBookingUseCase";
+
 @injectable()
-export class CompleteBookingUseCase {
+export class CompleteBookingUseCase implements ICompleteBookingUseCase {
   constructor(
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
     @inject(TYPES.TransactionRepository) private _transactionRepository: ITransactionRepository,

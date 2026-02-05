@@ -3,17 +3,12 @@ import { ITransactionRepository } from "@/domain/repositories/ITransactionReposi
 import { ITransaction } from "@/domain/entities/Transaction";
 import { TYPES } from "@/infrastructure/DI/types";
 
-interface GetAllTransactionsFilters {
-  type?: string;
-  status?: string;
-  userId?: string;
-  companyId?: string;
-  startDate?: Date;
-  endDate?: Date;
-}
+
+
+import { IGetAllTransactionsUseCase, GetAllTransactionsFilters } from "@/application/interfaces/use-cases/admin/IGetAllTransactionsUseCase";
 
 @injectable()
-export class GetAllTransactionsUseCase {
+export class GetAllTransactionsUseCase implements IGetAllTransactionsUseCase {
   constructor(
     @inject(TYPES.TransactionRepository) private transactionRepository: ITransactionRepository
   ) {}

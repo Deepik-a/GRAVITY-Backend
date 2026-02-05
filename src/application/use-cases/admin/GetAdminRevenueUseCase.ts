@@ -1,15 +1,17 @@
 import { injectable, inject } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
-import { IBooking } from "@/domain/entities/Booking";
+
+import { AdminRevenueResponseDto } from "@/application/dtos/admin/AdminRevenueResponseDto";
+import { IGetAdminRevenueUseCase } from "@/application/interfaces/use-cases/admin/IGetAdminRevenueUseCase";
 
 @injectable()
-export class GetAdminRevenueUseCase {
+export class GetAdminRevenueUseCase implements IGetAdminRevenueUseCase {
   constructor(
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository
   ) {}
 
-  async execute(): Promise<{ totalRevenue: number, bookings: IBooking[], totalCompanyShare: number }> {
+  async execute(): Promise<AdminRevenueResponseDto> {
     const bookings = await this._bookingRepository.getAllBookings();
     const paidBookings = bookings.filter(b => b.paymentStatus === "paid");
     

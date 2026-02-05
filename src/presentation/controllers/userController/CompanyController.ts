@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { GetVerifiedCompaniesUseCase } from "@/application/use-cases/user/GetVerifiedCompaniesUseCase";
+import { IGetVerifiedCompaniesUseCase } from "@/application/interfaces/use-cases/user/IGetVerifiedCompaniesUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
 
 @injectable()
 export class CompanyController {
   constructor(
-    @inject(TYPES.GetVerifiedCompaniesUseCase) private _getVerifiedCompaniesUseCase: GetVerifiedCompaniesUseCase
+    @inject(TYPES.GetVerifiedCompaniesUseCase) private _getVerifiedCompaniesUseCase: IGetVerifiedCompaniesUseCase
   ) {}
 
   async getVerifiedCompanies(req: Request, res: Response): Promise<void> {

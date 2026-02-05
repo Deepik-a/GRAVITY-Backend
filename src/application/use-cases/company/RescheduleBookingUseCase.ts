@@ -5,8 +5,10 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 
+import { IRescheduleBookingUseCase } from "@/application/interfaces/use-cases/company/IRescheduleBookingUseCase";
+
 @injectable()
-export class RescheduleBookingUseCase {
+export class RescheduleBookingUseCase implements IRescheduleBookingUseCase {
   constructor(
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
     @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository

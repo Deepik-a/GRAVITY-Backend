@@ -1,16 +1,19 @@
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { StripeService } from "@/infrastructure/services/StripeService";
+
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { IUserRepository } from "@/domain/repositories/IUserRepository";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 
+import { ICreateCheckoutSessionUseCase } from "@/application/interfaces/use-cases/payment/ICreateCheckoutSessionUseCase";
+import { IStripeService } from "@/domain/services/IStripeService";
+
 @injectable()
-export class CreateCheckoutSessionUseCase {
+export class CreateCheckoutSessionUseCase implements ICreateCheckoutSessionUseCase {
   constructor(
-    @inject(TYPES.StripeService) private _stripeService: StripeService,
+    @inject(TYPES.StripeService) private _stripeService: IStripeService,
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
     @inject(TYPES.CompanyRepository) private _companyRepository: ICompanyRepository,
     @inject(TYPES.UserRepository) private _userRepository: IUserRepository

@@ -4,6 +4,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { ProfileController } from "@/presentation/controllers/userController/ProfileController";
 import { SlotController } from "@/presentation/controllers/SlotController";
 import { CompanyController } from "@/presentation/controllers/userController/CompanyController";
+import { AuthController } from "@/presentation/controllers/AuthController";
 import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware"; 
 
 const router = Router();
@@ -11,12 +12,14 @@ const profileController = container.get<ProfileController>(TYPES.ProfileControll
 const slotController = container.get<SlotController>(TYPES.SlotController);
 const companyController = container.get<CompanyController>(TYPES.CompanyController);
 const userAuth = container.get<SessionAuth>(TYPES.SessionAuth);
-
+const authController = container.get<AuthController>(TYPES.AuthController);
 
 import { upload } from "@/presentation/middlewares/MulterUpload";
 
 // Public route - Get all verified companies
 router.get("/companies", companyController.getVerifiedCompanies.bind(companyController));
+
+router.post("/logout", authController.logout.bind(authController));
 
 
 router.get(

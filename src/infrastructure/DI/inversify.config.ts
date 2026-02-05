@@ -67,6 +67,7 @@ import { GetSlotConfigUseCase } from "@/application/use-cases/company/GetSlotCon
 import { DeleteSlotConfigUseCase } from "@/application/use-cases/company/DeleteSlotConfigUseCase";
 import { GetCompanyBookingsUseCase } from "@/application/use-cases/company/GetCompanyBookingsUseCase";
 import { RescheduleBookingUseCase } from "@/application/use-cases/company/RescheduleBookingUseCase";
+import { ConfirmBookingUseCase } from "@/application/use-cases/company/ConfirmBookingUseCase";
 
 // ---------------- Controllers ----------------
 import { AdminLoginController } from "@/presentation/controllers/adminController/AdminController";
@@ -150,6 +151,7 @@ container.bind(TYPES.GetSlotConfigUseCase).to(GetSlotConfigUseCase);
 container.bind(TYPES.DeleteSlotConfigUseCase).to(DeleteSlotConfigUseCase);
 container.bind(TYPES.GetCompanyBookingsUseCase).to(GetCompanyBookingsUseCase);
 container.bind(TYPES.RescheduleBookingUseCase).to(RescheduleBookingUseCase);
+container.bind(TYPES.ConfirmBookingUseCase).to(ConfirmBookingUseCase);
 
 // ---------------- Bind Controllers ----------------
 container.bind(TYPES.AdminController).to(AdminLoginController);

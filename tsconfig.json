@@ -32,10 +32,12 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+      "sourceMap": true, //for easy debugging using breakpoints
   },
   "include": [
     "src",
     "src/types/**/*.d.ts"
-  ]
+  ],
+
 }

@@ -1,16 +1,19 @@
 
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { StripeService } from "@/infrastructure/services/StripeService";
+
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { ISubscriptionRepository } from "@/domain/repositories/ISubscriptionRepository";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 
+import { ICreateSubscriptionCheckoutSessionUseCase } from "@/application/interfaces/use-cases/payment/ICreateSubscriptionCheckoutSessionUseCase";
+import { IStripeService } from "@/domain/services/IStripeService";
+
 @injectable()
-export class CreateSubscriptionCheckoutSessionUseCase {
+export class CreateSubscriptionCheckoutSessionUseCase implements ICreateSubscriptionCheckoutSessionUseCase {
   constructor(
-    @inject(TYPES.StripeService) private _stripeService: StripeService,
+    @inject(TYPES.StripeService) private _stripeService: IStripeService,
     @inject(TYPES.CompanyRepository) private _companyRepository: ICompanyRepository,
     @inject(TYPES.SubscriptionRepository) private _subscriptionRepository: ISubscriptionRepository
   ) {}

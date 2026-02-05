@@ -3,8 +3,10 @@ import { ICompany } from "@/domain/entities/Company";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 
+import { IGetVerifiedCompaniesUseCase } from "@/application/interfaces/use-cases/user/IGetVerifiedCompaniesUseCase";
+
 @injectable()
-export class GetVerifiedCompaniesUseCase {
+export class GetVerifiedCompaniesUseCase implements IGetVerifiedCompaniesUseCase {
   constructor(
     @inject(TYPES.CompanyRepository) private _companyRepository: ICompanyRepository
   ) {}

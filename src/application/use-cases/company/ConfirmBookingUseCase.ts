@@ -4,9 +4,10 @@ import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
+import { IConfirmBookingUseCase } from "@/application/interfaces/use-cases/company/IConfirmBookingUseCase";
 
 @injectable()
-export class ConfirmBookingUseCase {
+export class ConfirmBookingUseCase implements IConfirmBookingUseCase {
   constructor(
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository
   ) {}

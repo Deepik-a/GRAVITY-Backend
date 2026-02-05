@@ -55,6 +55,7 @@ export const TYPES = {
   DeleteSlotConfigUseCase: Symbol.for("DeleteSlotConfigUseCase"),
   GetCompanyBookingsUseCase: Symbol.for("GetCompanyBookingsUseCase"),
   RescheduleBookingUseCase: Symbol.for("RescheduleBookingUseCase"),
+  ConfirmBookingUseCase: Symbol.for("ConfirmBookingUseCase"),
 
 // Use Cases - User
   GetUserProfileUseCase: Symbol.for("GetUserProfileUseCase"),

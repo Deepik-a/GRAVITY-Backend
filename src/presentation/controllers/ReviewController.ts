@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import { injectable, inject } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { SubmitReviewUseCase } from "@/application/use-cases/user/SubmitReviewUseCase";
-import { GetCompanyReviewsUseCase } from "@/application/use-cases/company/GetCompanyReviewsUseCase";
+import { ISubmitReviewUseCase } from "@/application/interfaces/use-cases/user/ISubmitReviewUseCase";
+import { IGetCompanyReviewsUseCase } from "@/application/interfaces/use-cases/company/IGetCompanyReviewsUseCase";
 
 @injectable()
 export class ReviewController {
   constructor(
-    @inject(TYPES.SubmitReviewUseCase) private _submitReviewUseCase: SubmitReviewUseCase,
-    @inject(TYPES.GetCompanyReviewsUseCase) private _getCompanyReviewsUseCase: GetCompanyReviewsUseCase
+    @inject(TYPES.SubmitReviewUseCase) private _submitReviewUseCase: ISubmitReviewUseCase,
+    @inject(TYPES.GetCompanyReviewsUseCase) private _getCompanyReviewsUseCase: IGetCompanyReviewsUseCase
   ) {}
 
   async submitReview(req: Request, res: Response, next: NextFunction) {

@@ -1,16 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import { injectable, inject } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { GetAdminRevenueUseCase } from "@/application/use-cases/admin/GetAdminRevenueUseCase";
-import { InitiateCompanyPayoutUseCase } from "@/application/use-cases/admin/InitiateCompanyPayoutUseCase";
-import { GetCompanyWalletUseCase } from "@/application/use-cases/company/GetCompanyWalletUseCase";
+import { IGetAdminRevenueUseCase } from "@/application/interfaces/use-cases/admin/IGetAdminRevenueUseCase";
+import { IInitiateCompanyPayoutUseCase } from "@/application/interfaces/use-cases/admin/IInitiateCompanyPayoutUseCase";
+import { IGetCompanyWalletUseCase } from "@/application/interfaces/use-cases/company/IGetCompanyWalletUseCase";
+
+import { AuthenticatedUser } from "@/types/auth";
 
 @injectable()
 export class RevenueController {
   constructor(
-    @inject(TYPES.GetAdminRevenueUseCase) private _getAdminRevenueUseCase: GetAdminRevenueUseCase,
-    @inject(TYPES.InitiateCompanyPayoutUseCase) private _initiateCompanyPayoutUseCase: InitiateCompanyPayoutUseCase,
-    @inject(TYPES.GetCompanyWalletUseCase) private _getCompanyWalletUseCase: GetCompanyWalletUseCase
+    @inject(TYPES.GetAdminRevenueUseCase) private _getAdminRevenueUseCase: IGetAdminRevenueUseCase,
+    @inject(TYPES.InitiateCompanyPayoutUseCase) private _initiateCompanyPayoutUseCase: IInitiateCompanyPayoutUseCase,
+    @inject(TYPES.GetCompanyWalletUseCase) private _getCompanyWalletUseCase: IGetCompanyWalletUseCase
   ) {}
 
   async getAdminRevenue(req: Request, res: Response, next: NextFunction) {
@@ -34,7 +36,7 @@ export class RevenueController {
 
   async getCompanyWallet(req: Request, res: Response, next: NextFunction) {
     try {
-      const companyId = req.params.companyId || (req as any).user?.id;
+      const companyId = req.params.companyId || (req.user as AuthenticatedUser)?.id;
       const result = await this._getCompanyWalletUseCase.execute(companyId);
       res.status(200).json(result);
     } catch (error) {

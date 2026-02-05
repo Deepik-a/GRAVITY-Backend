@@ -21,8 +21,32 @@ export class SessionAuth {
 
   verify: RequestHandler = async (req, res, next) => {
       const isAdminRoute = req.originalUrl.startsWith("/admin") || req.originalUrl.includes("/admin/");
-      const accessKey = isAdminRoute ? "adminAccessToken" : "userAccessToken";
-      const refreshKey = isAdminRoute ? "adminRefreshToken" : "userRefreshToken";
+      const isCompanyRoute = req.originalUrl.startsWith("/company") || req.originalUrl.includes("/company/");
+      
+      let accessKey = "userAccessToken";
+      let refreshKey = "userRefreshToken";
+
+      if (isAdminRoute) {
+        accessKey = "adminAccessToken";
+        refreshKey = "adminRefreshToken";
+      } else if (isCompanyRoute) {
+        accessKey = "companyAccessToken";
+        refreshKey = "companyRefreshToken";
+      } else {
+        // For shared routes (e.g., /chat, /payments, /subscriptions), 
+        // determine the key based on which token is actually present.
+        if (req.cookies["adminAccessToken"] || req.cookies["adminRefreshToken"]) {
+          accessKey = "adminAccessToken";
+          refreshKey = "adminRefreshToken";
+        } else if (req.cookies["companyAccessToken"] || req.cookies["companyRefreshToken"]) {
+          accessKey = "companyAccessToken";
+          refreshKey = "companyRefreshToken";
+        } else if (req.cookies["userAccessToken"] || req.cookies["userRefreshToken"]) {
+          accessKey = "userAccessToken";
+          refreshKey = "userRefreshToken";
+        }
+      }
+
     try {
 
       const accessToken = req.cookies[accessKey];
@@ -96,7 +120,7 @@ const data = {
       return this._endSpecificSession(res, accessKey, refreshKey);
     } catch (error) {
       this._logger.error("Auth Catch Error:", { error });
-      return this._endSpecificSession(res, isAdminRoute ? "adminAccessToken" : "userAccessToken", isAdminRoute ? "adminRefreshToken" : "userRefreshToken");
+      return this._endSpecificSession(res, accessKey, refreshKey);
     }
   };
 
@@ -107,13 +131,24 @@ authorize(allowedRoles: string[]): RequestHandler {
     console.log("User Role:", user?.role); // Debugging
     console.log("Allowed Roles:", allowedRoles); // Debugging
 
-    if (!user || !allowedRoles.includes(user.role)) {
+    if (!user || !user.role) {
       return res.status(StatusCode.FORBIDDEN).json({ 
         status: false, 
-        message: `Access Denied. Your role is: ${user?.role || "none"}. Required roles: ${allowedRoles.join(", ")}` 
+        message: "Access Denied. User role not found." 
+      });
+    }
+
+    const userRole = user.role.toLowerCase().trim();
+    const isAuthorized = allowedRoles.some(role => role.toLowerCase().trim() === userRole);
+
+    if (!isAuthorized) {
+      return res.status(StatusCode.FORBIDDEN).json({ 
+        status: false, 
+        message: `Access Denied. Your role is: ${user.role}. Required roles: ${allowedRoles.join(", ")}` 
       });
     }
     next();
+
   };
 }
 

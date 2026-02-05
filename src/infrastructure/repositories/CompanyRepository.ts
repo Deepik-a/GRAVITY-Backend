@@ -100,6 +100,65 @@ export class CompanyRepository
     return profile;
   }
 
+
+  /* --------------------------------------------------
+    STRIP SIGNED URLS - KEEP ONLY S3 KEYS
+  -------------------------------------------------- */
+private _stripSignedUrls(profile: any): any {
+  if (!profile) return null;
+
+  const stripped = { ...profile };
+
+  // Helper to extract S3 key from signed URL or return as-is
+  const extractKey = (url: string | undefined): string | undefined => {
+    if (!url) return undefined;
+    
+    // If it's already just a key (no http/https), return as-is
+    if (!url.startsWith("http")) return url;
+    
+    // If it's a data URI, keep it
+    if (url.startsWith("data:")) return url;
+    
+    // Extract S3 key from signed URL
+    // Example: https://bucket.s3.region.amazonaws.com/KEY?params -> KEY
+    try {
+      const urlObj = new URL(url);
+      // Remove leading slash and get the path (which is the S3 key)
+      return urlObj.pathname.substring(1).split('?')[0];
+    } catch {
+      return url; // If parsing fails, return original
+    }
+  };
+
+  // Strip brand identity URLs
+  if (stripped.brandIdentity) {
+    stripped.brandIdentity = {
+      logo: extractKey(stripped.brandIdentity.logo),
+      banner1: extractKey(stripped.brandIdentity.banner1),
+      banner2: extractKey(stripped.brandIdentity.banner2),
+      profilePicture: extractKey(stripped.brandIdentity.profilePicture),
+    };
+  }
+
+  // Strip team member photos
+  if (stripped.teamMembers && Array.isArray(stripped.teamMembers)) {
+    stripped.teamMembers = stripped.teamMembers.map((member: any) => ({
+      ...member,
+      photo: extractKey(member.photo),
+    }));
+  }
+
+  // Strip project images
+  if (stripped.projects && Array.isArray(stripped.projects)) {
+    stripped.projects = stripped.projects.map((project: any) => ({
+      ...project,
+      beforeImage: extractKey(project.beforeImage),
+      afterImage: extractKey(project.afterImage),
+    }));
+  }
+
+  return stripped;
+}
   // -------------------------------------------
   // 💠 AUTH METHODS (from IAuthRepository)
   // -------------------------------------------
@@ -507,14 +566,17 @@ async updateBlockStatus(companyId: string, isBlocked: boolean): Promise<ICompany
   };
 }
 
-  async updateProfile(companyId: string, profileData: NonNullable<ICompany["profile"]>): Promise<ICompany | null> {
+async updateProfile(companyId: string, profileData: NonNullable<ICompany["profile"]>): Promise<ICompany | null> {
+    // ✅ Strip signed URLs before saving
+    const cleanedProfile = this._stripSignedUrls(profileData);
+    
     const updated = await this.model.findByIdAndUpdate(
       companyId,
       { 
         $set: { 
-          profile: profileData, 
+          profile: cleanedProfile,  // ✅ Save only S3 keys
           isProfileFilled: true,
-          name: profileData.companyName || "" // Sync root name with profile company name
+          name: profileData.companyName || ""
         } 
       },
       { new: true }

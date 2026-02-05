@@ -7,31 +7,14 @@ import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { LoginRequestDto, LoginResponseDto } from "@/application/dtos/AuthDTOs";
+import { LoginResponseDto } from "@/application/dtos/AuthDTOs";
 
-interface AuthenticatableUser {
-  id: string | { toString(): string };
-  name: string;
-  email: string;
-  password: string;
-  role: string;
-  phone?: string;
-  documentStatus?: string;
-  rejectionReason?: string | null;
-  isBlocked?: boolean;
-  isProfileFilled?: boolean;
-  isSubscribed?: boolean;
-  provider?: string;
-}
 
-interface LoginInput extends LoginRequestDto {
-  repo: IAuthRepository | IAdminRepository;
-  role: "user" | "company" | "admin";
-  user: AuthenticatableUser; // Input from controller (Existing User)
-}
+
+import { ILoginUserUseCase, LoginInput, AuthenticatableUser } from "@/application/interfaces/use-cases/user/ILoginUserUseCase";
 
 @injectable()
-export class LoginUserUseCase {
+export class LoginUserUseCase implements ILoginUserUseCase {
 
   constructor(@inject(TYPES.JwtService) private readonly _jwtService: IJwtService) {}
 
@@ -114,6 +97,8 @@ Messages.AUTH.No_PASSWORD,
     };
   }
 
+
+  //this login is effectively inactive
   private async _handleAdminLogin(
     admin: AuthenticatableUser,
     password: string,

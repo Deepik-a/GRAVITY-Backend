@@ -3,6 +3,7 @@ import TransactionModel, { ITransactionDocument } from "@/infrastructure/databas
 import { ITransactionRepository } from "@/domain/repositories/ITransactionRepository";
 import { ITransaction } from "@/domain/entities/Transaction";
 import { injectable } from "inversify";
+import { TransactionMapper } from "@/application/mappers/TransactionMapper";
 
 
 @injectable()
@@ -13,7 +14,7 @@ export class TransactionRepository extends BaseRepository<ITransactionDocument> 
 
   async createTransaction(transaction: ITransaction): Promise<ITransaction> {
     const created = await this.model.create(transaction);
-    return this._mapToEntity(created.toObject());
+    return TransactionMapper.toEntity(created.toObject());
   }
 
   async findTransactionById(id: string): Promise<ITransaction | null> {
@@ -24,7 +25,7 @@ export class TransactionRepository extends BaseRepository<ITransactionDocument> 
       .populate("subscriptionPlanId")
       .lean();
     
-    return transaction ? this._mapToEntity(transaction) : null;
+    return transaction ? TransactionMapper.toEntity(transaction) : null;
   }
 
   async findByCompanyId(companyId: string): Promise<ITransaction[]> {
@@ -33,7 +34,7 @@ export class TransactionRepository extends BaseRepository<ITransactionDocument> 
       .populate("companyId", "name email")
       .sort({ createdAt: -1 })
       .lean();
-    return transactions.map(t => this._mapToEntity(t));
+    return transactions.map(t => TransactionMapper.toEntity(t));
   }
 
   async findByUserId(userId: string): Promise<ITransaction[]> {
@@ -42,7 +43,7 @@ export class TransactionRepository extends BaseRepository<ITransactionDocument> 
       .populate("companyId", "name email")
       .sort({ createdAt: -1 })
       .lean();
-    return transactions.map(t => this._mapToEntity(t));
+    return transactions.map(t => TransactionMapper.toEntity(t));
   }
 
   async findAll(filters?: {
@@ -77,7 +78,7 @@ export class TransactionRepository extends BaseRepository<ITransactionDocument> 
       .sort({ createdAt: -1 })
       .lean();
     
-    return transactions.map(t => this._mapToEntity(t));
+    return transactions.map(t => TransactionMapper.toEntity(t));
   }
 
   async update(id: string, transaction: Partial<ITransaction>): Promise<ITransaction | null> {
@@ -86,7 +87,7 @@ export class TransactionRepository extends BaseRepository<ITransactionDocument> 
       .populate("companyId", "name email")
       .lean();
     
-    return updated ? this._mapToEntity(updated) : null;
+    return updated ? TransactionMapper.toEntity(updated) : null;
   }
 
   async delete(id: string): Promise<boolean> {
@@ -117,36 +118,6 @@ export class TransactionRepository extends BaseRepository<ITransactionDocument> 
       { $project: { type: "$_id", total: 1, _id: 0 } }
     ]);
     return result;
-  }
-
-  private _mapToEntity(doc: unknown): ITransaction {
-    const d = doc as any;
-    return {
-      id: d._id.toString(),
-      type: d.type,
-      amount: d.amount,
-      status: d.status,
-      bookingId: d.bookingId?._id?.toString() || d.bookingId?.toString(),
-      subscriptionPlanId: d.subscriptionPlanId?._id?.toString() || d.subscriptionPlanId?.toString(),
-      userId: d.userId?._id?.toString() || d.userId?.toString(),
-      companyId: d.companyId?._id?.toString() || d.companyId?.toString(),
-      description: d.description,
-      commissionRate: d.commissionRate,
-      commissionAmount: d.commissionAmount,
-      netAmount: d.netAmount,
-      stripeSessionId: d.stripeSessionId,
-      stripePaymentIntentId: d.stripePaymentIntentId,
-      userDetails: d.userId?.name ? {
-        name: d.userId.name,
-        email: d.userId.email || ""
-      } : undefined,
-      companyDetails: d.companyId?.name ? {
-        name: d.companyId.name,
-        email: d.companyId.email || ""
-      } : undefined,
-      createdAt: d.createdAt,
-      updatedAt: d.updatedAt,
-    };
   }
 }
 

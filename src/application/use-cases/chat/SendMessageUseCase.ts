@@ -3,16 +3,12 @@ import { Message } from "@/domain/entities/Message";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 
-export interface SendMessageDTO {
-  senderId: string;
-  senderType: "user" | "company";
-  receiverId: string;
-  receiverType: "user" | "company";
-  content: string;
-}
+
+
+import { ISendMessageUseCase, SendMessageDTO } from "@/application/interfaces/use-cases/chat/ISendMessageUseCase";
 
 @injectable()
-export class SendMessageUseCase {
+export class SendMessageUseCase implements ISendMessageUseCase {
   constructor(
     @inject(TYPES.ChatRepository) private _chatRepository: IChatRepository
   ) {}

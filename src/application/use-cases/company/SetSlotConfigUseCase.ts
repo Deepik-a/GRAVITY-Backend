@@ -7,8 +7,10 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 
+import { ISetSlotConfigUseCase } from "@/application/interfaces/use-cases/company/ISetSlotConfigUseCase";
+
 @injectable()
-export class SetSlotConfigUseCase {
+export class SetSlotConfigUseCase implements ISetSlotConfigUseCase {
   constructor(
     @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository,
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
@@ -24,7 +26,7 @@ export class SetSlotConfigUseCase {
 
     const sub = company.subscription;
     if (!company.isSubscribed) {
-      throw new AppError(`Active subscription required to configure slots. (isSubscribed: ${company.isSubscribed}, Status: ${sub?.status || 'none'})`, StatusCode.FORBIDDEN);
+      throw new AppError(`Active subscription required to configure slots. (isSubscribed: ${company.isSubscribed}, Status: ${sub?.status || "none"})`, StatusCode.FORBIDDEN);
     }
 
     if (sub?.endDate && new Date() > new Date(sub.endDate)) {

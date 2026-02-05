@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { GetAllTransactionsUseCase } from "@/application/use-cases/admin/GetAllTransactionsUseCase";
+import { IGetAllTransactionsUseCase, GetAllTransactionsFilters } from "@/application/interfaces/use-cases/admin/IGetAllTransactionsUseCase";
 import { ILogger } from "@/domain/services/ILogger";
 
 @injectable()
 export class TransactionController {
   constructor(
-    @inject(TYPES.GetAllTransactionsUseCase) private getAllTransactionsUseCase: GetAllTransactionsUseCase,
+    @inject(TYPES.GetAllTransactionsUseCase) private getAllTransactionsUseCase: IGetAllTransactionsUseCase,
     @inject(TYPES.Logger) private logger: ILogger
   ) {}
 
@@ -15,14 +15,7 @@ export class TransactionController {
     try {
       const { type, status, userId, companyId, startDate, endDate } = req.query;
 
-      const filters: {
-        type?: string;
-        status?: string;
-        userId?: string;
-        companyId?: string;
-        startDate?: Date;
-        endDate?: Date;
-      } = {};
+      const filters: GetAllTransactionsFilters = {};
 
       if (type) filters.type = type as string;
       if (status) filters.status = status as string;

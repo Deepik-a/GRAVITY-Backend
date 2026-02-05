@@ -1,18 +1,18 @@
 import { Request, Response } from "express";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { CreateCheckoutSessionUseCase } from "@/application/use-cases/payment/CreateCheckoutSessionUseCase";
-import { CreateSubscriptionCheckoutSessionUseCase } from "@/application/use-cases/payment/CreateSubscriptionCheckoutSessionUseCase";
-import { StripeWebhookUseCase } from "@/application/use-cases/payment/StripeWebhookUseCase";
+import { ICreateCheckoutSessionUseCase } from "@/application/interfaces/use-cases/payment/ICreateCheckoutSessionUseCase";
+import { ICreateSubscriptionCheckoutSessionUseCase } from "@/application/interfaces/use-cases/payment/ICreateSubscriptionCheckoutSessionUseCase";
+import { IStripeWebhookUseCase } from "@/application/interfaces/use-cases/payment/IStripeWebhookUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { AppError } from "@/shared/error/AppError";
 
 @injectable()
 export class PaymentController {
   constructor(
-    @inject(TYPES.CreateCheckoutSessionUseCase) private _createCheckoutSessionUseCase: CreateCheckoutSessionUseCase,
-    @inject(TYPES.CreateSubscriptionCheckoutSessionUseCase) private _createSubscriptionCheckoutSessionUseCase: CreateSubscriptionCheckoutSessionUseCase,
-    @inject(TYPES.StripeWebhookUseCase) private _stripeWebhookUseCase: StripeWebhookUseCase
+    @inject(TYPES.CreateCheckoutSessionUseCase) private _createCheckoutSessionUseCase: ICreateCheckoutSessionUseCase,
+    @inject(TYPES.CreateSubscriptionCheckoutSessionUseCase) private _createSubscriptionCheckoutSessionUseCase: ICreateSubscriptionCheckoutSessionUseCase,
+    @inject(TYPES.StripeWebhookUseCase) private _stripeWebhookUseCase: IStripeWebhookUseCase
   ) {}
 
   async createCheckoutSession(req: Request, res: Response): Promise<void> {
@@ -81,7 +81,13 @@ export class PaymentController {
         throw new AppError("Session ID is required", StatusCode.BAD_REQUEST);
       }
       const result = await this._stripeWebhookUseCase.verifySession(sessionId as string);
+      if (!result.success) {
+        res.status(StatusCode.BAD_REQUEST).json(result);
+        return;
+      }
+
       res.status(StatusCode.SUCCESS).json(result);
+
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });

@@ -1,15 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import { StatusCode } from "@/domain/enums/StatusCode";
 
-// Use Cases
-import { RegisterUseCase } from "@/application/use-cases/user/RegisterUseCase";
-import { LoginUserUseCase } from "@/application/use-cases/user/LoginUserUseCase";
-import { GoogleAuthUseCase } from "@/application/use-cases/user/GoogleAuthUseCase";
-import { VerifyOtpUseCase } from "@/application/use-cases/user/VerifyOtpUseCase";
-import { ForgotPasswordUseCase } from "@/application/use-cases/user/ForgotPasswordUseCase";
-import { ResetPasswordUseCase } from "@/application/use-cases/user/ResetPasswordUseCase";
-import { ResendOtpUseCase } from "@/application/use-cases/user/ResendOtpUseCase";
-import { DetectUserRoleUseCase } from "@/application/use-cases/user/DetectUserRoleUseCase";
+// Use Case Interfaces
+import { IRegisterUseCase } from "@/application/interfaces/use-cases/user/IRegisterUseCase";
+import { ILoginUserUseCase } from "@/application/interfaces/use-cases/user/ILoginUserUseCase";
+import { IGoogleAuthUseCase } from "@/application/interfaces/use-cases/user/IGoogleAuthUseCase";
+import { IVerifyOtpUseCase } from "@/application/interfaces/use-cases/user/IVerifyOtpUseCase";
+import { IForgotPasswordUseCase } from "@/application/interfaces/use-cases/user/IForgotPasswordUseCase";
+import { IResetPasswordUseCase } from "@/application/interfaces/use-cases/user/IResetPasswordUseCase";
+import { IResendOtpUseCase } from "@/application/interfaces/use-cases/user/IResendOtpUseCase";
+import { IDetectUserRoleUseCase } from "@/application/interfaces/use-cases/user/IDetectUserRoleUseCase";
 import { verifyGoogleToken } from "@/infrastructure/strategies/GoogleStrategy";
 import { injectable, inject } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
@@ -42,14 +42,14 @@ import { cookieData } from "@/shared/constants/cookieData";
 export class AuthController {
 
   constructor(
-       @inject(TYPES.DetectUserRoleUseCase) private readonly _detectUserRoleUseCase: DetectUserRoleUseCase,
-      @inject(TYPES.LoginUserUseCase)  private readonly _loginUseCase: LoginUserUseCase,
-      @inject(TYPES.ForgotPasswordUseCase)  private readonly _forgotPasswordUseCase: ForgotPasswordUseCase,
-      @inject(TYPES.VerifyOtpUseCase)  private readonly _verifyOtpUseCase: VerifyOtpUseCase,
-      @inject(TYPES.ResetPasswordUseCase)  private readonly _resetPasswordUseCase: ResetPasswordUseCase,
-      @inject(TYPES.RegisterUseCase)  private readonly _registerUseCase: RegisterUseCase,
-      @inject(TYPES.ResendOtpUseCase) private readonly _resendOtpUseCase: ResendOtpUseCase,
-       @inject(TYPES.GoogleAuthUseCase) private readonly _googleAuthUseCase: GoogleAuthUseCase,
+       @inject(TYPES.DetectUserRoleUseCase) private readonly _detectUserRoleUseCase: IDetectUserRoleUseCase,
+      @inject(TYPES.LoginUserUseCase)  private readonly _loginUseCase: ILoginUserUseCase,
+      @inject(TYPES.ForgotPasswordUseCase)  private readonly _forgotPasswordUseCase: IForgotPasswordUseCase,
+      @inject(TYPES.VerifyOtpUseCase)  private readonly _verifyOtpUseCase: IVerifyOtpUseCase,
+      @inject(TYPES.ResetPasswordUseCase)  private readonly _resetPasswordUseCase: IResetPasswordUseCase,
+      @inject(TYPES.RegisterUseCase)  private readonly _registerUseCase: IRegisterUseCase,
+      @inject(TYPES.ResendOtpUseCase) private readonly _resendOtpUseCase: IResendOtpUseCase,
+       @inject(TYPES.GoogleAuthUseCase) private readonly _googleAuthUseCase: IGoogleAuthUseCase,
        @inject(TYPES.Logger) private readonly _logger: ILogger,
   ) {}
 
@@ -90,8 +90,19 @@ async login(req: Request, res: Response, next: NextFunction) {
     });
 
 
-    // ✅ User Specific Cookies
-    res.cookie("userAccessToken", result.accessToken, {
+    const accessKey = role === "company" ? "companyAccessToken" : "userAccessToken";
+    const refreshKey = role === "company" ? "companyRefreshToken" : "userRefreshToken";
+
+    const otherAccessKey = role === "company" ? "userAccessToken" : "companyAccessToken";
+    const otherRefreshKey = role === "company" ? "userRefreshToken" : "companyRefreshToken";
+
+    // Clear potential stale tokens for the other role
+    res.clearCookie(otherAccessKey, { path: "/" });
+    res.clearCookie(otherRefreshKey, { path: "/" });
+    res.clearCookie("adminAccessToken", { path: "/" });
+    res.clearCookie("adminRefreshToken", { path: "/" });
+
+    res.cookie(accessKey, result.accessToken, {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
@@ -99,13 +110,14 @@ async login(req: Request, res: Response, next: NextFunction) {
       path: "/", 
     });
 
-    res.cookie("userRefreshToken", result.refreshToken, {
+    res.cookie(refreshKey, result.refreshToken, {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
       maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
       path: "/",
     });
+
 
     return res.status(StatusCode.SUCCESS).json(result);
   } catch (err) {
@@ -135,8 +147,19 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
       frontendRole: isNewUser ? frontendRole : undefined,
     });
 
-    // ✅ User Specific Cookies
-    res.cookie("userAccessToken", result.accessToken, {
+    const accessKey = result.user.role === "company" ? "companyAccessToken" : "userAccessToken";
+    const refreshKey = result.user.role === "company" ? "companyRefreshToken" : "userRefreshToken";
+
+    const otherAccessKey = result.user.role === "company" ? "userAccessToken" : "companyAccessToken";
+    const otherRefreshKey = result.user.role === "company" ? "userRefreshToken" : "companyRefreshToken";
+
+    // Clear potential stale tokens for the other role
+    res.clearCookie(otherAccessKey, { path: "/" });
+    res.clearCookie(otherRefreshKey, { path: "/" });
+    res.clearCookie("adminAccessToken", { path: "/" });
+    res.clearCookie("adminRefreshToken", { path: "/" });
+
+    res.cookie(accessKey, result.accessToken, {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
@@ -144,13 +167,14 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
       path: "/",
     });
 
-    res.cookie("userRefreshToken", result.refreshToken, {
+    res.cookie(refreshKey, result.refreshToken, {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
       maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
       path: "/",
     });
+
 
     return res.status(StatusCode.SUCCESS).json(result);
   } catch (err) {
@@ -191,6 +215,38 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
         const verifyDto: VerifyOtpRequestDto = req.body;  
         this._logger.info("req.body from verifyotp", { verifyDto });
       const result: VerifyOtpResponseDto = await this._verifyOtpUseCase.execute(verifyDto);
+
+      if (result.success && result.accessToken && result.refreshToken && result.role) {
+        const accessKey = result.role === "company" ? "companyAccessToken" : "userAccessToken";
+        const refreshKey = result.role === "company" ? "companyRefreshToken" : "userRefreshToken";
+
+        const otherAccessKey = result.role === "company" ? "userAccessToken" : "companyAccessToken";
+        const otherRefreshKey = result.role === "company" ? "userRefreshToken" : "companyRefreshToken";
+
+        // Clear potential stale tokens for the other role
+        res.clearCookie(otherAccessKey, { path: "/" });
+        res.clearCookie(otherRefreshKey, { path: "/" });
+        res.clearCookie("adminAccessToken", { path: "/" });
+        res.clearCookie("adminRefreshToken", { path: "/" });
+
+        res.cookie(accessKey, result.accessToken, {
+          httpOnly: cookieData.httpONLY,
+          secure: cookieData.SECURE,
+          sameSite: cookieData.SAME_SITE,
+          maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
+          path: "/",
+        });
+
+        res.cookie(refreshKey, result.refreshToken, {
+          httpOnly: cookieData.httpONLY,
+          secure: cookieData.SECURE,
+          sameSite: cookieData.SAME_SITE,
+          maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
+          path: "/",
+        });
+      }
+
+
       return res.status(StatusCode.SUCCESS).json(result);
     } catch (err) {
       next(err);
@@ -203,6 +259,32 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
       const resetDto: ResetPasswordRequestDto = req.body;
       const result: ResetPasswordResponseDto = await this._resetPasswordUseCase.execute(resetDto);
       return res.status(StatusCode.SUCCESS).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // ---------------- LOGOUT ----------------
+  async logout(req: Request, res: Response, next: NextFunction) {
+    try {
+      const isAdminRoute = req.originalUrl.startsWith("/admin");
+      const isCompanyRoute = req.originalUrl.startsWith("/company");
+      
+      let accessKey = "userAccessToken";
+      let refreshKey = "userRefreshToken";
+
+      if (isAdminRoute) {
+        accessKey = "adminAccessToken";
+        refreshKey = "adminRefreshToken";
+      } else if (isCompanyRoute) {
+        accessKey = "companyAccessToken";
+        refreshKey = "companyRefreshToken";
+      }
+
+      res.clearCookie(accessKey, { path: "/" });
+      res.clearCookie(refreshKey, { path: "/" });
+
+      return res.status(StatusCode.SUCCESS).json({ success: true, message: "Logged out successfully" });
     } catch (err) {
       next(err);
     }

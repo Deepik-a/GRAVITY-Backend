@@ -7,8 +7,10 @@ import { StatusCode } from "@/domain/enums/StatusCode";
 import bcrypt from "bcryptjs";
 import { ChangePasswordDto } from "@/application/dtos/AuthDTOs";
 
+import { IChangePasswordUseCase } from "@/application/interfaces/use-cases/user/IChangePasswordUseCase";
+
 @injectable()
-export class ChangePasswordUseCase {
+export class ChangePasswordUseCase implements IChangePasswordUseCase {
   constructor(
     @inject(TYPES.UserRepository) private _userRepository: IUserRepository
   ) {}

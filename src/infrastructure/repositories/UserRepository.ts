@@ -1,4 +1,4 @@
-import { Types, Document } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import bcrypt from "bcryptjs";
 import { BaseRepository } from "@/infrastructure/repositories/BaseRepository";
 import UserModel from "@/infrastructure/database/models/UserModel";
@@ -13,6 +13,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
+
 @injectable()
 export class UserRepository
   extends BaseRepository<any>
@@ -221,23 +222,52 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
   }
 
   async getAllUsers(): Promise<UserProfile[]> {
-    const users = await UserModel.find().exec();
+  console.log("Fetching all users with booking counts");
 
-    return users.map(
-      (user) =>
-        new UserProfile(
-          new UniqueEntityID(user._id.toString()),
-          user.name,
-          user.email,
-          user.profileImage ?? undefined,
-          user.phone ?? undefined,
-          user.location ?? undefined,
-          user.bio ?? undefined,
-          user.isBlocked ?? false,
-          user.role??undefined
-        )
-    );
-  }
+  const users = await UserModel.aggregate([
+    {
+      $lookup: {
+        from: "bookings",
+        localField: "_id",
+        foreignField: "userId",
+        as: "bookings"
+      }
+    },
+    {
+      $addFields: {
+        bookingCount: { $size: "$bookings" }
+      }
+    }
+  ]);
+
+  console.log("users in repo", users);
+
+  // Generate signed URLs for profile images
+  return await Promise.all(
+    users.map(async (user) => {
+      let profileImageUrl: string | undefined = undefined;
+
+      // if profile image exists, generate signed URL
+      if (user.profileImage) {
+          profileImageUrl = await this._s3Service.getSignedUrl(user.profileImage);
+      }
+  
+
+      return new UserProfile(
+        new UniqueEntityID(user._id.toString()),
+        user.name,
+        user.email,
+        profileImageUrl,
+        user.phone ?? undefined,
+        user.location ?? undefined,
+        user.bio ?? undefined,
+        user.isBlocked ?? false,
+        user.role ?? undefined,
+        user.bookingCount ?? 0
+      );
+    })
+  );
+}
 
   async updateBlockStatus(userId: string, isBlocked: boolean): Promise<UserProfile | null> {
     const updated = await this.model.findByIdAndUpdate(

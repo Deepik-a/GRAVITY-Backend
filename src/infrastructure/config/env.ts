@@ -15,7 +15,7 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(1),
 JWT_ACCESS_EXPIRATION: z.enum(["15m", "30m", "1h", "1d"]).default("15m"),
   JWT_REFRESH_EXPIRATION: z.enum(["7d", "14d", "30d"]).default("7d"),
-  S3_URL_EXPIRATION: z.string().transform(Number).default(300),
+  S3_URL_EXPIRATION: z.string().transform(Number).default(86400),
   GOOGLE_CLIENT_ID: z.string().min(1),
   AWS_REGION: z.string().min(1),
   AWS_ACCESS_KEY: z.string().min(1),

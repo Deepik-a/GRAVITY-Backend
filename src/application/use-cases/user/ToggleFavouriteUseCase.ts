@@ -5,8 +5,10 @@ import { IUserRepository } from "@/domain/repositories/IUserRepository";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 
+import { IToggleFavouriteUseCase } from "@/application/interfaces/use-cases/user/IToggleFavouriteUseCase";
+
 @injectable()
-export class ToggleFavouriteUseCase {
+export class ToggleFavouriteUseCase implements IToggleFavouriteUseCase {
   constructor(
     @inject(TYPES.UserRepository) private _userRepository: IUserRepository
   ) {}

@@ -3,8 +3,10 @@ import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { TYPES } from "@/infrastructure/DI/types";
 import { IBooking } from "@/domain/entities/Booking";
 
+import { IGetUserBookingsUseCase } from "@/application/interfaces/use-cases/user/IGetUserBookingsUseCase";
+
 @injectable()
-export class GetUserBookingsUseCase {
+export class GetUserBookingsUseCase implements IGetUserBookingsUseCase {
   constructor(
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository
   ) {}

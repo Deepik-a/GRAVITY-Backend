@@ -1,18 +1,18 @@
 import { Request, Response } from "express";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { SendMessageUseCase } from "@/application/use-cases/chat/SendMessageUseCase";
-import { GetMessagesUseCase } from "@/application/use-cases/chat/GetMessagesUseCase";
-import { GetConversationsUseCase } from "@/application/use-cases/chat/GetConversationsUseCase";
+import { ISendMessageUseCase } from "@/application/interfaces/use-cases/chat/ISendMessageUseCase";
+import { IGetMessagesUseCase } from "@/application/interfaces/use-cases/chat/IGetMessagesUseCase";
+import { IGetConversationsUseCase } from "@/application/interfaces/use-cases/chat/IGetConversationsUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { ILogger } from "@/domain/services/ILogger";
 
 @injectable()
 export class ChatController {
   constructor(
-    @inject(TYPES.SendMessageUseCase) private _sendMessageUseCase: SendMessageUseCase,
-    @inject(TYPES.GetMessagesUseCase) private _getMessagesUseCase: GetMessagesUseCase,
-    @inject(TYPES.GetConversationsUseCase) private _getConversationsUseCase: GetConversationsUseCase,
+    @inject(TYPES.SendMessageUseCase) private _sendMessageUseCase: ISendMessageUseCase,
+    @inject(TYPES.GetMessagesUseCase) private _getMessagesUseCase: IGetMessagesUseCase,
+    @inject(TYPES.GetConversationsUseCase) private _getConversationsUseCase: IGetConversationsUseCase,
     @inject(TYPES.Logger) private _logger: ILogger
   ) {}
 

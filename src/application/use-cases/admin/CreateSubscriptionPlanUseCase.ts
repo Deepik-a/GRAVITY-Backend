@@ -5,8 +5,10 @@ import { ISubscriptionRepository } from "@/domain/repositories/ISubscriptionRepo
 import { CreateSubscriptionPlanDto } from "@/application/dtos/subscription/CreateSubscriptionPlanDto";
 import { SubscriptionPlan } from "@/domain/entities/SubscriptionPlan";
 
+import { ICreateSubscriptionPlanUseCase } from "@/application/interfaces/use-cases/admin/ICreateSubscriptionPlanUseCase";
+
 @injectable()
-export class CreateSubscriptionPlanUseCase {
+export class CreateSubscriptionPlanUseCase implements ICreateSubscriptionPlanUseCase {
   constructor(
     @inject(TYPES.SubscriptionRepository) private subscriptionRepository: ISubscriptionRepository
   ) {}

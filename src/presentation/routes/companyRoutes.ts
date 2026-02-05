@@ -4,6 +4,7 @@ import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { CompanyDocumentController } from "@/presentation/controllers/companyController/CompanyDocumentController";
 import { CompanyProfileController } from "@/presentation/controllers/companyController/CompanyProfileController";
+import { AuthController } from "@/presentation/controllers/AuthController";
 import { SlotController } from "@/presentation/controllers/SlotController";
 import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
 const router = Router();
@@ -12,6 +13,9 @@ const docController = container.get<CompanyDocumentController>(TYPES.CompanyDocu
 const profileController = container.get<CompanyProfileController>(TYPES.CompanyProfileController);
 const slotController = container.get<SlotController>(TYPES.SlotController);
 const companyAuth = container.get<SessionAuth>(TYPES.SessionAuth);
+const authController = container.get<AuthController>(TYPES.AuthController);
+
+router.post("/logout", authController.logout.bind(authController));
 
 router.post(
   "/upload-documents",

@@ -6,8 +6,10 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 
+import { IGetAvailableSlotsUseCase } from "@/application/interfaces/use-cases/user/IGetAvailableSlotsUseCase";
+
 @injectable()
-export class GetAvailableSlotsUseCase {
+export class GetAvailableSlotsUseCase implements IGetAvailableSlotsUseCase {
   constructor(
     @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository,
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository
@@ -35,9 +37,11 @@ export class GetAvailableSlotsUseCase {
     // 2. Generate Potential Slots
     const potentialSlots = this.generateSlots(config);
 
-    // 3. Filter Booked Slots
-    const bookedBookings = await this._bookingRepository.getBookingsByCompanyAndDate(companyId, date);
+    // 3. Filter Booked Slots - ONLY exclude confirmed (paid) ones 
+    // to allow "first to pay" behavior for concurrent pending bookings.
+    const bookedBookings = await this._bookingRepository.getBookingsByCompanyAndDate(companyId, date, ["confirmed"]);
     const bookedTimes = bookedBookings.map(b => b.startTime);
+
 
     return potentialSlots.filter(time => !bookedTimes.includes(time));
   }

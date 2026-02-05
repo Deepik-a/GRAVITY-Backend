@@ -10,6 +10,7 @@ import { IStorageService } from "@/domain/services/IStorageService";
 import { ILogger } from "@/domain/services/ILogger";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
+import { AdminMapper } from "@/application/mappers/AdminMapper";
 
 @injectable()
 export class AdminRepository implements IAdminRepository {
@@ -23,13 +24,7 @@ export class AdminRepository implements IAdminRepository {
     const admin = await AdminModel.findOne({ email });
     if (!admin) return null;
 
-    return {
-      id: admin._id.toString(),
-      email: admin.email,
-      password: admin.password,
-      role: admin.role,
-      refreshToken: admin.refreshToken,
-    };
+    return AdminMapper.toDomain(admin);
   }
 
   async saveRefreshToken(adminId: string, token: string): Promise<void> {

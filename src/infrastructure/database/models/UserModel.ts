@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema(
     location: { type: String },
     bio: { type: String },
     favourites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Company" }],
+    bookingCount:{ type:Number,default:0} 
   },
   { timestamps: true }
 );

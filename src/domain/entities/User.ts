@@ -42,7 +42,7 @@ export interface UserProfileDetails {
   bio?: string;
   isBlocked?:boolean;
   role?: string;
-  favourites?: string[];
+  bookingCount?:number;
 }
 
 
@@ -89,6 +89,7 @@ export class GoogleSignUp implements GoogleSignUpDetails {
 
 
 
+
 //Entity for Profile
 export class UserProfile implements UserProfileDetails {
   constructor(
@@ -101,7 +102,7 @@ export class UserProfile implements UserProfileDetails {
     public bio?: string,
     public isBlocked?:boolean,
     public role?: string,
-    public favourites: string[] = []
+    public bookingCount?:number|undefined
   ) {}
 }
 

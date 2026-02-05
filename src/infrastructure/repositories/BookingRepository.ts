@@ -34,26 +34,38 @@ export class BookingRepository
     return this._mapToEntity(created.toObject());
   }
 
-  async getBookingsByCompanyAndDate(companyId: string, date: Date): Promise<IBooking[]> {
+
+
+  //fetches booking of a specific company on specific day
+  async getBookingsByCompanyAndDate(companyId: string, date: Date, statuses?: string[]): Promise<IBooking[]> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const bookings = await this.model.find({
+    const query: any = {
       companyId,
       date: { $gte: startOfDay, $lte: endOfDay },
-      status: { $ne: "cancelled" },
-    }).lean();
+    };
 
+    if (statuses) {
+      query.status = { $in: statuses };
+    } else {
+      query.status = { $ne: "cancelled" };
+    }
+
+    const bookings = await this.model.find(query).lean();
     return bookings.map(b => this._mapToEntity(b));
   }
 
+//Find all bookings belonging to that user.
   async getUserBookings(userId: string): Promise<IBooking[]> {
     const bookings = await this.model.find({ userId }).populate("companyId").lean();
     return bookings.map(b => this._mapToEntity(b));
   }
 
+
+  //Fetches all bookings of a company including user details
   async getCompanyBookings(companyId: string): Promise<IBooking[]> {
     const bookings = await this.model.find({ companyId })
       .populate("userId")
@@ -62,6 +74,27 @@ export class BookingRepository
     return bookings.map(b => this._mapToEntity(b));
   }
 
+
+  //same company,same starttime,same date,booking confirmed-If a record is found → slot is already booked.
+  async checkSlotAvailability(companyId: string, date: Date, startTime: string): Promise<boolean> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Check if there is any "confirmed" booking for this slot
+    const existingConfirmed = await this.model.findOne({
+      companyId,
+      startTime,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: "confirmed"
+    }).lean();
+
+    return !existingConfirmed;
+  }
+
+
+  //Retrieves every booking document in the collection.No filters are applied.
   async getAllBookings(): Promise<IBooking[]> {
     const bookings = await this.model.find()
       .populate("userId")
@@ -70,6 +103,8 @@ export class BookingRepository
       .lean();
     return bookings.map(b => this._mapToEntity(b));
   }
+
+
 
   async cancelBooking(bookingId: string): Promise<boolean> {
     const result = await this.model.updateOne(

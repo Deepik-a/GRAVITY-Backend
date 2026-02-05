@@ -27,7 +27,7 @@ export class S3StorageService implements IStorageService {
     @inject(TYPES.Logger) private readonly _logger: ILogger
   ) {}
 
-  // ------------------ UPLOAD ------------------
+  // ------------------ UPLOAD  FILE TO S3 BUCKET------------------
   async uploadFile(file: Express.Multer.File): Promise<string> {
     const bucket = env.S3_BUCKET;
     
@@ -35,7 +35,7 @@ export class S3StorageService implements IStorageService {
     let contentType = file.mimetype;
     let fileName = file.originalname;
 
-    // Compress if it's an image
+    // Compress if it's an image----image compression
     if (file.mimetype.startsWith("image/")) {
       try {
         fileBuffer = await sharp(file.buffer)
@@ -65,19 +65,19 @@ export class S3StorageService implements IStorageService {
       })
     );
 
-    // ⛔ DO NOT return signed URL here
-    // ✔ ONLY return file key
+    // ✔ ONLY return file key not the entire S3 url
     return key;
   }
 
-  // ------------------ SIGNED URL ON DEMAND ------------------
+  // ------------------TEMPORARY URL -VALIDITY 5 MINUTES------------------
+  //this url actually shows all the s3 bucket details,but with an expiry because to have a controlled access.
   async getSignedUrl(key: string): Promise<string> {
     const bucket = env.S3_BUCKET;
     
     return await getSignedUrl(
       this._s3,
       new GetObjectCommand({ Bucket: bucket, Key: key }),
-      { expiresIn: env.S3_URL_EXPIRATION } // 5 min validity for security
+      { expiresIn: env.S3_URL_EXPIRATION } // 24 hours validity for security
     );
   }
 }

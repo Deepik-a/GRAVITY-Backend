@@ -4,13 +4,16 @@ import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { ISubscriptionRepository } from "@/domain/repositories/ISubscriptionRepository";
 import { ITransactionRepository } from "@/domain/repositories/ITransactionRepository";
-import { StripeService } from "@/infrastructure/services/StripeService";
+
 import { Stripe } from "stripe";
 
+import { IStripeWebhookUseCase } from "@/application/interfaces/use-cases/payment/IStripeWebhookUseCase";
+import { IStripeService } from "@/domain/services/IStripeService";
+
 @injectable()
-export class StripeWebhookUseCase {
+export class StripeWebhookUseCase implements IStripeWebhookUseCase {
   constructor(
-    @inject(TYPES.StripeService) private _stripeService: StripeService,
+    @inject(TYPES.StripeService) private _stripeService: IStripeService,
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
     @inject(TYPES.CompanyRepository) private _companyRepository: ICompanyRepository,
     @inject(TYPES.SubscriptionRepository) private _subscriptionRepository: ISubscriptionRepository,
@@ -78,10 +81,24 @@ export class StripeWebhookUseCase {
        } else if (type === "booking") {
           const bookingId = session.metadata?.bookingId;
           if (bookingId) {
+              const booking = await this._bookingRepository.findById(bookingId);
+              if (booking?.status === "cancelled" && booking.paymentStatus === "paid") {
+                return { success: false, message: "This slot was just taken by someone else. We will process your refund." };
+              }
+
               const result = await this.processBookingPayment(bookingId, session);
-              return { success: true, message: result ? "Booking confirmed" : "Booking already processed" };
+              if (!result) {
+                // If result is false, it means it was either already paid or there was a slot conflict
+                const finalBooking = await this._bookingRepository.findById(bookingId);
+                if (finalBooking?.status === "cancelled") {
+                  return { success: false, message: "This slot was just taken by someone else who paid first." };
+                }
+                return { success: true, message: "Booking already confirmed." };
+              }
+              return { success: true, message: "Booking confirmed successfully!" };
           }
        }
+
     }
     return { success: false, message: "Payment not completed or session not found" };
   }
@@ -100,6 +117,18 @@ export class StripeWebhookUseCase {
       return false;
     }
 
+    // DOUBLE CHECK: Ensure the slot hasn't been taken by someone else while this user was paying
+    const isSlotStillAvailable = await this._bookingRepository.checkSlotAvailability(booking.companyId, booking.date, booking.startTime);
+    if (!isSlotStillAvailable) {
+      console.warn(`[StripeWebhook] Slot already taken for booking ${bookingId}. Marking as failed.`);
+      await this._bookingRepository.updateById(bookingId, {
+        paymentStatus: "paid", // They paid, but slot is gone
+        status: "cancelled",   // Slot conflict
+      });
+      // In a real app, you would initiate a refund here.
+      return false;
+    }
+
     // Get company to check subscription status
     const company = await this._companyRepository.findCompanyById(booking.companyId);
     const isSubscribed = company?.isSubscribed || false;
@@ -108,6 +137,7 @@ export class StripeWebhookUseCase {
     const commissionRate = isSubscribed ? 5 : 10;
     const commissionAmount = (booking.price || 0) * (commissionRate / 100);
     const netAmount = (booking.price || 0) - commissionAmount;
+
 
     // Update booking - ensure it's confirmed AND paid
     await this._bookingRepository.updateById(bookingId, {

@@ -8,9 +8,9 @@ import { GetUserProfileRequestDto, UpdateUserProfileRequestDto } from "@/applica
 import { AuthenticatedUser } from "@/types/auth";
 import { IUpdateUserProfileUseCase } from "@/application/interfaces/use-cases/user/IUpdateUserProfileUseCase";
 import { IStorageService } from "@/domain/services/IStorageService";
-import { ToggleFavouriteUseCase } from "@/application/use-cases/user/ToggleFavouriteUseCase";
-import { GetFavouritesUseCase } from "@/application/use-cases/user/GetFavouritesUseCase";
-import { ChangePasswordUseCase } from "@/application/use-cases/user/ChangePasswordUseCase";
+import { IToggleFavouriteUseCase } from "@/application/interfaces/use-cases/user/IToggleFavouriteUseCase";
+import { IGetFavouritesUseCase } from "@/application/interfaces/use-cases/user/IGetFavouritesUseCase";
+import { IChangePasswordUseCase } from "@/application/interfaces/use-cases/user/IChangePasswordUseCase";
 
 
 @injectable()
@@ -19,9 +19,9 @@ export class ProfileController {
    @inject(TYPES.GetUserProfileUseCase) private readonly _getProfileUseCase: IGetUserProfileUseCase,
    @inject(TYPES.UpdateUserProfileUseCase) private readonly _updateProfileUseCase: IUpdateUserProfileUseCase,
    @inject(TYPES.StorageService) private readonly _storageService: IStorageService,
-   @inject(TYPES.ToggleFavouriteUseCase) private readonly _toggleFavouriteUseCase: ToggleFavouriteUseCase,
-   @inject(TYPES.GetFavouritesUseCase) private readonly _getFavouritesUseCase: GetFavouritesUseCase,
-   @inject(TYPES.ChangePasswordUseCase) private readonly _changePasswordUseCase: ChangePasswordUseCase
+   @inject(TYPES.ToggleFavouriteUseCase) private readonly _toggleFavouriteUseCase: IToggleFavouriteUseCase,
+   @inject(TYPES.GetFavouritesUseCase) private readonly _getFavouritesUseCase: IGetFavouritesUseCase,
+   @inject(TYPES.ChangePasswordUseCase) private readonly _changePasswordUseCase: IChangePasswordUseCase
   ) {}
 
   async getProfile(req: Request, res: Response, next: NextFunction) {

@@ -9,14 +9,16 @@ import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-
+import { ILogger } from "@/domain/services/ILogger";
 @injectable()
 export class AdminLoginUseCase implements IAdminLoginUseCase {
   constructor(
     @inject(TYPES.AdminRepository) private readonly _adminRepo: IAdminRepository,
-    @inject(TYPES.JwtService) private readonly _jwtService: IJwtService
+    @inject(TYPES.JwtService) private readonly _jwtService: IJwtService,
+    @inject(TYPES.Logger) private readonly _logger: ILogger
   ) {}
 
+ 
   async execute(dto: AdminLoginRequestDto): Promise<AdminLoginResponseDto> {
     const { email, password } = dto;
  
@@ -24,6 +26,11 @@ export class AdminLoginUseCase implements IAdminLoginUseCase {
     // 1. Fetch admin
     const admin = await this._adminRepo.findAdminByEmail(email);
 
+     // 🟢 Log the admin result
+  this._logger.info("👤 Admin query result", {
+    admin
+  });
+  
 
     if (!admin) {
       throw new AppError("Admin not found", StatusCode.NOT_FOUND);
