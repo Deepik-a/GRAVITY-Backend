@@ -4,6 +4,7 @@ import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
+import { NotificationService } from "@/application/services/NotificationService";
 
 import { IRescheduleBookingUseCase } from "@/application/interfaces/use-cases/company/IRescheduleBookingUseCase";
 
@@ -11,7 +12,8 @@ import { IRescheduleBookingUseCase } from "@/application/interfaces/use-cases/co
 export class RescheduleBookingUseCase implements IRescheduleBookingUseCase {
   constructor(
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
-    @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository
+    @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository,
+    @inject(TYPES.NotificationService) private _notificationService: NotificationService
   ) {}
 
   async execute(bookingId: string, newDate: Date, newStartTime: string): Promise<void> {
@@ -49,6 +51,15 @@ export class RescheduleBookingUseCase implements IRescheduleBookingUseCase {
       startTime: newStartTime,
       endTime: newEndTime,
       isRescheduled: true
+    });
+
+    // Notify User
+    await this._notificationService.createNotification({
+      recipientId: booking.userId,
+      recipientType: "user",
+      title: "Booking Rescheduled",
+      message: `Your booking has been rescheduled to ${new Date(newDate).toLocaleDateString()} at ${newStartTime}.`,
+      type: "BOOKING_RESCHEDULED",
     });
   }
 }

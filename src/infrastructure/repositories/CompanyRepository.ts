@@ -215,6 +215,8 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
         rawData.isSubscribed ?? false               // 13
     );
 }
+
+
   async updatePassword(email: string, hashedPassword: string): Promise<void> {
     await this.model.updateOne({ email }, { $set: { password: hashedPassword } });
   }

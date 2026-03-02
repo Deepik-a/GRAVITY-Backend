@@ -7,7 +7,7 @@ export interface IChatRepository {
   createConversation(participants: { participantId: string; participantType: string }[]): Promise<Conversation>;
   getConversation(participant1Id: string, participant2Id: string): Promise<Conversation | null>;
   getConversationById(id: string): Promise<Conversation | null>;
-  getUserConversations(participantId: string): Promise<Conversation[]>;
+  getUserConversations(participantId: string, participantType: string): Promise<Conversation[]>;
   updateLastMessage(conversationId: string, message: string, timestamp: Date): Promise<void>;
   markMessagesAsRead(conversationId: string, userId: string): Promise<void>;
   markMessagesAsDelivered(conversationId: string, userId: string): Promise<void>;

@@ -3,6 +3,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { ITransactionRepository } from "@/domain/repositories/ITransactionRepository";
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
+import { NotificationService } from "@/application/services/NotificationService";
 
 import { ICompleteBookingUseCase } from "@/application/interfaces/use-cases/user/ICompleteBookingUseCase";
 
@@ -11,7 +12,8 @@ export class CompleteBookingUseCase implements ICompleteBookingUseCase {
   constructor(
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
     @inject(TYPES.TransactionRepository) private _transactionRepository: ITransactionRepository,
-    @inject(TYPES.CompanyRepository) private _companyRepository: ICompanyRepository
+    @inject(TYPES.CompanyRepository) private _companyRepository: ICompanyRepository,
+    @inject(TYPES.NotificationService) private _notificationService: NotificationService
   ) {}
 
   async execute(bookingId: string, userId: string) {
@@ -59,6 +61,15 @@ export class CompleteBookingUseCase implements ICompleteBookingUseCase {
       commissionRate: platformFeeRate,
       commissionAmount: platformFee,
       netAmount: settlementAmount
+    });
+
+    // Notify Company
+    await this._notificationService.createNotification({
+      recipientId: booking.companyId,
+      recipientType: "company",
+      title: "Booking Completed",
+      message: `User has marked the booking for ${new Date(booking.date).toLocaleDateString()} as completed. Settlement of ${settlementAmount} initiated.`,
+      type: "BOOKING_COMPLETED",
     });
 
     return {

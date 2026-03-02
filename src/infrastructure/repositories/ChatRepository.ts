@@ -147,20 +147,23 @@ export class ChatRepository implements IChatRepository {
     });
   }
 
-  async getUserConversations(participantId: string): Promise<Conversation[]> {
-    console.log(`ChatRepo: getUserConversations for participantId=${participantId}`);
+  async getUserConversations(participantId: string, participantType: string): Promise<Conversation[]> {
+    console.log(`ChatRepo: getUserConversations for participantId=${participantId}, type=${participantType}`);
+    
     const conversations = await ConversationModel.find({
-      "participants.participantId": new mongoose.Types.ObjectId(participantId),
+      participants: { $elemMatch: { participantId: new mongoose.Types.ObjectId(participantId), participantType } }
     })
       .sort({ updatedAt: -1 })
       .exec();
     
-    console.log(`ChatRepo: Found ${conversations.length} raw conversations for ${participantId}`);
+    console.log(`ChatRepo: Found ${conversations.length} raw conversations for ${participantType}:${participantId}`);
 
     return await Promise.all(conversations.map(
       async (c) => {
-        // Find the other participant
-        const otherParticipant = c.participants.find(p => p.participantId.toString() !== participantId);
+        // Find the other participant - strictly exclude current person by BOTH id and type
+        const otherParticipant = c.participants.find(p => 
+          p.participantId.toString() !== participantId || p.participantType !== participantType
+        );
         let otherParticipantName = "Unknown";
         let otherParticipantImage = undefined;
 
@@ -170,20 +173,14 @@ export class ChatRepository implements IChatRepository {
             if (user) {
               otherParticipantName = user.name;
               otherParticipantImage = user.profileImage || undefined;
-            } else {
-                console.log(`ChatRepo: User not found for ID: ${otherParticipant.participantId}`);
             }
           } else {
             const company = await CompanyModel.findById(otherParticipant.participantId).select("name profileImage profile.brandIdentity.logo").exec();
             if (company) {
               otherParticipantName = company.name;
               otherParticipantImage = (company.profileImage || company.profile?.brandIdentity?.logo) || undefined;
-            } else {
-                console.log(`ChatRepo: Company not found for ID: ${otherParticipant.participantId}`);
             }
           }
-        } else {
-            console.log("ChatRepo: No other participant found in conversation", c._id);
         }
 
         return new Conversation({

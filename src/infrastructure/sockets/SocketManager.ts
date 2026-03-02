@@ -5,6 +5,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { SendMessageUseCase } from "@/application/use-cases/chat/SendMessageUseCase";
 import { ILogger } from "@/domain/services/ILogger";
 import { IChatRepository } from "@/domain/repositories/IChatRepository";
+import { INotification } from "@/domain/entities/Notification";
 
 interface SendMessageData {
   senderId: string;
@@ -17,8 +18,8 @@ interface SendMessageData {
 export class SocketManager {
   private static io: SocketIOServer;
   private logger: ILogger;
-  private userSockets: Map<string, string> = new Map(); // userId -> socketId
-  private companySockets: Map<string, string> = new Map(); // companyId -> socketId
+  private userSockets = new Map<string, string>(); // userId -> socketId
+  private companySockets = new Map<string, string>(); // companyId -> socketId
 
   constructor(server: HttpServer) {
     this.logger = container.get<ILogger>(TYPES.Logger);
@@ -38,26 +39,27 @@ export class SocketManager {
     SocketManager.io.on("connection", (socket: Socket) => {
       this.logger.info(`New client connected: ${socket.id}`);
 
-      socket.on("join", async (data: { userId: string, type: 'user' | 'company' } | string) => {
+      socket.on("join", async (data: { userId: string, type: "user" | "company" } | string) => {
         let userId: string;
-        let type: 'user' | 'company' = 'user';
+        let type: "user" | "company" = "user";
 
-        if (typeof data === 'string') {
+        if (typeof data === "string") {
             userId = data;
         } else {
             userId = data.userId;
             type = data.type;
         }
 
-        this.logger.info(`${type === 'company' ? 'Company' : 'User'} ${userId} joined with socket ${socket.id}`);
+        this.logger.info(`${type === "company" ? "Company" : "User"} ${userId} joined with socket ${socket.id}`);
         
-        if (type === 'company') {
+        if (type === "company") {
             this.companySockets.set(userId, socket.id);
         } else {
             this.userSockets.set(userId, socket.id);
         }
         
-        socket.join(userId);
+        // Join role-specific room to prevent notification leakage
+        socket.join(`${type}:${userId}`);
         
         // Broadcast online status
         socket.broadcast.emit("user_status", { userId, status: "online", type });
@@ -68,21 +70,21 @@ export class SocketManager {
         socket.emit("online_users", onlineUsers);
       });
 
-      socket.on("typing", (data: { senderId: string, receiverId: string }) => {
-        SocketManager.io.to(data.receiverId).emit("typing", { userId: data.senderId });
+      socket.on("typing", (data: { senderId: string, receiverId: string, receiverType: string }) => {
+        SocketManager.io.to(`${data.receiverType}:${data.receiverId}`).emit("typing", { userId: data.senderId });
       });
 
-      socket.on("stop_typing", (data: { senderId: string, receiverId: string }) => {
-        SocketManager.io.to(data.receiverId).emit("stop_typing", { userId: data.senderId });
+      socket.on("stop_typing", (data: { senderId: string, receiverId: string, receiverType: string }) => {
+        SocketManager.io.to(`${data.receiverType}:${data.receiverId}`).emit("stop_typing", { userId: data.senderId });
       });
 
-      socket.on("mark_read", async (data: { conversationId: string, userId: string, otherUserId: string }) => {
+      socket.on("mark_read", async (data: { conversationId: string, userId: string, otherUserId: string, otherUserType: string }) => {
         try {
             const chatRepository = container.get<IChatRepository>(TYPES.ChatRepository);
             await chatRepository.markMessagesAsRead(data.conversationId, data.userId);
             
-            // Notify the sender that messages were read
-            SocketManager.io.to(data.otherUserId).emit("messages_read", { conversationId: data.conversationId });
+            // Notify the sender that messages were read using prefixed room
+            SocketManager.io.to(`${data.otherUserType}:${data.otherUserId}`).emit("messages_read", { conversationId: data.conversationId });
         } catch (error) {
             this.logger.error("Error marking messages as read:", { error });
         }
@@ -114,24 +116,10 @@ export class SocketManager {
           // Emit to sender for confirmation
           socket.emit("new_message", savedMessage);
           // Also emit to sender's other devices if any (using room)
-          socket.to(data.senderId).emit("new_message", savedMessage);
+          socket.to(`${data.senderType}:${data.senderId}`).emit("new_message", savedMessage);
 
-          // Emit to receiver
-          if (data.receiverType === "company") {
-             const companySocketId = this.companySockets.get(data.receiverId);
-             if (companySocketId) {
-                SocketManager.io.to(companySocketId).emit("new_message", savedMessage);
-             }
-             // Also emit to company room
-             SocketManager.io.to(data.receiverId).emit("new_message", savedMessage);
-          } else {
-             const userSocketId = this.userSockets.get(data.receiverId);
-             if (userSocketId) {
-                SocketManager.io.to(userSocketId).emit("new_message", savedMessage);
-             }
-             // Also emit to user room
-             SocketManager.io.to(data.receiverId).emit("new_message", savedMessage);
-          }
+          // Emit to receiver using role-prefixed room
+          SocketManager.io.to(`${data.receiverType}:${data.receiverId}`).emit("new_message", savedMessage);
           
           this.logger.info(`Message sent from ${data.senderId} to ${data.receiverId}`);
         } catch (error) {
@@ -141,19 +129,65 @@ export class SocketManager {
         }
       });
 
+      // --- Video Call Signaling ---
+      socket.on("call_user", (data: { callerId: string, callerName: string, receiverId: string, receiverType: string, offer: any }) => {
+        this.logger.info(`Call attempt from ${data.callerId} to ${data.receiverId}`);
+        SocketManager.io.to(`${data.receiverType}:${data.receiverId}`).emit("incoming_call", {
+          callerId: data.callerId,
+          callerName: data.callerName,
+          offer: data.offer
+        });
+      });
+
+      socket.on("answer_call", (data: { callerId: string, callerType: string, answer: any }) => {
+        this.logger.info(`Call answered by ${data.callerId}`);
+        SocketManager.io.to(`${data.callerType}:${data.callerId}`).emit("call_answered", {
+          answer: data.answer
+        });
+      });
+
+      socket.on("decline_call", (data: { callerId: string, callerType: string }) => {
+        this.logger.info(`Call declined by ${data.callerId}`);
+        SocketManager.io.to(`${data.callerType}:${data.callerId}`).emit("call_declined");
+      });
+
+      socket.on("ice_candidate", (data: { receiverId: string, receiverType: string, candidate: any }) => {
+        SocketManager.io.to(`${data.receiverType}:${data.receiverId}`).emit("ice_candidate", {
+          candidate: data.candidate
+        });
+      });
+
+      socket.on("end_call", (data: { receiverId: string, receiverType: string }) => {
+        SocketManager.io.to(`${data.receiverType}:${data.receiverId}`).emit("call_ended");
+      });
+
       socket.on("disconnect", () => {
         this.logger.info(`Client disconnected: ${socket.id}`);
         let disconnectedUserId: string | undefined;
+        let disconnectedType: "user" | "company" = "user";
+
         for (const [userId, socketId] of this.userSockets.entries()) {
           if (socketId === socket.id) {
             this.userSockets.delete(userId);
             disconnectedUserId = userId;
+            disconnectedType = "user";
             break;
           }
         }
         
+        if (!disconnectedUserId) {
+          for (const [userId, socketId] of this.companySockets.entries()) {
+            if (socketId === socket.id) {
+              this.companySockets.delete(userId);
+              disconnectedUserId = userId;
+              disconnectedType = "company";
+              break;
+            }
+          }
+        }
+        
         if (disconnectedUserId) {
-            socket.broadcast.emit("user_status", { userId: disconnectedUserId, status: "offline" });
+            socket.broadcast.emit("user_status", { userId: disconnectedUserId, status: "offline", type: disconnectedType });
         }
       });
     });
@@ -161,5 +195,11 @@ export class SocketManager {
 
   public static getInstance(): SocketIOServer {
     return SocketManager.io;
+  }
+
+  public static sendNotification(recipientId: string, recipientType: string, notification: INotification) {
+    if (SocketManager.io) {
+      SocketManager.io.to(`${recipientType}:${recipientId}`).emit("notification", notification);
+    }
   }
 }

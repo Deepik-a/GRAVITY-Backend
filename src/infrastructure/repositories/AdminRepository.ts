@@ -11,6 +11,9 @@ import { ILogger } from "@/domain/services/ILogger";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { AdminMapper } from "@/application/mappers/AdminMapper";
+import BookingModel from "@/infrastructure/database/models/BookingModel";
+import TransactionModel from "@/infrastructure/database/models/TransactionModel";
+import { IDashboardStats } from "@/domain/repositories/IAdminRepository";
 
 @injectable()
 export class AdminRepository implements IAdminRepository {
@@ -18,6 +21,145 @@ export class AdminRepository implements IAdminRepository {
     @inject(TYPES.StorageService) private readonly _s3Service: IStorageService,
     @inject(TYPES.Logger) private readonly _logger: ILogger
   ) {}
+
+  async getDashboardStats(): Promise<IDashboardStats> {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const [
+      totalUsers,
+      totalCompanies,
+      totalBookings,
+      pendingVerifications,
+      revenueStats,
+      activeSubCompanies,
+      userGrowthRaw,
+      companyGrowthRaw,
+      revenueByType,
+      recentUsers,
+      recentCompanies,
+      recentBookings
+    ] = await Promise.all([
+      UserModel.countDocuments(),
+      CompanyModel.countDocuments(),
+      BookingModel.countDocuments(),
+      CompanyModel.countDocuments({ documentStatus: "pending" }),
+      TransactionModel.aggregate([
+        { $match: { status: "completed" } },
+        {
+          $group: {
+            _id: null,
+            gross: { $sum: { $cond: [{ $in: ["$type", ["booking_payment", "subscription_payment"]] }, "$amount", 0] } },
+            net: { $sum: { $cond: [{ $eq: ["$type", "admin_commission"] }, "$amount", 0] } }
+          }
+        }
+      ]),
+      CompanyModel.countDocuments({ isSubscribed: true }),
+      UserModel.aggregate([
+        { $match: { createdAt: { $gte: sixMonthsAgo } } },
+        { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ]),
+      CompanyModel.aggregate([
+        { $match: { createdAt: { $gte: sixMonthsAgo } } },
+        { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ]),
+      TransactionModel.aggregate([
+        { $match: { status: "completed" } },
+        { $group: { _id: "$type", value: { $sum: "$amount" } } },
+        { $project: { label: "$_id", value: 1, _id: 0 } }
+      ]),
+      UserModel.find().sort({ createdAt: -1 }).limit(3).lean(),
+      CompanyModel.find().sort({ createdAt: -1 }).limit(3).lean(),
+      BookingModel.find().sort({ createdAt: -1 }).limit(4).populate("userId").populate("companyId").lean()
+    ]);
+
+    const rev = revenueStats[0] || { gross: 0, net: 0 };
+
+    const activities: {
+      icon: string;
+      title: string;
+      description: string;
+      time: string;
+      rawTime: Date;
+    }[] = [];
+    
+    recentUsers.forEach((u) => {
+      const user = u as { name: string; createdAt: Date };
+      activities.push({
+        icon: "FaUserPlus",
+        title: "New User Registration",
+        description: `${user.name} joined as a homeowner`,
+        time: this._getTimeAgo(new Date(user.createdAt)),
+        rawTime: new Date(user.createdAt)
+      });
+    });
+
+    recentCompanies.forEach((c) => {
+      const company = c as unknown as { name: string; createdAt: Date };
+      activities.push({
+        icon: "FaBuilding",
+        title: "Company Registration",
+        description: `${company.name} submitted for review`,
+        time: this._getTimeAgo(new Date(company.createdAt)),
+        rawTime: new Date(company.createdAt)
+      });
+    });
+
+    recentBookings.forEach((b) => {
+      const booking = b as { startTime: string; createdAt: Date };
+      activities.push({
+        icon: "FaCalendar",
+        title: "New Booking",
+        description: `New slot booked at ${booking.startTime}`,
+        time: this._getTimeAgo(new Date(booking.createdAt)),
+        rawTime: new Date(booking.createdAt)
+      });
+    });
+
+    const sortedActivities = activities
+      .sort((a, b) => b.rawTime.getTime() - a.rawTime.getTime())
+      .slice(0, 10)
+      .map(({ rawTime: _, ...rest }) => ({ ...rest }));
+
+    return {
+      totalUsers,
+      totalCompanies,
+      totalBookings,
+      pendingVerifications,
+      grossRevenue: rev.gross,
+      netRevenue: rev.net,
+      activeSubscriptions: {
+        users: 0, // Not tracked in schema
+        companies: activeSubCompanies
+      },
+      userGrowth: {
+        users: userGrowthRaw.map(g => ({ month: g._id, count: g.count })),
+        companies: companyGrowthRaw.map(g => ({ month: g._id, count: g.count }))
+      },
+      revenueBreakdown: revenueByType.map(r => ({
+        label: r.label.split("_").map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(" "),
+        value: r.value
+      })),
+      recentActivities: sortedActivities
+    };
+  }
+
+  private _getTimeAgo(date: Date): string {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+    return Math.floor(seconds) + " seconds ago";
+  }
 
   // 🔵 DB-LAYER METHOD (for admin-specific operations)
   async findAdminByEmail(email: string): Promise<IAdmin | null> {

@@ -37,6 +37,10 @@ export class ForgotPasswordUseCase implements IForgotPasswordUseCase {
     // 🔍 2. Check Company account
 
 const company = await this._companyRepository.findByEmail(email);
+console.log("company",company);
+
+
+
  if (company) { await this._otpService.generateOtp(email, OtpPurpose.FORGOT_PASSWORD, "company");
  return { success: true, message:Messages.AUTH.OTP_SUCCESS, }; }
 

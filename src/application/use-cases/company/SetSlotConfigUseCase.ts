@@ -48,56 +48,62 @@ export class SetSlotConfigUseCase implements ISetSlotConfigUseCase {
 
     // 2. Editing restrictions for existing config
     if (existingConfig) {
-      // Check if fields other than exceptionalDays have changed
-      const fieldsToCheck: (keyof ISlotConfig)[] = [
-        "startDate", "endDate", "startTime", "endTime", "slotDuration", "bufferTime", "weekdays"
-      ];
-      
-      const hasOtherChanges = fieldsToCheck.some(field => {
-        const oldValue = existingConfig[field as keyof typeof existingConfig];
-        const newValue = config[field as keyof typeof config];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isExpired = new Date(existingConfig.endDate) < today;
+
+      if (!isExpired) {
+        // Check if fields other than exceptionalDays have changed
+        const fieldsToCheck: (keyof ISlotConfig)[] = [
+          "startDate", "endDate", "startTime", "endTime", "slotDuration", "bufferTime", "weekdays"
+        ];
         
-        if (field === "weekdays") {
-          const oldArr = Array.isArray(oldValue) ? oldValue : [];
-          const newArr = Array.isArray(newValue) ? newValue : [];
-          return JSON.stringify([...oldArr].sort()) !== JSON.stringify([...newArr].sort());
-        }
-        
-        if (field === "startDate" || field === "endDate") {
-            return toDateStr(oldValue as string | Date) !== toDateStr(newValue as string | Date);
-        }
-
-        return String(oldValue ?? "") !== String(newValue ?? "");
-      });
-
-      if (hasOtherChanges) {
-        throw new AppError(
-          "Only exceptional days (holidays) can be modified for an existing rule. Other details cannot be edited.",
-          StatusCode.BAD_REQUEST
-        );
-      }
-
-      // Check for days with more than 5 bookings in the range
-      const bookings = await this._bookingRepository.getCompanyBookings(config.companyId);
-      const bookingCounts: Record<string, number> = {};
-      
-      bookings.forEach(b => {
-        const dateStr = toDateStr(b.date);
-        if (dateStr) {
-          bookingCounts[dateStr] = (bookingCounts[dateStr] || 0) + 1;
-        }
-      });
-
-      const startDate = new Date(config.startDate);
-      const endDate = new Date(config.endDate);
-      
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        const dateStr = toDateStr(d);
-        if (dateStr && bookingCounts[dateStr] > 5) {
+        const hasOtherChanges = fieldsToCheck.some(field => {
+          const oldValue = existingConfig[field as keyof typeof existingConfig];
+          const newValue = config[field as keyof typeof config];
+          
+          if (field === "weekdays") {
+            const oldArr = Array.isArray(oldValue) ? oldValue : [];
+            const newArr = Array.isArray(newValue) ? newValue : [];
+            return JSON.stringify([...oldArr].sort()) !== JSON.stringify([...newArr].sort());
+          }
+          
+          if (field === "startDate" || field === "endDate") {
+              return toDateStr(oldValue as string | Date) !== toDateStr(newValue as string | Date);
+          }
+  
+          return String(oldValue ?? "") !== String(newValue ?? "");
+        });
+  
+        if (hasOtherChanges) {
           throw new AppError(
-            `Editing is not possible: ${dateStr} already has ${bookingCounts[dateStr]} bookings (limit is 5).`,
+            "Only exceptional days (holidays) can be modified for an active rule. To create a new rule, wait until the current one expires.",
             StatusCode.BAD_REQUEST
           );
+        }
+  
+        // Check for days with more than 5 bookings in the range
+        const bookings = await this._bookingRepository.getCompanyBookings(config.companyId);
+        const bookingCounts: Record<string, number> = {};
+        
+        bookings.forEach(b => {
+          const dateStr = toDateStr(b.date);
+          if (dateStr) {
+            bookingCounts[dateStr] = (bookingCounts[dateStr] || 0) + 1;
+          }
+        });
+  
+        const startDate = new Date(config.startDate);
+        const endDate = new Date(config.endDate);
+        
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const dateStr = toDateStr(d);
+          if (dateStr && bookingCounts[dateStr] > 5) {
+            throw new AppError(
+              `Editing is not possible: ${dateStr} already has ${bookingCounts[dateStr]} bookings (limit is 5).`,
+              StatusCode.BAD_REQUEST
+            );
+          }
         }
       }
     }

@@ -21,5 +21,9 @@ export interface ITransactionRepository {
   getTotalRevenue(): Promise<number>;
   getTotalCommissions(): Promise<number>;
   getRevenueByType(): Promise<{ type: string; total: number }[]>;
+  getCompanyDashboardStats(companyId: string): Promise<{
+    monthlyEarnings: number;
+    revenueTrends: { month: string; amount: number }[];
+  }>;
 }
 

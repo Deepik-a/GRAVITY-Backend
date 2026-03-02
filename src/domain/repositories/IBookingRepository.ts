@@ -11,4 +11,11 @@ export interface IBookingRepository {
   getAllBookings(): Promise<IBooking[]>;
   checkSlotAvailability(companyId: string, date: Date, startTime: string): Promise<boolean>;
   cancelBooking(bookingId: string): Promise<boolean>;
+  getStats(companyId: string): Promise<{
+    totalConsultations: number;
+    completedProjects: number;
+    statusBreakdown: { status: string; count: number }[];
+  }>;
+  getBookingsInDateRange(startDate: Date, endDate: Date, status?: string): Promise<IBooking[]>;
+  findOneBooking(companyId: string, date: Date, startTime: string): Promise<IBooking | null>;
 }

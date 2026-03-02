@@ -11,7 +11,7 @@ export class GetConversationsUseCase implements IGetConversationsUseCase {
     @inject(TYPES.ChatRepository) private _chatRepository: IChatRepository
   ) {}
 
-  async execute(participantId: string): Promise<Conversation[]> {
-    return await this._chatRepository.getUserConversations(participantId);
+  async execute(participantId: string, participantType: string): Promise<Conversation[]> {
+    return await this._chatRepository.getUserConversations(participantId, participantType);
   }
 }

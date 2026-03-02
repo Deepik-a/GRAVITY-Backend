@@ -4,6 +4,7 @@ import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { ISubscriptionRepository } from "@/domain/repositories/ISubscriptionRepository";
 import { ITransactionRepository } from "@/domain/repositories/ITransactionRepository";
+import { NotificationService } from "@/application/services/NotificationService";
 
 import { Stripe } from "stripe";
 
@@ -17,7 +18,8 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
     @inject(TYPES.CompanyRepository) private _companyRepository: ICompanyRepository,
     @inject(TYPES.SubscriptionRepository) private _subscriptionRepository: ISubscriptionRepository,
-    @inject(TYPES.TransactionRepository) private _transactionRepository: ITransactionRepository
+    @inject(TYPES.TransactionRepository) private _transactionRepository: ITransactionRepository,
+    @inject(TYPES.NotificationService) private _notificationService: NotificationService
   ) {}
 
   async execute(payload: string | Buffer, signature: string, secret: string) {
@@ -186,6 +188,25 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
     });
 
     console.log("[StripeWebhook] Booking " + bookingId + " processed successfully.");
+
+    // Notify User
+    await this._notificationService.createNotification({
+      recipientId: booking.userId,
+      recipientType: "user",
+      title: "Payment Successful",
+      message: `Your payment for booking on ${new Date(booking.date).toLocaleDateString()} was successful.`,
+      type: "PAYMENT_SUCCESS",
+    });
+
+    // Notify Company
+    await this._notificationService.createNotification({
+      recipientId: booking.companyId,
+      recipientType: "company",
+      title: "New Confirmed Booking",
+      message: `A new booking for ${new Date(booking.date).toLocaleDateString()} has been confirmed and paid.`,
+      type: "NEW_BOOKING",
+    });
+
     return true;
   }
 
@@ -234,6 +255,15 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
       description: "Subscription payment for " + plan.name + " (" + plan.duration + ")",
       stripeSessionId: session.id,
       stripePaymentIntentId: session.payment_intent as string,
+    });
+
+    // Notify Company
+    await this._notificationService.createNotification({
+      recipientId: companyId,
+      recipientType: "company",
+      title: "Subscription Active",
+      message: `Your ${plan.name} subscription is now active until ${endDate.toLocaleDateString()}.`,
+      type: "SUBSCRIPTION_SUCCESS",
     });
   }
 }

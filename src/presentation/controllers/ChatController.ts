@@ -40,7 +40,8 @@ export class ChatController {
   async getConversations(req: Request, res: Response) {
     try {
       const { participantId } = req.params;
-      const conversations = await this._getConversationsUseCase.execute(participantId);
+      const { type } = req.query; // Expect type in query string or headers
+      const conversations = await this._getConversationsUseCase.execute(participantId, type as string || "user");
       res.status(StatusCode.SUCCESS).json(conversations);
     } catch (error) {
       this._logger.error("GetConversations error:", { error });

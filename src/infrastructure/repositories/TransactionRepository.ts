@@ -4,6 +4,7 @@ import { ITransactionRepository } from "@/domain/repositories/ITransactionReposi
 import { ITransaction } from "@/domain/entities/Transaction";
 import { injectable } from "inversify";
 import { TransactionMapper } from "@/application/mappers/TransactionMapper";
+import mongoose from "mongoose";
 
 
 @injectable()
@@ -118,6 +119,50 @@ export class TransactionRepository extends BaseRepository<ITransactionDocument> 
       { $project: { type: "$_id", total: 1, _id: 0 } }
     ]);
     return result;
+  }
+
+  async getCompanyDashboardStats(companyId: string): Promise<{
+    monthlyEarnings: number;
+    revenueTrends: { month: string; amount: number }[];
+  }> {
+    const currentMonth = new Date();
+    currentMonth.setDate(1);
+    currentMonth.setHours(0, 0, 0, 0);
+
+    const matchQuery = {
+      companyId: new mongoose.Types.ObjectId(companyId),
+      status: "completed",
+      type: "booking_payment"
+    };
+
+    const stats = await this.model.aggregate([
+      { $match: matchQuery },
+      {
+        $facet: {
+          monthly: [
+            { $match: { createdAt: { $gte: currentMonth } } },
+            { $group: { _id: null, total: { $sum: "$netAmount" } } }
+          ],
+          trends: [
+            {
+              $group: {
+                _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+                total: { $sum: "$netAmount" }
+              }
+            },
+            { $sort: { "_id": 1 } },
+            { $limit: 6 },
+            { $project: { month: "$_id", amount: "$total", _id: 0 } }
+          ]
+        }
+      }
+    ]);
+
+    const result = stats[0];
+    return {
+      monthlyEarnings: result.monthly[0]?.total || 0,
+      revenueTrends: result.trends || []
+    };
   }
 }
 

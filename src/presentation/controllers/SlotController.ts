@@ -122,6 +122,25 @@ export class SlotController {
     }
   }
 
+  async getCompanyConfig(req: Request, res: Response): Promise<void> {
+    try {
+      const { companyId } = req.params;
+      if (!companyId) {
+         res.status(StatusCode.BAD_REQUEST).json({ message: "companyId is required" });
+         return;
+      }
+      const config = await this._getSlotConfigUseCase.execute(companyId);
+      res.status(StatusCode.SUCCESS).json(config);
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+      } else {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        res.status(StatusCode.INTERNAL_ERROR).json({ message });
+      }
+    }
+  }
+
   async deleteConfig(req: Request, res: Response): Promise<void> {
     try {
       const companyId = (req.user as AuthenticatedUser)?.id;

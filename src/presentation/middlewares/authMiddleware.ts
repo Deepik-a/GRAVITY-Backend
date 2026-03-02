@@ -21,10 +21,13 @@ export class SessionAuth {
 
   verify: RequestHandler = async (req, res, next) => {
       const isAdminRoute = req.originalUrl.startsWith("/admin") || req.originalUrl.includes("/admin/");
-      const isCompanyRoute = req.originalUrl.startsWith("/company") || req.originalUrl.includes("/company/");
+      const isCompanyRoute = req.originalUrl.startsWith("/company") || req.originalUrl.includes("/company/") || req.originalUrl.startsWith("/payments/create-subscription-checkout");
+      const isUserRoute = req.originalUrl.startsWith("/user") || req.originalUrl.includes("/user/") || req.originalUrl.startsWith("/payments/create-checkout-session");
       
       let accessKey = "userAccessToken";
       let refreshKey = "userRefreshToken";
+
+      const requestedRole = req.headers["x-role"] as string;
 
       if (isAdminRoute) {
         accessKey = "adminAccessToken";
@@ -32,9 +35,23 @@ export class SessionAuth {
       } else if (isCompanyRoute) {
         accessKey = "companyAccessToken";
         refreshKey = "companyRefreshToken";
+      } else if (isUserRoute) {
+        accessKey = "userAccessToken";
+        refreshKey = "userRefreshToken";
+      } else if (requestedRole) {
+        // Shared routes with explicit role header
+        if (requestedRole === "admin") {
+          accessKey = "adminAccessToken";
+          refreshKey = "adminRefreshToken";
+        } else if (requestedRole === "company") {
+          accessKey = "companyAccessToken";
+          refreshKey = "companyRefreshToken";
+        } else {
+          accessKey = "userAccessToken";
+          refreshKey = "userRefreshToken";
+        }
       } else {
-        // For shared routes (e.g., /chat, /payments, /subscriptions), 
-        // determine the key based on which token is actually present.
+        // Fallback for shared routes without header
         if (req.cookies["adminAccessToken"] || req.cookies["adminRefreshToken"]) {
           accessKey = "adminAccessToken";
           refreshKey = "adminRefreshToken";

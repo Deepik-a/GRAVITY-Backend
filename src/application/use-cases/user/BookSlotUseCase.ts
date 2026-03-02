@@ -5,6 +5,7 @@ import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
+import { NotificationService } from "@/application/services/NotificationService";
 
 import { IBookSlotUseCase } from "@/application/interfaces/use-cases/user/IBookSlotUseCase";
 
@@ -13,7 +14,8 @@ import { IBookSlotUseCase } from "@/application/interfaces/use-cases/user/IBookS
 export class BookSlotUseCase implements IBookSlotUseCase {
   constructor(
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
-    @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository
+    @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository,
+    @inject(TYPES.NotificationService) private _notificationService: NotificationService
   ) {}
 
   async execute(bookingData: IBooking): Promise<IBooking> {
@@ -23,15 +25,27 @@ export class BookSlotUseCase implements IBookSlotUseCase {
     const config = await this._slotRepository.getConfigByCompanyId(companyId);
     if (!config) throw new AppError("Company has no slot configuration.", StatusCode.NOT_FOUND);
 
-    // TODO: More rigorous verification (duration, weekdays etc.) could be added here
-    // but for now we assume the frontend selects valid slots from GetAvailableSlots
+    // IMPORTANT: Check for existing bookings to prevent E11000 duplicate key error
+    // If a booking exists for this slot (even if pending), we handle it.
+    const existing = await this._bookingRepository.findOneBooking(companyId, date, startTime);
 
-    const isSlotAvailable = await this._bookingRepository.checkSlotAvailability(companyId, date, startTime);
-    if (!isSlotAvailable) {
-      throw new AppError("This slot has already been taken by someone else.", StatusCode.CONFLICT);
+    if (existing) {
+      if (existing.status === "confirmed") {
+        throw new AppError("This slot has already been taken by someone else.", StatusCode.CONFLICT);
+      }
+      
+      if (existing.status === "pending") {
+        if (existing.userId === bookingData.userId) {
+          // It's the same user trying again (e.g., retrying payment after cancel)
+          // We return the existing booking instead of creating a new one to avoid DB error.
+          return existing;
+        } else {
+          // Someone else is in the middle of paying for this slot.
+          throw new AppError("Someone else is currently finishing their booking for this slot. Please wait a few minutes or choose another.", StatusCode.CONFLICT);
+        }
+      }
     }
 
-  
     // Calculate endTime
     const [h, m] = startTime.split(":").map(Number);
     const endMins = h * 60 + m + config.slotDuration;
@@ -41,6 +55,20 @@ export class BookSlotUseCase implements IBookSlotUseCase {
     bookingData.endTime = `${endH}:${endM}`;
     bookingData.status = "pending";
 
-    return await this._bookingRepository.createBooking(bookingData);
+    // This may still throw E11000 if there's a "cancelled" booking in DB 
+    // because the unique index doesn't exclude them. 
+    // Partial indexes or hard deletes would be needed for that.
+    const savedBooking = await this._bookingRepository.createBooking(bookingData);
+
+    // Notify Company
+    await this._notificationService.createNotification({
+      recipientId: companyId,
+      recipientType: "company",
+      title: "New Booking Request",
+      message: `You have a new booking request for ${new Date(date).toLocaleDateString()} at ${startTime}.`,
+      type: "NEW_BOOKING",
+    });
+
+    return savedBooking;
   }
 }

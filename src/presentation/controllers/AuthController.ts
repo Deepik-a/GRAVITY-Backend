@@ -93,15 +93,6 @@ async login(req: Request, res: Response, next: NextFunction) {
     const accessKey = role === "company" ? "companyAccessToken" : "userAccessToken";
     const refreshKey = role === "company" ? "companyRefreshToken" : "userRefreshToken";
 
-    const otherAccessKey = role === "company" ? "userAccessToken" : "companyAccessToken";
-    const otherRefreshKey = role === "company" ? "userRefreshToken" : "companyRefreshToken";
-
-    // Clear potential stale tokens for the other role
-    res.clearCookie(otherAccessKey, { path: "/" });
-    res.clearCookie(otherRefreshKey, { path: "/" });
-    res.clearCookie("adminAccessToken", { path: "/" });
-    res.clearCookie("adminRefreshToken", { path: "/" });
-
     res.cookie(accessKey, result.accessToken, {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
@@ -149,15 +140,6 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
 
     const accessKey = result.user.role === "company" ? "companyAccessToken" : "userAccessToken";
     const refreshKey = result.user.role === "company" ? "companyRefreshToken" : "userRefreshToken";
-
-    const otherAccessKey = result.user.role === "company" ? "userAccessToken" : "companyAccessToken";
-    const otherRefreshKey = result.user.role === "company" ? "userRefreshToken" : "companyRefreshToken";
-
-    // Clear potential stale tokens for the other role
-    res.clearCookie(otherAccessKey, { path: "/" });
-    res.clearCookie(otherRefreshKey, { path: "/" });
-    res.clearCookie("adminAccessToken", { path: "/" });
-    res.clearCookie("adminRefreshToken", { path: "/" });
 
     res.cookie(accessKey, result.accessToken, {
       httpOnly: cookieData.httpONLY,
@@ -219,15 +201,6 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
       if (result.success && result.accessToken && result.refreshToken && result.role) {
         const accessKey = result.role === "company" ? "companyAccessToken" : "userAccessToken";
         const refreshKey = result.role === "company" ? "companyRefreshToken" : "userRefreshToken";
-
-        const otherAccessKey = result.role === "company" ? "userAccessToken" : "companyAccessToken";
-        const otherRefreshKey = result.role === "company" ? "userRefreshToken" : "companyRefreshToken";
-
-        // Clear potential stale tokens for the other role
-        res.clearCookie(otherAccessKey, { path: "/" });
-        res.clearCookie(otherRefreshKey, { path: "/" });
-        res.clearCookie("adminAccessToken", { path: "/" });
-        res.clearCookie("adminRefreshToken", { path: "/" });
 
         res.cookie(accessKey, result.accessToken, {
           httpOnly: cookieData.httpONLY,

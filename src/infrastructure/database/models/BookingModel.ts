@@ -53,7 +53,15 @@ const BookingSchema = new Schema<IBookingDocument>(
   { timestamps: true }
 );
 
-BookingSchema.index({ companyId: 1, date: 1, startTime: 1 }, { unique: true });
+BookingSchema.index(
+  { companyId: 1, date: 1, startTime: 1 }, 
+  { 
+    unique: true, 
+    // This allows re-booking of already cancelled slots while still
+    // enforcing only one confirmed or pending booking per slot.
+    partialFilterExpression: { status: { $ne: "cancelled" } } 
+  }
+);
 
 const BookingModel = mongoose.model<IBookingDocument>("Booking", BookingSchema);
 export default BookingModel;

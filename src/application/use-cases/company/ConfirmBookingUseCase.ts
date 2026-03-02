@@ -5,11 +5,13 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { IConfirmBookingUseCase } from "@/application/interfaces/use-cases/company/IConfirmBookingUseCase";
+import { NotificationService } from "@/application/services/NotificationService";
 
 @injectable()
 export class ConfirmBookingUseCase implements IConfirmBookingUseCase {
   constructor(
-    @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository
+    @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository,
+    @inject(TYPES.NotificationService) private _notificationService: NotificationService
   ) {}
 
   async execute(bookingId: string): Promise<IBooking> {
@@ -26,6 +28,15 @@ export class ConfirmBookingUseCase implements IConfirmBookingUseCase {
     if (!updated) {
       throw new AppError("Failed to update booking status", StatusCode.INTERNAL_ERROR);
     }
+
+    // Notify User
+    await this._notificationService.createNotification({
+      recipientId: booking.userId,
+      recipientType: "user",
+      title: "Booking Confirmed",
+      message: `Your booking for ${new Date(booking.date).toLocaleDateString()} at ${booking.startTime} has been confirmed.`,
+      type: "BOOKING_CONFIRMED",
+    });
 
     return updated;
   }

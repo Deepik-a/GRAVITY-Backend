@@ -33,6 +33,7 @@ export const TYPES = {
   SearchUserUseCase:Symbol.for("SearchUsersUseCase"),
   SearchCompanyUseCase:Symbol.for("SearchCompanyUseCase"),
   GetAllBookingsUseCase: Symbol.for("GetAllBookingsUseCase"),
+  GetAdminDashboardStatsUseCase: Symbol.for("GetAdminDashboardStatsUseCase"),
 
   // Use Cases - User/Auth
   DetectUserRoleUseCase: Symbol.for("DetectUserRoleUseCase"),
@@ -56,6 +57,7 @@ export const TYPES = {
   GetCompanyBookingsUseCase: Symbol.for("GetCompanyBookingsUseCase"),
   RescheduleBookingUseCase: Symbol.for("RescheduleBookingUseCase"),
   ConfirmBookingUseCase: Symbol.for("ConfirmBookingUseCase"),
+  GetCompanyDashboardStatsUseCase: Symbol.for("GetCompanyDashboardStatsUseCase"),
 
 // Use Cases - User
   GetUserProfileUseCase: Symbol.for("GetUserProfileUseCase"),
@@ -78,6 +80,7 @@ export const TYPES = {
   SlotController: Symbol.for("SlotController"),
   CompanyController: Symbol.for("CompanyController"),
   PaymentController: Symbol.for("PaymentController"),
+  CompanyDashboardController: Symbol.for("CompanyDashboardController"),
 
   // Middleware
   SessionAuth: Symbol.for("SessionAuth"),
@@ -110,5 +113,11 @@ export const TYPES = {
   GetConversationsUseCase: Symbol.for("GetConversationsUseCase"),
   SendMessageUseCase: Symbol.for("SendMessageUseCase"),
   ChatController: Symbol.for("ChatController"),
+
+  // Notifications
+  NotificationRepository: Symbol.for("NotificationRepository"),
+  NotificationService: Symbol.for("NotificationService"),
+  NotificationController: Symbol.for("NotificationController"),
+  ReminderService: Symbol.for("ReminderService"),
 };
 

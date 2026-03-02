@@ -2,6 +2,7 @@ import { BaseRepository } from "@/infrastructure/repositories/BaseRepository";
 import BookingModel from "@/infrastructure/database/models/BookingModel";
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { IBooking } from "@/domain/entities/Booking";
+import mongoose from "mongoose";
 
 import { injectable } from "inversify";
 
@@ -112,6 +113,63 @@ export class BookingRepository
       { $set: { status: "cancelled" } }
     );
     return result.modifiedCount > 0;
+  }
+
+  async getStats(companyId: string): Promise<{
+    totalConsultations: number;
+    completedProjects: number;
+    statusBreakdown: { status: string; count: number }[];
+  }> {
+    const stats = await this.model.aggregate([
+      { $match: { companyId: new mongoose.Types.ObjectId(companyId) } },
+      {
+        $facet: {
+          total: [{ $count: "count" }],
+          completed: [
+            { $match: { serviceStatus: "completed" } },
+            { $count: "count" }
+          ],
+          breakdown: [
+            { $group: { _id: "$status", count: { $sum: 1 } } },
+            { $project: { status: "$_id", count: 1, _id: 0 } }
+          ]
+        }
+      }
+    ]);
+
+    const result = stats[0];
+    return {
+      totalConsultations: result.total[0]?.count || 0,
+      completedProjects: result.completed[0]?.count || 0,
+      statusBreakdown: result.breakdown || []
+    };
+  }
+  
+  async findOneBooking(companyId: string, date: Date, startTime: string): Promise<IBooking | null> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const found = await this.model.findOne({
+      companyId,
+      startTime,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $ne: "cancelled" }
+    }).lean();
+
+    return found ? this._mapToEntity(found) : null;
+  }
+
+  async getBookingsInDateRange(startDate: Date, endDate: Date, status?: string): Promise<IBooking[]> {
+    const query: any = {
+      date: { $gte: startDate, $lte: endDate }
+    };
+    if (status) {
+      query.status = status;
+    }
+    const bookings = await this.model.find(query).lean();
+    return bookings.map(b => this._mapToEntity(b));
   }
 
   private _mapToEntity(doc: unknown): IBooking {

@@ -11,6 +11,7 @@ import CompanyRoutes from "@/presentation/routes/CompanyRoutes";
 import PaymentRoutes from "@/presentation/routes/PaymentRoutes";
 import SubscriptionRoutes from "@/presentation/routes/SubscriptionRoutes";
 import ChatRoutes from "@/presentation/routes/ChatRoutes";
+import NotificationRoutes from "@/presentation/routes/NotificationRoutes";
 import { connectRedis } from "@/infrastructure/config/redis";
 import { errorHandler } from "@/presentation/middlewares/ErrorMiddleware";
 import cookieParser from "cookie-parser";
@@ -20,8 +21,10 @@ import { ILogger } from "@/domain/services/ILogger";
 
 import { createServer } from "http";
 import { SocketManager } from "@/infrastructure/sockets/SocketManager";
+import { ReminderService } from "@/application/services/ReminderService";
 
 const logger = container.get<ILogger>(TYPES.Logger);
+const reminderService = container.get<ReminderService>(TYPES.ReminderService);
 
 logger.info("hello from index.ts good");
 
@@ -59,6 +62,7 @@ app.use("/user",UserRoutes);
 app.use("/payments", PaymentRoutes);
 app.use("/subscriptions", SubscriptionRoutes);
 app.use("/chat", ChatRoutes);
+app.use("/notifications", NotificationRoutes);
 
 // ------------ ERROR MIDDLEWARE ------------
 app.use(errorHandler);
@@ -77,6 +81,9 @@ const uri = env.MONGO_URI;
     // CONNECT MONGO
     await mongoose.connect(uri);
     logger.info("MongoDB connected");
+
+    // START REMINDERS
+    reminderService.startReminderTask();
 
     // START SERVER
     httpServer.listen(env.PORT, () => logger.info(`Server running on port ${env.PORT}`));

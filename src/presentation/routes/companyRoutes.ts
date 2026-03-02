@@ -4,6 +4,7 @@ import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { CompanyDocumentController } from "@/presentation/controllers/companyController/CompanyDocumentController";
 import { CompanyProfileController } from "@/presentation/controllers/companyController/CompanyProfileController";
+import { CompanyDashboardController } from "@/presentation/controllers/companyController/CompanyDashboardController";
 import { AuthController } from "@/presentation/controllers/AuthController";
 import { SlotController } from "@/presentation/controllers/SlotController";
 import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
@@ -14,6 +15,7 @@ const profileController = container.get<CompanyProfileController>(TYPES.CompanyP
 const slotController = container.get<SlotController>(TYPES.SlotController);
 const companyAuth = container.get<SessionAuth>(TYPES.SessionAuth);
 const authController = container.get<AuthController>(TYPES.AuthController);
+const dashboardController = container.get<CompanyDashboardController>(TYPES.CompanyDashboardController);
 
 router.post("/logout", authController.logout.bind(authController));
 
@@ -99,6 +101,13 @@ router.get(
   companyAuth.verify,
   companyAuth.authorize(["company"]),
   revenueController.getCompanyWallet.bind(revenueController)
+);
+
+router.get(
+  "/dashboard/stats",
+  companyAuth.verify,
+  companyAuth.authorize(["company"]),
+  dashboardController.getStats.bind(dashboardController)
 );
 
 export default router;

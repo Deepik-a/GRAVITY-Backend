@@ -74,6 +74,7 @@ router.put(
 
 // Slot Selection and Booking
 router.get("/slots/available", userAuth.verify, userAuth.authorize(["user", "company"]), slotController.getAvailableSlots.bind(slotController));
+router.get("/companies/:companyId/slots/config", userAuth.verify, userAuth.authorize(["user", "company"]), slotController.getCompanyConfig.bind(slotController));
 router.post("/slots/book", userAuth.verify, userAuth.authorize(["user", "company"]), slotController.bookSlot.bind(slotController));
 router.get("/bookings", userAuth.verify, userAuth.authorize(["user", "company"]), slotController.getUserBookings.bind(slotController));
 router.patch("/bookings/:bookingId/complete", userAuth.verify, userAuth.authorize(["user", "company"]), slotController.completeBooking.bind(slotController));

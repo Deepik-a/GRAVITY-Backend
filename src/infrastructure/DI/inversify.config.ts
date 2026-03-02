@@ -31,6 +31,7 @@ import { ToggleCompanyBlockStatusUseCase } from "@/application/use-cases/admin/T
 import { SearchUserUseCase } from "@/application/use-cases/admin/SearchUsersUseCase";
 import { SearchCompanyUseCase } from "@/application/use-cases/admin/SearchCompanyUseCase";
 import { GetAllBookingsUseCase } from "@/application/use-cases/admin/GetAllBookingsUseCase";
+import { GetAdminDashboardStatsUseCase } from "@/application/use-cases/admin/GetAdminDashboardStatsUseCase";
 
 // ---------------- Use Cases (User/Auth) ----------------
 import { DetectUserRoleUseCase } from "@/application/use-cases/user/DetectUserRoleUseCase";
@@ -68,6 +69,7 @@ import { DeleteSlotConfigUseCase } from "@/application/use-cases/company/DeleteS
 import { GetCompanyBookingsUseCase } from "@/application/use-cases/company/GetCompanyBookingsUseCase";
 import { RescheduleBookingUseCase } from "@/application/use-cases/company/RescheduleBookingUseCase";
 import { ConfirmBookingUseCase } from "@/application/use-cases/company/ConfirmBookingUseCase";
+import { GetCompanyDashboardStatsUseCase } from "@/application/use-cases/company/GetCompanyDashboardStatsUseCase";
 
 // ---------------- Controllers ----------------
 import { AdminLoginController } from "@/presentation/controllers/adminController/AdminController";
@@ -78,6 +80,7 @@ import { ProfileController } from "@/presentation/controllers/userController/Pro
 import { SlotController } from "@/presentation/controllers/SlotController";
 import { CompanyController } from "@/presentation/controllers/userController/CompanyController";
 import { PaymentController } from "@/presentation/controllers/userController/PaymentController";
+import { CompanyDashboardController } from "@/presentation/controllers/companyController/CompanyDashboardController";
 
 // ---------------- Middleware ----------------
 import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
@@ -95,7 +98,7 @@ container.bind(TYPES.BookingRepository).to(BookingRepository);
 container.bind(TYPES.AuthRepository).to(UserRepository); // Same repo for login //LSp
 
 // ---------------- Bind Services ----------------
-container.bind(TYPES.EmailService).to(EmailService);
+container.bind(TYPES.EmailService).to(EmailService).inSingletonScope();
 container.bind(TYPES.JwtService).to(JwtService);
 container.bind(TYPES.OtpService).to(OtpService);
 container.bind(TYPES.StorageService).to(S3StorageService).inSingletonScope();
@@ -119,6 +122,7 @@ container.bind(TYPES.ToggleCompanyBlockStatusUseCase).to(ToggleCompanyBlockStatu
 container.bind(TYPES.SearchUserUseCase).to(SearchUserUseCase);
 container.bind(TYPES.SearchCompanyUseCase).to(SearchCompanyUseCase);
 container.bind(TYPES.GetAllBookingsUseCase).to(GetAllBookingsUseCase);
+container.bind(TYPES.GetAdminDashboardStatsUseCase).to(GetAdminDashboardStatsUseCase);
 
 // ---------------- Bind User/Auth Use Cases ----------------
 container.bind(TYPES.DetectUserRoleUseCase).to(DetectUserRoleUseCase);
@@ -152,6 +156,7 @@ container.bind(TYPES.DeleteSlotConfigUseCase).to(DeleteSlotConfigUseCase);
 container.bind(TYPES.GetCompanyBookingsUseCase).to(GetCompanyBookingsUseCase);
 container.bind(TYPES.RescheduleBookingUseCase).to(RescheduleBookingUseCase);
 container.bind(TYPES.ConfirmBookingUseCase).to(ConfirmBookingUseCase);
+container.bind(TYPES.GetCompanyDashboardStatsUseCase).to(GetCompanyDashboardStatsUseCase);
 
 // ---------------- Bind Controllers ----------------
 container.bind(TYPES.AdminController).to(AdminLoginController);
@@ -162,6 +167,7 @@ container.bind(TYPES.ProfileController).to(ProfileController);
 container.bind(TYPES.SlotController).to(SlotController);
 container.bind(TYPES.CompanyController).to(CompanyController);
 container.bind(TYPES.PaymentController).to(PaymentController);
+container.bind(TYPES.CompanyDashboardController).to(CompanyDashboardController);
 
 // ---------------- Bind Middleware ----------------
 container.bind(TYPES.SessionAuth).to(SessionAuth);
@@ -220,6 +226,17 @@ container.bind(TYPES.GetCompanyWalletUseCase).to(GetCompanyWalletUseCase);
 container.bind(TYPES.GetAllTransactionsUseCase).to(GetAllTransactionsUseCase);
 container.bind(TYPES.RevenueController).to(RevenueController);
 container.bind(TYPES.TransactionController).to(TransactionController);
+
+// ---------------- Notifications ----------------
+import { NotificationRepository } from "@/infrastructure/repositories/NotificationRepository";
+import { NotificationService } from "@/application/services/NotificationService";
+import { NotificationController } from "@/presentation/controllers/NotificationController";
+import { ReminderService } from "@/application/services/ReminderService";
+
+container.bind(TYPES.NotificationRepository).to(NotificationRepository);
+container.bind(TYPES.NotificationService).to(NotificationService);
+container.bind(TYPES.NotificationController).to(NotificationController);
+container.bind(TYPES.ReminderService).to(ReminderService).inSingletonScope();
 
 export { container };
 

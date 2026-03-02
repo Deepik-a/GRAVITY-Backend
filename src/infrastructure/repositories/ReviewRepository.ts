@@ -3,6 +3,7 @@ import ReviewModel, { IReviewDocument } from "@/infrastructure/database/models/R
 import { IReviewRepository } from "@/domain/repositories/IReviewRepository";
 import { IReview } from "@/domain/entities/Review";
 import { injectable } from "inversify";
+import mongoose from "mongoose";
 
 @injectable()
 export class ReviewRepository extends BaseRepository<IReviewDocument> implements IReviewRepository {
@@ -21,6 +22,14 @@ export class ReviewRepository extends BaseRepository<IReviewDocument> implements
       .sort({ createdAt: -1 })
       .lean();
     return reviews.map(r => this._mapToEntity(r));
+  }
+
+  async getAverageRating(companyId: string): Promise<number> {
+    const result = await this.model.aggregate([
+      { $match: { companyId: new mongoose.Types.ObjectId(companyId) } },
+      { $group: { _id: null, avg: { $avg: "$rating" } } }
+    ]);
+    return result[0]?.avg || 0;
   }
 
   private _mapToEntity(doc: unknown): IReview {

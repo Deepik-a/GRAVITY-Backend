@@ -18,8 +18,7 @@ import { AdminLoginResponseDto } from "@/application/dtos/admin/AdminLoginRespon
 import { ISearchUsersUseCase } from "@/application/interfaces/use-cases/admin/ISearchUsersUseCase";
 import { ISearchCompaniesUseCase } from "@/application/interfaces/use-cases/admin/ISearchCompaniesUseCase";
 import { Messages } from "@/shared/constants/message";
-
-// ... existing imports
+import { GetAdminDashboardStatsUseCase } from "@/application/use-cases/admin/GetAdminDashboardStatsUseCase";
 
 @injectable()
 export class AdminLoginController {
@@ -40,8 +39,21 @@ export class AdminLoginController {
     private readonly _searchUsersUseCase: ISearchUsersUseCase,
     @inject(TYPES.SearchCompanyUseCase)
     private readonly _searchCompaniesUseCase: ISearchCompaniesUseCase,
+    @inject(TYPES.GetAdminDashboardStatsUseCase)
+    private readonly _getDashboardStatsUseCase: GetAdminDashboardStatsUseCase,
     @inject(TYPES.Logger) private readonly _logger: ILogger
   ) {}
+
+  async getDashboardStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      this._logger.info("📊 Fetching Admin Dashboard Stats");
+      const stats = await this._getDashboardStatsUseCase.execute();
+      return res.status(StatusCode.SUCCESS).json(stats);
+    } catch (error) {
+      this._logger.error("❌ Error fetching dashboard stats:", { error });
+      next(error);
+    }
+  }
 
   // ... existing methods
 
