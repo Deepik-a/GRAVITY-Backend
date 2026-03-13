@@ -7,7 +7,7 @@ import { CompanyProfileController } from "@/presentation/controllers/companyCont
 import { CompanyDashboardController } from "@/presentation/controllers/companyController/CompanyDashboardController";
 import { AuthController } from "@/presentation/controllers/AuthController";
 import { SlotController } from "@/presentation/controllers/SlotController";
-import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
+import { SessionAuth } from "@/presentation/middlewares/authMiddleware";
 const router = Router();
 
 const docController = container.get<CompanyDocumentController>(TYPES.CompanyDocumentController);

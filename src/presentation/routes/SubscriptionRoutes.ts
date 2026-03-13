@@ -3,7 +3,7 @@ import { Router } from "express";
 import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { SubscriptionController } from "@/presentation/controllers/SubscriptionController";
-import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
+import { SessionAuth } from "@/presentation/middlewares/authMiddleware";
 
 const router = Router();
 

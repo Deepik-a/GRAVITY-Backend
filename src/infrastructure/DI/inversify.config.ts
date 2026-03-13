@@ -72,7 +72,7 @@ import { ConfirmBookingUseCase } from "@/application/use-cases/company/ConfirmBo
 import { GetCompanyDashboardStatsUseCase } from "@/application/use-cases/company/GetCompanyDashboardStatsUseCase";
 
 // ---------------- Controllers ----------------
-import { AdminLoginController } from "@/presentation/controllers/adminController/AdminController";
+import { AdminLoginController } from "@/presentation/controllers/adminController/adminController";
 import { AuthController } from "@/presentation/controllers/AuthController";
 import { CompanyDocumentController } from "@/presentation/controllers/companyController/CompanyDocumentController";
 import { CompanyProfileController } from "@/presentation/controllers/companyController/CompanyProfileController";
@@ -83,7 +83,7 @@ import { PaymentController } from "@/presentation/controllers/userController/Pay
 import { CompanyDashboardController } from "@/presentation/controllers/companyController/CompanyDashboardController";
 
 // ---------------- Middleware ----------------
-import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
+import { SessionAuth } from "@/presentation/middlewares/authMiddleware";
 import { EmailService } from "@/infrastructure/services/EmailService";
 import { LoggerService } from "@/domain/services/Logger";
 

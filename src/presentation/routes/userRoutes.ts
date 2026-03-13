@@ -5,7 +5,7 @@ import { ProfileController } from "@/presentation/controllers/userController/Pro
 import { SlotController } from "@/presentation/controllers/SlotController";
 import { CompanyController } from "@/presentation/controllers/userController/CompanyController";
 import { AuthController } from "@/presentation/controllers/AuthController";
-import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware"; 
+import { SessionAuth } from "@/presentation/middlewares/authMiddleware"; 
 
 const router = Router();
 const profileController = container.get<ProfileController>(TYPES.ProfileController);

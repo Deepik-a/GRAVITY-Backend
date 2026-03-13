@@ -2,7 +2,7 @@ import express from "express";
 import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { ChatController } from "@/presentation/controllers/ChatController";
-import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
+import { SessionAuth } from "@/presentation/middlewares/authMiddleware";
 
 const router = express.Router();
 const chatController = container.get<ChatController>(TYPES.ChatController);
