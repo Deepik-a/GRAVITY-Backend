@@ -2,7 +2,7 @@ import express, { Router } from "express";
 import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { PaymentController } from "@/presentation/controllers/userController/PaymentController";
-import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
+import { SessionAuth } from "@/presentation/middlewares/authMiddleware";
 
 const router = Router();
 const paymentController = container.get<PaymentController>(TYPES.PaymentController);

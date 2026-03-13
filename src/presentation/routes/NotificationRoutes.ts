@@ -2,7 +2,7 @@ import { Router } from "express";
 import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { NotificationController } from "@/presentation/controllers/NotificationController";
-import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware";
+import { SessionAuth } from "@/presentation/middlewares/authMiddleware";
 
 const router = Router();
 const notificationController = container.get<NotificationController>(TYPES.NotificationController);

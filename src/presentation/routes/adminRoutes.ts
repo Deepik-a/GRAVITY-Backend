@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
-import { AdminLoginController } from "@/presentation/controllers/adminController/AdminController"; // import class
+import { AdminLoginController } from "@/presentation/controllers/adminController/adminController"; // import class
 import { AuthController } from "@/presentation/controllers/AuthController";
 import { SlotController } from "@/presentation/controllers/SlotController";
-import { SessionAuth } from "@/presentation/middlewares/AuthMiddleware"; // import class/interface
+import { SessionAuth } from "@/presentation/middlewares/authMiddleware"; // import class/interface
 
 const router = Router();
 
