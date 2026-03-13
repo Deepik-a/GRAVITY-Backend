@@ -1,16 +1,43 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "rootDir": "src",
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
+    "types": [
+      "node",
+      "express",
+      "passport",
+      "jsonwebtoken",
+      "multer",
+      "cors",
+      "cookie-parser",
+      "nodemailer",
+      "passport-google-oauth20"
+    ],
+    "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-      "rootDir": "src",
-    "outDir": "dist"
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+      "sourceMap": true, //for easy debugging using breakpoints
   },
-  "include": ["src"]
-  
+  "include": [
+    "src",
+    "src/types/**/*.d.ts"
+  ],
+
 }

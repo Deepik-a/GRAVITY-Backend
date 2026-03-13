@@ -1,118 +1,78 @@
-// import type { IUserRepository } from "../../../domain/repositories/IUserRepository.js";
-// import { UserSignUp } from "../../../domain/entities/User.js";
-// import { UserResponseDTO } from "../../dtos/UserSignUpDTO.js";
-// import bcrypt from "bcryptjs";
-// import jwt from "jsonwebtoken"
-
-import { UserSignUp } from "../../../domain/entities/User.js";
-import { OtpPurpose } from "../../../domain/enums/OtpPurpose.js";
-import { IUserRepository } from "../../../domain/repositories/IUserRepository.js";
-import redisClient from "../../../infrastructure/config/redis.js";
-import { OtpService } from "../../providers/OTPService.js";
+import { UserSignUp, GoogleSignUp } from "@/domain/entities/User";
+import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import { IOtpService } from "@/domain/services/IOTPService"; 
+import { OtpPurpose } from "@/domain/enums/OtpPurpose";
 import bcrypt from "bcryptjs";
+import redisClient from "@/infrastructure/config/redis";
+import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
+import { inject, injectable } from "inversify";
+import { TYPES } from "@/infrastructure/DI/types";
+import { IRegisterUseCase } from "@/application/interfaces/use-cases/user/IRegisterUseCase";
+import { SignupRequestDto } from "@/application/dtos/user/SignupRequestDto";
+import { SignupResponseDto } from "@/application/dtos/user/SignupResponseDto";
 
-// interface RegisterUserRequest {
-//   name: string;
-//   email: string;
-//   phone?: string;
-//   password: string;
-// }
+@injectable()
+export class RegisterUseCase implements IRegisterUseCase {
+  constructor(
+   @inject(TYPES.UserRepository) private readonly _userRepo: IAuthRepository,
+   @inject(TYPES.CompanyRepository) private readonly _companyRepo: IAuthRepository,
+   @inject(TYPES.OtpService) private _otpService: IOtpService
+  ) {}
 
+  async execute(payload: SignupRequestDto): Promise<SignupResponseDto> {
+    const { role } = payload;
+    const repo = role === "company" ? this._companyRepo : this._userRepo;
 
-// export class RegisterUserUseCase {
-//   constructor(private userRepository: IUserRepository) {}
+    
+    // 1) Check if email exists in current role
+    const existing = await repo.findByEmail(payload.email);
+    if (existing) throw new Error("Email already in use");
 
-//  async execute(data: RegisterUserRequest): Promise<{ user: UserResponseDTO; token: string }> {
-//   console.log("STEP 1: Inside execute(), received:", data);
+    // 2) Check if email exists in OTHER role
+    if (role === "user") {
+      const existingCompany = await this._companyRepo.findByEmail(payload.email);
+      if (existingCompany) throw new Error("Email is already registered as company");
+    } else {
+      const existingUser = await this._userRepo.findByEmail(payload.email);
+      if (existingUser) throw new Error("Email is already registered as user");
+    }
 
-//   const existingUser = await this.userRepository.findByEmail(data.email);
-//   console.log("STEP 2: After findByEmail(), result:", existingUser);
+    // ---------------- Google Signup ----------------
+    if (payload.googleId) {
+      const googleUser = new GoogleSignUp(
+        payload.name,
+        payload.email,
+        payload.googleId,
+        role,
+        "google",
+        role === "company" ? "pending" : "verified"
+      );
 
-//   if (existingUser) throw new Error("Email already in use");
+      await repo.createWithGoogle(googleUser);
+      return { message: `${role} created using Google` };
+    }
 
-//   console.log("STEP 3: Creating user model");
-//   const hashedPassword = await bcrypt.hash(data.password, 10);
-//   const phoneNumber = data.phone || "";
-//   const user = new UserSignUp(data.name, data.email, phoneNumber, hashedPassword);
+    // ---------------- Local Signup ----------------
+    if (!payload.password) throw new Error("Password required");
 
-//   console.log("STEP 4: Before calling repository.create()");
-//   const createdUser = await this.userRepository.create(user);
+    const hashedPassword = await bcrypt.hash(payload.password, 10);
 
-//   console.log("STEP 5: After repository.create()");
-
-//   const token = jwt.sign({ id: createdUser.email, role: "user" }, process.env.JWT_SECRET || "your-secret-key", { expiresIn: "7d" });
-
-//   console.log(token,"STEP 6: Returning response with token generated");
-//   return { user: createdUser, token };
-// }
-
-// }
-
-
-//Clearly shows what input the use case expects.
-interface RegisterUserRequest{
-  name:string;
-  email:string;
-  phone?:string;
-  password:string;
-}
-
-
-export class RegisterUserUseCase{
-
-  //private is an access modifier in TypeScript,that is unlike public they are not accessible outside class
-//methods inside the RegisterUserUseCase class can use them,cannot access from outside
-  private otpService: OtpService;
-  private userRepository: IUserRepository
-
-//constructor is a special method that runs automatically when an instance of the class is created
-//in receives one argument as IUserRepository,so when an object is created with the class,it should pass an argument to that object
-constructor( userRepository: IUserRepository){
-    this.otpService = new OtpService();
-    this.userRepository = userRepository;
-}
-
-//execute() function returns an object {message:""} that is resolved by a Promise as we are using async keyword
-async execute(data:RegisterUserRequest):Promise<{message:string}>{
-      console.log("STEP 1: execute() received:", data);
-
-const existingUser=await this.userRepository.findByEmail(data.email);
-console.log("STEP 2: After findByEmail(), result:", existingUser);
-  if (existingUser) throw new Error("Email already in use");
-
-
-    // Step 3: Prepare temporary user object
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-    const phoneNumber = data.phone || "";
-    const tempUser = new UserSignUp(data.name, data.email, phoneNumber, hashedPassword);
-
-      // Step 4: Store temporary user in Redis
-    console.log("STEP 4: Storing temp user in Redis");
-    await redisClient.setEx(
-      `tempUser:${data.email}`,
-      600, // 10 minutes expiry
-      JSON.stringify(tempUser)
+    const tempUser = new UserSignUp(
+      new UniqueEntityID("temp"),
+      payload.name,
+      payload.email,
+      hashedPassword,
+      role,
+      "local",
+      payload.phone ?? "",
+      role === "company" ? "pending" : "verified"
     );
- 
 
- // Step 5: Generate & send OTP
-    console.log("STEP 5: Generating and sending OTP");
-    await this.otpService.generateOtp(data.email, OtpPurpose.SIGNUP);
+    await redisClient.setEx(`tempUser:${payload.email}`, 600, JSON.stringify(tempUser));
 
- // Step 5: Generate & send OTP
-    console.log("STEP 5: Generating and sending OTP");
-    await this.otpService.generateOtp(data.email, OtpPurpose.SIGNUP);
+    await this._otpService.generateOtp(payload.email, OtpPurpose.SIGNUP);
 
-     console.log("STEP 6: OTP sent successfully to user’s email");
-    return { message: "OTP sent to email. Please verify to complete signup." };
-
+    return { message: `OTP sent to ${payload.email}. Please verify to complete signup.` };
   }
 }
-
-
-
-
-
-
-
 

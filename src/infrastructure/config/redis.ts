@@ -1,21 +1,23 @@
-import  {createClient} from 'redis'
+import { createClient } from "redis";
+import { env } from "@/infrastructure/config/env";
+import { logger } from "@/domain/services/Logger";
 
-const redisClient=createClient({
-    url:process.env.REDIS_URL||"redis://localhost:6379",
-})
+const redisClient = createClient({
+  url: env.REDIS_URL,
+});
 
 
-redisClient.on("error",(err)=>console.error("Redis Client error",err))
+redisClient.on("error",(err)=>logger.error("Redis Client error", { error: err }));
 
 
 export const connectRedis = async () => {
 if(!redisClient.isOpen){
-    await redisClient.connect()
-      console.log("✅ Connected to Redis");
+    await redisClient.connect();
+      logger.info("✅ Connected to Redis");
 }else{
-  console.log("Redis already connected");
+  logger.info("Redis already connected");
     }
-}
+};
 
 export default redisClient;
 

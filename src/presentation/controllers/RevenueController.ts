@@ -1,0 +1,46 @@
+import { Request, Response, NextFunction } from "express";
+import { injectable, inject } from "inversify";
+import { TYPES } from "@/infrastructure/DI/types";
+import { IGetAdminRevenueUseCase } from "@/application/interfaces/use-cases/admin/IGetAdminRevenueUseCase";
+import { IInitiateCompanyPayoutUseCase } from "@/application/interfaces/use-cases/admin/IInitiateCompanyPayoutUseCase";
+import { IGetCompanyWalletUseCase } from "@/application/interfaces/use-cases/company/IGetCompanyWalletUseCase";
+
+import { AuthenticatedUser } from "@/types/auth";
+
+@injectable()
+export class RevenueController {
+  constructor(
+    @inject(TYPES.GetAdminRevenueUseCase) private _getAdminRevenueUseCase: IGetAdminRevenueUseCase,
+    @inject(TYPES.InitiateCompanyPayoutUseCase) private _initiateCompanyPayoutUseCase: IInitiateCompanyPayoutUseCase,
+    @inject(TYPES.GetCompanyWalletUseCase) private _getCompanyWalletUseCase: IGetCompanyWalletUseCase
+  ) {}
+
+  async getAdminRevenue(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this._getAdminRevenueUseCase.execute();
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async initiatePayout(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { bookingId } = req.body;
+      const result = await this._initiateCompanyPayoutUseCase.execute(bookingId);
+      res.status(200).json({ success: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getCompanyWallet(req: Request, res: Response, next: NextFunction) {
+    try {
+      const companyId = req.params.companyId || (req.user as AuthenticatedUser)?.id;
+      const result = await this._getCompanyWalletUseCase.execute(companyId);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+}

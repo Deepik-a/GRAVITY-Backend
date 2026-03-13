@@ -1,42 +1,111 @@
-import { UserSignUp } from "../../../domain/entities/User.js";
-import { OtpPurpose } from "../../../domain/enums/OtpPurpose.js";
-import { IUserRepository } from "../../../domain/repositories/IUserRepository.js";
-import redisClient from "../../../infrastructure/config/redis.js";
-import { OtpService } from "../../providers/OTPService.js";
-import bcrypt from "bcryptjs";
+import { UserSignUp, GoogleSignUp } from "@/domain/entities/User";
+import { OtpPurpose } from "@/domain/enums/OtpPurpose";
+import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
+import { GoogleUserMapper } from "@/application/mappers/GoogleUserMapper";
+import redisClient from "@/infrastructure/config/redis";
+import { IOtpService } from "@/domain/services/IOTPService";
+import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
+import { ObjectId } from "mongodb";
 import jwt from "jsonwebtoken";
+import { Messages } from "@/shared/constants/message";
+import { inject, injectable } from "inversify";
+import { TYPES } from "@/infrastructure/DI/types";
+import { env } from "@/infrastructure/config/env";
+import { IVerifyOtpUseCase } from "@/application/interfaces/use-cases/user/IVerifyOtpUseCase";
+import { VerifyOtpRequestDto, GoogleUserResponseDto } from "@/application/dtos/AuthDTOs";
+import { AppError } from "@/shared/error/AppError";
+import { StatusCode } from "@/domain/enums/StatusCode";
 
+@injectable()
+export class VerifyOtpUseCase implements IVerifyOtpUseCase {
+  constructor(
+      @inject(TYPES.UserRepository)  private _userRepository: IAuthRepository,
+      @inject(TYPES.CompanyRepository)  private _companyRepository: IAuthRepository,
+      @inject(TYPES.OtpService)  private _otpService: IOtpService // DEPEND ON INTERFACE
+  ) {}
+async execute(dto: VerifyOtpRequestDto) {
+  const { email, otp, purpose } = dto;
+  try {
+    // Step 1️⃣: Verify OTP
+    await this._otpService.verifyOtp(email, otp, purpose);
 
-export class VerifyOtpUseCase {
-constructor(private userRepository:IUserRepository){}
+    if (purpose === OtpPurpose.SIGNUP) {
+      // Load temp user from Redis
+      const tempData = await redisClient.get(`tempUser:${email}`);
+      if (!tempData) throw new AppError("User data expired or not found in Redis", StatusCode.BAD_REQUEST);
 
-async execute(email:string,otp:string){
+      const parsed = JSON.parse(tempData);
+      const role = parsed.role; 
+      const repo = role === "company" ? this._companyRepository : this._userRepository;
+   
 
-const otpService= new OtpService();
+      const user = new UserSignUp(
+        new UniqueEntityID(new ObjectId()),
+        parsed.name,
+        parsed.email,
+        parsed.password,
+        parsed.role,
+        parsed.provider,
+        parsed.phone,
+        parsed.status
+      );
 
- otpService.verifyOtp(email,otp,OtpPurpose.SIGNUP)
+      const createdUser = await repo.create(user);
 
- 
-  // Step 2: Retrieve temporary user data
-    const tempData = await redisClient.get(`tempUser:${email}`);
-    if (!tempData) throw new Error("User data expired or not found");
+      await redisClient.del(`tempUser:${email}`);
 
-    const parsed = JSON.parse(tempData);
-    const hashedPassword = await bcrypt.hash(parsed.password, 10);
+      // Generate JWT
+      const userId = createdUser.id.toString();
+      const accessToken = jwt.sign(
+        { userId, role: role || "user" },
+        env.JWT_ACCESS_SECRET,
+        { expiresIn: env.JWT_ACCESS_EXPIRATION}
+      );
+      const refreshToken = jwt.sign(
+        { userId, role: role || "user" },
+        env.JWT_REFRESH_SECRET,
+        { expiresIn: env.JWT_REFRESH_EXPIRATION }
+      );
 
-    const user = new UserSignUp(parsed.name, parsed.email, parsed.phone || "", hashedPassword);
-    const createdUser = await this.userRepository.create(user);
+      let userResponse: UserSignUp | GoogleUserResponseDto = createdUser;
+      if (createdUser.provider === "google") {
+        userResponse = GoogleUserMapper.toResponseDTO(createdUser as unknown as GoogleSignUp, accessToken);
+      }
 
-    // Step 3: Generate JWT Token
-    const token = jwt.sign(
-      { id: createdUser.email, role: "user" },
-      process.env.JWT_SECRET || "secret",
-      { expiresIn: "7d" }
-    );
+      return {
+        success: true,
+        message: `${role || "User"} registered successfully`,
+        user: userResponse,
+        accessToken,
+        refreshToken,
+        role: role || "user"
+      };
+    }
 
-    await redisClient.del(`tempUser:${email}`); // cleanup
+    // 🟦 FORGOT PASSWORD FLOW
+    if (purpose === OtpPurpose.FORGOT_PASSWORD) {
+      // Fetch user or company from database
+      const user = await this._userRepository.findByEmail(email);
+      const company = await this._companyRepository.findByEmail(email);
 
-    return { message: "User registered successfully", user: createdUser, token };
+      if (!user && !company) throw new AppError("No account found for this email", StatusCode.NOT_FOUND);
+
+      const role = user ? "user" : "company";
+    
+      return {
+        success: true,
+        role,
+        message: Messages.AUTH.OTP_SUCCESS,
+      };
+    }
+
+    throw new AppError("Invalid OTP purpose", StatusCode.BAD_REQUEST);
+  } catch (err: unknown) {
+    if (err instanceof AppError) throw err;
+    const message = err instanceof Error ? err.message : "Unknown error";
+    // Propagate as AppError if possible, or 400
+    throw new AppError(message, StatusCode.BAD_REQUEST);
   }
 }
 
+}

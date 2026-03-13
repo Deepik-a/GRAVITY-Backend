@@ -1,19 +1,17 @@
 //** A repository interface defines a contract for databse operation,but does not implement it */
+//** it should not include dtos and mappers,only entities */
 
-import { UserSignUp } from "../entities/User.js";
-import { UserResponseDTO } from "../../application/dtos/UserSignUpDTO.js";
-import type { ObjectId } from "mongodb";
-
-// Internal type including password for login validation
-export interface UserWithPassword {
-    _id: ObjectId;
-    name: string;
-    email: string;
-    phone: string;
-    password: string;
-}
+// src/domain/repositories/IUserRepository.ts
+import { UserProfile } from "@/domain/entities/User";
+import { ICompany } from "@/domain/entities/Company";
 
 export interface IUserRepository {
-    create(user: UserSignUp): Promise<UserResponseDTO>; // safe for client
-    findByEmail(email: string): Promise<UserWithPassword | null>; // includes password for login
+  findById(id: string): Promise<UserProfile | null>;
+  getAllUsers(): Promise<UserProfile[]>;
+  updateBlockStatus(userId: string, isBlocked: boolean): Promise<UserProfile | null>;
+  toggleFavourite(userId: string, companyId: string): Promise<string[]>; // Returns updated favourites list
+  getFavourites(userId: string): Promise<ICompany[]>; // Returns populated company details
+  changePassword(userId: string, hashedPassword: string): Promise<void>;
+  verifyPassword(userId: string, password: string): Promise<boolean>;
 }
+
