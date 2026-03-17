@@ -2,6 +2,7 @@ import mongoose, { Types } from "mongoose";
 import bcrypt from "bcryptjs";
 import { BaseRepository } from "@/infrastructure/repositories/BaseRepository";
 import UserModel from "@/infrastructure/database/models/UserModel";
+import SubscriptionPlanModel from "@/infrastructure/database/models/SubscriptionPlanModel";
 import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { UserSignUp, GoogleSignUp, UserProfile } from "@/domain/entities/User";
 import { ICompany } from "@/domain/entities/Company";
@@ -24,6 +25,7 @@ export class UserRepository
     @inject(TYPES.Logger) private readonly _logger: ILogger
   ) {
     super(UserModel);
+    super(SubscriptionPlanModel);
   }
 
   /* --------------------------------------------------
@@ -239,6 +241,8 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
       }
     }
   ]);
+
+  const subscriptionName= await SubscriptionPlanModel.
 
   console.log("users in repo", users);
 
