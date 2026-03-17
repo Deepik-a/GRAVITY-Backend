@@ -242,8 +242,6 @@ async findByEmail(email: string): Promise<UserSignUp | null> {
     }
   ]);
 
-  const subscriptionName= await SubscriptionPlanModel.
-
   console.log("users in repo", users);
 
   // Generate signed URLs for profile images
