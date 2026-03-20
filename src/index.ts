@@ -43,7 +43,7 @@ logger.info(process.cwd(), { cwd: process.cwd() });
 // CORS
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: env.FRONTEND_URL,
     credentials: true,
   })
 );
