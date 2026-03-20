@@ -2,6 +2,7 @@ import { Server as SocketIOServer, Socket } from "socket.io";
 import { Server as HttpServer } from "http";
 import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
+import { env } from "@/infrastructure/config/env";
 import { SendMessageUseCase } from "@/application/use-cases/chat/SendMessageUseCase";
 import { ILogger } from "@/domain/services/ILogger";
 import { IChatRepository } from "@/domain/repositories/IChatRepository";
@@ -25,7 +26,7 @@ export class SocketManager {
     this.logger = container.get<ILogger>(TYPES.Logger);
     SocketManager.io = new SocketIOServer<object, object, object, object>(server, {
       cors: {
-        origin: "http://localhost:3000",
+        origin: env.FRONTEND_URL,
         credentials: true,
       },
     });

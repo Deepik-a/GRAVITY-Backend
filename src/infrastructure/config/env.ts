@@ -11,6 +11,7 @@ const envSchema = z.object({
   PORT: z.string().transform(Number).default(5000),
   MONGO_URI: z.string().url(),
   REDIS_URL: z.string().url().default("redis://localhost:6379"),
+  FRONTEND_URL: z.string().url().default("https://www.gravityconstruction.co.in"),
   JWT_ACCESS_SECRET: z.string().min(1),
   JWT_REFRESH_SECRET: z.string().min(1),
 JWT_ACCESS_EXPIRATION: z.enum(["15m", "30m", "1h", "1d"]).default("15m"),
