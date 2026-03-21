@@ -65,10 +65,10 @@ export class SocketManager {
         // Broadcast online status
         socket.broadcast.emit("user_status", { userId, status: "online", type });
         
-        // Send list of online users/companies?
-        // For now, adhere to existing flow but maybe filter
+        // Send list of online users/companies
         const onlineUsers = Array.from(this.userSockets.keys());
-        socket.emit("online_users", onlineUsers);
+        const onlineCompanies = Array.from(this.companySockets.keys());
+        socket.emit("online_users", [...onlineUsers, ...onlineCompanies]);
       });
 
       socket.on("typing", (data: { senderId: string, receiverId: string, receiverType: string }) => {
@@ -131,7 +131,7 @@ export class SocketManager {
       });
 
       // --- Video Call Signaling ---
-      socket.on("call_user", (data: { callerId: string, callerName: string, receiverId: string, receiverType: string, offer: any }) => {
+      socket.on("call_user", (data: { callerId: string, callerName: string, receiverId: string, receiverType: string, offer: unknown }) => {
         this.logger.info(`Call attempt from ${data.callerId} to ${data.receiverId}`);
         SocketManager.io.to(`${data.receiverType}:${data.receiverId}`).emit("incoming_call", {
           callerId: data.callerId,
@@ -140,7 +140,7 @@ export class SocketManager {
         });
       });
 
-      socket.on("answer_call", (data: { callerId: string, callerType: string, answer: any }) => {
+      socket.on("answer_call", (data: { callerId: string, callerType: string, answer: unknown }) => {
         this.logger.info(`Call answered by ${data.callerId}`);
         SocketManager.io.to(`${data.callerType}:${data.callerId}`).emit("call_answered", {
           answer: data.answer
@@ -152,7 +152,7 @@ export class SocketManager {
         SocketManager.io.to(`${data.callerType}:${data.callerId}`).emit("call_declined");
       });
 
-      socket.on("ice_candidate", (data: { receiverId: string, receiverType: string, candidate: any }) => {
+      socket.on("ice_candidate", (data: { receiverId: string, receiverType: string, candidate: unknown }) => {
         SocketManager.io.to(`${data.receiverType}:${data.receiverId}`).emit("ice_candidate", {
           candidate: data.candidate
         });

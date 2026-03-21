@@ -84,6 +84,7 @@ export class AdminLoginController {
 
       return res.status(StatusCode.SUCCESS).json({
         message: result.message,
+        user: result.user
       });
     } catch (error) {
       this._logger.error("❌ Error in admin login controller:", { error });
@@ -113,22 +114,22 @@ export class AdminLoginController {
 
   async verifyCompany(req: Request, res: Response, next: NextFunction) {
     try {
-      const verifyDto: VerifyCompanyRequestDto = req.body;
+      const { id } = req.params;
+      const { approve } = req.body;
+      const verifyDto: VerifyCompanyRequestDto = { companyId: id, approve };
       this._logger.info("📨 Verify Company Request:", { verifyDto });
 
-      if (!verifyDto.companyId || verifyDto.approve === undefined) {
+      if (!id || approve === undefined) {
         return res
           .status(StatusCode.BAD_REQUEST)
-          .json({ message: "companyId and approve are required" });
+          .json({ message: Messages.COMPANY.APPROVE_REQUIRED });
       }
 
       const updatedCompany: CompanyResponseDto =
         await this._verifyCompanyUseCase.execute(verifyDto);
 
       return res.status(StatusCode.SUCCESS).json({
-        message: `Company ${
-          verifyDto.approve ? "approved" : "rejected"
-        } successfully`,
+        message: verifyDto.approve ? Messages.ADMIN.APPROVE_SUCCESS : Messages.ADMIN.REJECT_SUCCESS,
         company: updatedCompany,
       });
     } catch (err) {
@@ -138,11 +139,12 @@ export class AdminLoginController {
 
   async toggleUserBlockStatus(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id, isBlocked } = req.body;
+      const { id } = req.params;
+      const { isBlocked } = req.body;
       if (!id || isBlocked === undefined) {
         return res
           .status(StatusCode.BAD_REQUEST)
-          .json({ message: "id and isBlocked are required" });
+          .json({ message: Messages.ADMIN.BLOCK_REQUIRED });
       }
       const result = await this._toggleUserBlockStatusUseCase.execute({
         id,
@@ -151,7 +153,7 @@ export class AdminLoginController {
       return res
         .status(StatusCode.SUCCESS)
         .json({
-          message: `User ${isBlocked ? "blocked" : "unblocked"} successfully`,
+          message: isBlocked ? Messages.ADMIN.USER_BLOCK_SUCCESS : Messages.ADMIN.USER_UNBLOCK_SUCCESS,
           user: result,
         });
     } catch (error) {
@@ -165,12 +167,13 @@ export class AdminLoginController {
     next: NextFunction
   ) {
     try {
-      const { id, isBlocked } = req.body;
+      const { id } = req.params;
+      const { isBlocked } = req.body;
 
       if (!id || isBlocked === undefined) {
         return res
           .status(StatusCode.BAD_REQUEST)
-          .json({ message: "id and isBlocked are required" });
+          .json({ message: Messages.ADMIN.BLOCK_REQUIRED });
       }
       const result = await this._toggleCompanyBlockStatusUseCase.execute({
         id,
@@ -179,9 +182,7 @@ export class AdminLoginController {
       return res
         .status(StatusCode.SUCCESS)
         .json({
-          message: `Company ${
-            isBlocked ? "blocked" : "unblocked"
-          } successfully`,
+          message: isBlocked ? Messages.ADMIN.COMPANY_BLOCK_SUCCESS : Messages.ADMIN.COMPANY_UNBLOCK_SUCCESS,
           company: result,
         });
     } catch (error) {
@@ -221,7 +222,7 @@ export class AdminLoginController {
       return res
         .status(StatusCode.SUCCESS)
         .json({ 
-          message: "Companies searched successfully", 
+          message: Messages.COMPANY.SEARCH_SUCCESS, 
           companies: result.data,
           total: result.total,
           page: result.page,

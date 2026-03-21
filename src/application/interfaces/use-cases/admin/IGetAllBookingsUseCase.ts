@@ -1,5 +1,5 @@
 import { IBooking } from "@/domain/entities/Booking";
 
 export interface IGetAllBookingsUseCase {
-  execute(): Promise<IBooking[]>;
+  execute(page?: number, limit?: number): Promise<{ bookings: IBooking[]; total: number }>;
 }

@@ -6,6 +6,8 @@ export interface SendMessageDTO {
   receiverId: string;
   receiverType: "user" | "company";
   content: string;
+  attachmentUrl?: string;
+  attachmentType?: "image" | "file";
 }
 
 export interface ISendMessageUseCase {

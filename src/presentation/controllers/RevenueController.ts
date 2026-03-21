@@ -26,8 +26,8 @@ export class RevenueController {
 
   async initiatePayout(req: Request, res: Response, next: NextFunction) {
     try {
-      const { bookingId } = req.body;
-      const result = await this._initiateCompanyPayoutUseCase.execute(bookingId);
+      const { id } = req.params;
+      const result = await this._initiateCompanyPayoutUseCase.execute(id);
       res.status(200).json({ success: result });
     } catch (error) {
       next(error);

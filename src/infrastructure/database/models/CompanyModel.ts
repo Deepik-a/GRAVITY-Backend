@@ -1,6 +1,6 @@
-// src/infrastructure/database/models/CompanyModel.ts
 import mongoose, { Schema, Document } from "mongoose";
 import { ObjectId } from "mongodb";
+import { ICompanyProfile } from "@/domain/entities/Company";
 
 export interface ICompany extends Document {
   _id: ObjectId;
@@ -18,7 +18,7 @@ export interface ICompany extends Document {
   isSubscribed: boolean;
   walletBalance: number;
   profileImage?: string | null;
-  location?: string | null;
+  companyLocation?: string | null;
   bio?: string | null;
 
   documents: {
@@ -37,44 +37,9 @@ export interface ICompany extends Document {
     stripeSubscriptionId?: string | null;
     stripeCustomerId?: string | null;
   };
-  profile?: {
-    companyName?: string;
-    categories: string[];
-    services: string[];
-    consultationFee: number;
-    establishedYear: number;
-    companySize: string;
-    overview: string;
-    projectsCompleted: number;
-    happyCustomers: number;
-    awardsWon: number;
-    awardsRecognition: string;
-    contactOptions: {
-      chatSupport: boolean;
-      videoCalls: boolean;
-    };
-    teamMembers: {
-      id: number;
-      name: string;
-      qualification: string;
-      role: string;
-      photo?: string;
-    }[];
-    projects: {
-      id: number;
-      title: string;
-      description: string;
-      beforeImage?: string;
-      afterImage?: string;
-      date?: string;
-    }[];
-    brandIdentity: {
-      logo?: string;
-      banner1?: string;
-      banner2?: string;
-      profilePicture?: string;
-    };
-  } | null;
+  profile?: ICompanyProfile | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const CompanySchema = new Schema<ICompany>(
@@ -96,7 +61,7 @@ const CompanySchema = new Schema<ICompany>(
       default: "local"
     },
     profileImage: { type: String, default: null },
-    location: { type: String, default: null },
+    companyLocation: { type: String, default: null },
     bio: { type: String, default: null },
 
     status: {
@@ -152,50 +117,12 @@ const CompanySchema = new Schema<ICompany>(
       stripeCustomerId: { type: String, default: null },
     },
     profile: {
-      type: {
-        companyName: { type: String, default: "" },
-        categories: [{ type: String }],
-        services: [{ type: String }],
-        consultationFee: { type: Number, default: 0 },
-        establishedYear: { type: Number, default: 2024 },
-        companySize: { type: String, default: "1-10 employees" },
-        overview: { type: String, default: "" },
-        projectsCompleted: { type: Number, default: 0 },
-        happyCustomers: { type: Number, default: 0 },
-        awardsWon: { type: Number, default: 0 },
-        awardsRecognition: { type: String, default: "" },
-        contactOptions: {
-          chatSupport: { type: Boolean, default: true },
-          videoCalls: { type: Boolean, default: false },
-        },
-        teamMembers: [{
-          id: { type: Number },
-          name: { type: String },
-          qualification: { type: String },
-          role: { type: String },
-          photo: { type: String },
-        }],
-        projects: [{
-          id: { type: Number },
-          title: { type: String },
-          description: { type: String },
-          beforeImage: { type: String },
-          afterImage: { type: String },
-          date: { type: String },
-        }],
-        brandIdentity: {
-          logo: { type: String },
-          banner1: { type: String },
-          banner2: { type: String },
-          profilePicture: { type: String },
-        }
-      },
+      type: Schema.Types.Mixed,
       default: null
     }
   },
   { timestamps: true }
 );
-
 
 const CompanyModel = mongoose.model<ICompany>("Company", CompanySchema);
 export default CompanyModel;

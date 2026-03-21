@@ -3,6 +3,7 @@ import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { PaymentController } from "@/presentation/controllers/userController/PaymentController";
 import { SessionAuth } from "@/presentation/middlewares/authMiddleware";
+import { ROUTES } from "@/shared/constants/routes";
 
 const router = Router();
 const paymentController = container.get<PaymentController>(TYPES.PaymentController);
@@ -10,7 +11,7 @@ const userAuth = container.get<SessionAuth>(TYPES.SessionAuth);
 
 // Create checkout session - needs auth
 router.post(
-  "/create-checkout-session",
+  ROUTES.PAYMENTS.CREATE_CHECKOUT.replace("/payments", ""),
   userAuth.verify,
   userAuth.authorize(["user"]),
   paymentController.createCheckoutSession.bind(paymentController)
@@ -26,14 +27,14 @@ router.post(
 
 // Webhook - NO auth, needs raw body
 router.post(
-  "/webhook",
+  ROUTES.PAYMENTS.WEBHOOK.replace("/payments", ""),
   express.raw({ type: "application/json" }),
   paymentController.handleWebhook.bind(paymentController)
 );
  
 // Verify session - NO auth needed as we verify sessionId with Stripe
 router.get(
-  "/verify-session",
+  ROUTES.PAYMENTS.VERIFY_SESSION.replace("/payments", ""),
   paymentController.verifySession.bind(paymentController)
 );
  

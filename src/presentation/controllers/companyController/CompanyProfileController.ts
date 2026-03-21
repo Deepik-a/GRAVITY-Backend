@@ -7,6 +7,8 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { ILogger } from "@/domain/services/ILogger";
 import { IStorageService } from "@/domain/services/IStorageService";
+import { AuthenticatedUser } from "@/types/auth";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class CompanyProfileController {
@@ -22,10 +24,10 @@ export class CompanyProfileController {
     this._logger.info("📥 Get profile endpoint hit");
     try {
       // Use companyId from params, or fallback to the authenticated user's ID
-      const companyId = req.params.companyId || (req.user as any)?.id;
+      const companyId = req.params.companyId || (req.user as AuthenticatedUser)?.id;
       
       if (!companyId) {
-        return res.status(StatusCode.BAD_REQUEST).json({ message: "Company ID is required" });
+        return res.status(StatusCode.BAD_REQUEST).json({ message: Messages.COMPANY.ID_REQUIRED });
       }
 
       const result = await this._getProfileUseCase.execute(companyId);
@@ -41,7 +43,7 @@ export class CompanyProfileController {
     try {
       const { companyId, profileData } = req.body;
       if (!companyId || !profileData) {
-        return res.status(StatusCode.BAD_REQUEST).json({ message: "Company ID and Profile Data are required" });
+        return res.status(StatusCode.BAD_REQUEST).json({ message: Messages.COMPANY.PROFILE_DATA_REQUIRED });
       }
 
       const result = await this._updateProfileUseCase.execute(companyId, profileData);
@@ -57,7 +59,7 @@ export class CompanyProfileController {
     try {
       const file = req.file;
       if (!file) {
-        return res.status(StatusCode.BAD_REQUEST).json({ message: "No image file provided" });
+        return res.status(StatusCode.BAD_REQUEST).json({ message: Messages.COMPANY.IMAGE_REQUIRED });
       }
 
       const key = await this._storageService.uploadFile(file);

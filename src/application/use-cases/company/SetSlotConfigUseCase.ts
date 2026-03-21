@@ -1,6 +1,7 @@
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { ISlotRepository } from "@/domain/repositories/ISlotRepository";
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
+import { IBooking } from "@/domain/entities/Booking";
 import { ISlotConfig } from "@/domain/entities/SlotConfig";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
@@ -86,7 +87,7 @@ export class SetSlotConfigUseCase implements ISetSlotConfigUseCase {
         const bookings = await this._bookingRepository.getCompanyBookings(config.companyId);
         const bookingCounts: Record<string, number> = {};
         
-        bookings.forEach(b => {
+        bookings.forEach((b: IBooking) => {
           const dateStr = toDateStr(b.date);
           if (dateStr) {
             bookingCounts[dateStr] = (bookingCounts[dateStr] || 0) + 1;

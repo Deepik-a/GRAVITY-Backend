@@ -56,7 +56,7 @@ export class TransactionRepository extends BaseRepository<ITransactionDocument> 
     startDate?: Date;
     endDate?: Date;
   }): Promise<ITransaction[]> {
-    const query: Record<string, any> = {};
+    const query: mongoose.FilterQuery<ITransactionDocument> = {};
     
     if (filters) {
       if (filters.type) query.type = filters.type;
