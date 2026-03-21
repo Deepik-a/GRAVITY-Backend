@@ -7,6 +7,7 @@ import { injectable, inject } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { ILogger } from "@/domain/services/ILogger";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class CompanyDocumentController {
@@ -26,13 +27,13 @@ export class CompanyDocumentController {
 
       if (!uploadDto.email) {
         return res.status(StatusCode.BAD_REQUEST).json({
-          message: "Email is required to identify the company",
+          message: Messages.VALIDATION.EMAIL_REQUIRED,
         });
       }
 
       if (!uploadDto.files || uploadDto.files.length !== 3) {
         return res.status(StatusCode.BAD_REQUEST).json({
-          message: "Exactly 3 documents are required",
+          message: Messages.COMPANY.DOCUMENTS_REQUIRED,
         });
       }
 

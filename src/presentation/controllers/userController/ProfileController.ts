@@ -11,6 +11,7 @@ import { IStorageService } from "@/domain/services/IStorageService";
 import { IToggleFavouriteUseCase } from "@/application/interfaces/use-cases/user/IToggleFavouriteUseCase";
 import { IGetFavouritesUseCase } from "@/application/interfaces/use-cases/user/IGetFavouritesUseCase";
 import { IChangePasswordUseCase } from "@/application/interfaces/use-cases/user/IChangePasswordUseCase";
+import { Messages } from "@/shared/constants/message";
 
 
 @injectable()
@@ -30,7 +31,7 @@ export class ProfileController {
       if (!user?.id) {
         return res
           .status(StatusCode.UNAUTHORIZED)
-          .json({ message: "Unauthorized: No user ID found" });
+          .json({ message: Messages.AUTH.UNAUTHORIZED });
       }
 
       const requestDto: GetUserProfileRequestDto = { 
@@ -51,7 +52,7 @@ export class ProfileController {
   async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
       const user = req.user as AuthenticatedUser | undefined;
-      if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+      if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
 
       const dto: UpdateUserProfileRequestDto = {
         id: user.id,
@@ -59,7 +60,7 @@ export class ProfileController {
       };
 
       const profile = await this._updateProfileUseCase.execute(dto);
-      return res.status(StatusCode.SUCCESS).json({ message: "Profile updated successfully", profile });
+      return res.status(StatusCode.SUCCESS).json({ message: Messages.USER.PROFILE_UPDATE_SUCCESS, profile });
     } catch (error) {
       next(error);
     }
@@ -68,9 +69,9 @@ export class ProfileController {
   async uploadProfileImage(req: Request, res: Response, next: NextFunction) {
     try {
       const user = req.user as AuthenticatedUser | undefined;
-      if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+      if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
 
-      if (!req.file) return res.status(StatusCode.BAD_REQUEST).json({ message: "No image file provided" });
+      if (!req.file) return res.status(StatusCode.BAD_REQUEST).json({ message: Messages.COMPANY.IMAGE_REQUIRED });
 
       const key = await this._storageService.uploadFile(req.file);
 
@@ -82,7 +83,7 @@ export class ProfileController {
       await this._updateProfileUseCase.execute(dto);
 
       const signedUrl = await this._storageService.getSignedUrl(key);
-      return res.status(StatusCode.SUCCESS).json({ message: "Profile image uploaded", url: signedUrl });
+      return res.status(StatusCode.SUCCESS).json({ message: Messages.USER.PROFILE_IMAGE_UPLOAD_SUCCESS, url: signedUrl });
     } catch (error) {
       next(error);
     }
@@ -91,14 +92,14 @@ export class ProfileController {
   async deleteProfileField(req: Request, res: Response, next: NextFunction) {
     try {
        const user = req.user as AuthenticatedUser | undefined;
-       if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+       if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
  
        const { field } = req.body;
-       if (!field) return res.status(StatusCode.BAD_REQUEST).json({ message: "Field name required" });
+       if (!field) return res.status(StatusCode.BAD_REQUEST).json({ message: Messages.USER.FIELD_REQUIRED });
 
        // Prevent deleting critical fields
        if (["name", "email", "id"].includes(field)) {
-           return res.status(StatusCode.BAD_REQUEST).json({ message: "Cannot delete this field" });
+           return res.status(StatusCode.BAD_REQUEST).json({ message: Messages.USER.CANNOT_DELETE_FIELD });
        }
 
        const dto: UpdateUserProfileRequestDto = {
@@ -110,7 +111,7 @@ export class ProfileController {
        
        await this._updateProfileUseCase.execute(dto as UpdateUserProfileRequestDto);
  
-       return res.status(StatusCode.SUCCESS).json({ message: "Field deleted successfully" });
+       return res.status(StatusCode.SUCCESS).json({ message: Messages.USER.FIELD_DELETE_SUCCESS });
     } catch (error) {
       next(error);
     }
@@ -120,12 +121,12 @@ export class ProfileController {
   async toggleFavourite(req: Request, res: Response, next: NextFunction) {
     try {
       const user = req.user as AuthenticatedUser | undefined;
-      if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+      if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
 
       const { companyId } = req.body;
       
       if (user.role === "company") {
-        return res.status(StatusCode.BAD_REQUEST).json({ message: "Companies cannot add favourites" });
+        return res.status(StatusCode.BAD_REQUEST).json({ message: Messages.USER.COMPANIES_NO_FAVOURITES });
       }
 
       const favourites = await this._toggleFavouriteUseCase.execute(user.id, companyId);
@@ -139,14 +140,14 @@ export class ProfileController {
   async getFavourites(req: Request, res: Response, next: NextFunction) {
     try {
       const user = req.user as AuthenticatedUser | undefined;
-      if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+      if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
 
       if (user.role === "company") {
-        return res.status(StatusCode.SUCCESS).json({ message: "Companies do not have favourites", favourites: [] });
+        return res.status(StatusCode.SUCCESS).json({ message: Messages.USER.COMPANIES_NO_FAVOURITES, favourites: [] });
       }
 
       const favourites = await this._getFavouritesUseCase.execute(user.id);
-      return res.status(StatusCode.SUCCESS).json({ message: "Favourites fetched", favourites });
+      return res.status(StatusCode.SUCCESS).json({ message: Messages.USER.FAVOURITES_FETCH_SUCCESS, favourites });
     } catch (error) {
       next(error);
     }
@@ -155,12 +156,12 @@ export class ProfileController {
   async changePassword(req: Request, res: Response, next: NextFunction) {
     try {
       const user = req.user as AuthenticatedUser | undefined;
-      if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+      if (!user?.id) return res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
 
       const { oldPassword, newPassword } = req.body;
       await this._changePasswordUseCase.execute(user.id, { oldPassword, newPassword });
       
-      return res.status(StatusCode.SUCCESS).json({ message: "Password changed successfully" });
+      return res.status(StatusCode.SUCCESS).json({ message: Messages.USER.PASSWORD_CHANGE_SUCCESS });
     } catch (error) {
       next(error);
     }

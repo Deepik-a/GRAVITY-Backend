@@ -6,9 +6,9 @@ export interface IBookingRepository {
   createBooking(booking: IBooking): Promise<IBooking>;
   getBookingsByCompanyAndDate(companyId: string, date: Date, statuses?: string[]): Promise<IBooking[]>;
 
-  getUserBookings(userId: string): Promise<IBooking[]>;
-  getCompanyBookings(companyId: string): Promise<IBooking[]>;
-  getAllBookings(): Promise<IBooking[]>;
+  getUserBookingsPaged(userId: string, page: number, limit: number): Promise<{ bookings: IBooking[]; total: number }>;
+  getCompanyBookingsPaged(companyId: string, page: number, limit: number): Promise<{ bookings: IBooking[]; total: number }>;
+  getAllBookingsPaged(page: number, limit: number): Promise<{ bookings: IBooking[]; total: number }>;
   checkSlotAvailability(companyId: string, date: Date, startTime: string): Promise<boolean>;
   cancelBooking(bookingId: string): Promise<boolean>;
   getStats(companyId: string): Promise<{
@@ -18,4 +18,6 @@ export interface IBookingRepository {
   }>;
   getBookingsInDateRange(startDate: Date, endDate: Date, status?: string): Promise<IBooking[]>;
   findOneBooking(companyId: string, date: Date, startTime: string): Promise<IBooking | null>;
+  getAllBookings(): Promise<IBooking[]>;
+  getCompanyBookings(companyId: string): Promise<IBooking[]>;
 }

@@ -1,26 +1,41 @@
-import { IChatRepository } from "@/domain/repositories/IChatRepository";
-import { Message } from "@/domain/entities/Message";
-import { Conversation } from "@/domain/entities/Conversation";
+import CompanyModel from "@/infrastructure/database/models/CompanyModel";
 import { MessageModel } from "@/infrastructure/database/models/MessageModel";
 import { ConversationModel } from "@/infrastructure/database/models/ConversationModel";
 import UserModel from "@/infrastructure/database/models/UserModel";
-import CompanyModel from "@/infrastructure/database/models/CompanyModel";
+import { IChatRepository } from "@/domain/repositories/IChatRepository";
+import { Message } from "@/domain/entities/Message";
+import { Conversation } from "@/domain/entities/Conversation";
 import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
-import { injectable } from "inversify";
+import { IStorageService } from "@/domain/services/IStorageService";
+import { inject, injectable } from "inversify";
+import { TYPES } from "@/infrastructure/DI/types";
 import mongoose from "mongoose";
 
 @injectable()
 export class ChatRepository implements IChatRepository {
+  constructor(
+    @inject(TYPES.StorageService) private readonly _s3Service: IStorageService
+  ) {}
+
+  private async _resolveAttachmentUrl(url?: string): Promise<string | undefined> {
+    if (!url || url.startsWith("http") || url.startsWith("data:")) return url;
+    try {
+      return await this._s3Service.getSignedUrl(url);
+    } catch {
+      return url;
+    }
+  }
+
   async saveMessage(message: Message): Promise<Message> {
-    console.log("ChatRepo: Saving message", { senderId: message.senderId, receiverId: message.conversationId }); // conversationId is not receiverId but context
     const created = await MessageModel.create({
       conversationId: message.conversationId,
       senderId: message.senderId,
       senderType: message.senderType,
       content: message.content,
+      attachmentUrl: message.attachmentUrl,
+      attachmentType: message.attachmentType,
       status: message.status,
     });
-    console.log("ChatRepo: Message saved", created._id);
 
     return new Message({
       id: new UniqueEntityID((created as { _id: mongoose.Types.ObjectId })._id.toString()),
@@ -28,36 +43,37 @@ export class ChatRepository implements IChatRepository {
       senderId: created.senderId.toString(),
       senderType: created.senderType as "user" | "company",
       content: created.content,
+      attachmentUrl: await this._resolveAttachmentUrl(created.attachmentUrl),
+      attachmentType: created.attachmentType as "image" | "file",
       status: created.status as "sent" | "delivered" | "read",
       createdAt: created.createdAt,
     });
   }
 
   async getMessages(conversationId: string, limit = 50, offset = 0): Promise<Message[]> {
-    console.log(`ChatRepo: getMessages for ${conversationId}`);
     const messages = await MessageModel.find({ conversationId })
       .sort({ createdAt: 1 })
       .skip(offset)
       .limit(limit)
       .exec();
-    console.log(`ChatRepo: Found ${messages.length} messages`);
 
-    return messages.map(
-      (m) =>
+    return await Promise.all(messages.map(
+      async (m: any) =>
         new Message({
           id: new UniqueEntityID((m as { _id: mongoose.Types.ObjectId })._id.toString()),
           conversationId: m.conversationId.toString(),
           senderId: m.senderId.toString(),
           senderType: m.senderType as "user" | "company",
           content: m.content,
+          attachmentUrl: await this._resolveAttachmentUrl(m.attachmentUrl),
+          attachmentType: m.attachmentType as "image" | "file",
           status: m.status as "sent" | "delivered" | "read",
           createdAt: m.createdAt,
         })
-    );
+    ));
   }
 
   async createConversation(participants: { participantId: string; participantType: string }[]): Promise<Conversation> {
-    console.log("ChatRepo: Creating conversation for", participants);
     
     // Validate participants
     if (!participants || participants.length !== 2) {
@@ -88,11 +104,10 @@ export class ChatRepository implements IChatRepository {
         participantType: p.participantType,
       })),
     });
-    console.log("ChatRepo: Conversation created", created._id);
 
     return new Conversation({
       id: new UniqueEntityID((created as { _id: mongoose.Types.ObjectId })._id.toString()),
-      participants: created.participants.map((p) => ({
+      participants: (created.participants as any[]).map((p) => ({
         participantId: p.participantId.toString(),
         participantType: p.participantType as "user" | "company",
       })),
@@ -102,7 +117,6 @@ export class ChatRepository implements IChatRepository {
   }
 
   async getConversation(participant1Id: string, participant2Id: string): Promise<Conversation | null> {
-    console.log(`ChatRepo: getConversation between ${participant1Id} and ${participant2Id}`);
     const conversation = await ConversationModel.findOne({
       $and: [
         { "participants.participantId": new mongoose.Types.ObjectId(participant1Id) },
@@ -110,15 +124,11 @@ export class ChatRepository implements IChatRepository {
       ],
     }).exec();
 
-    if (!conversation) {
-        console.log("ChatRepo: No conversation found between participants");
-        return null;
-    }
-    console.log("ChatRepo: Conversation found", conversation._id);
+    if (!conversation) return null;
 
     return new Conversation({
       id: new UniqueEntityID((conversation as { _id: mongoose.Types.ObjectId })._id.toString()),
-      participants: conversation.participants.map((p) => ({
+      participants: (conversation.participants as any[]).map((p) => ({
         participantId: p.participantId.toString(),
         participantType: p.participantType as "user" | "company",
       })),
@@ -136,7 +146,7 @@ export class ChatRepository implements IChatRepository {
 
     return new Conversation({
       id: new UniqueEntityID((conversation as { _id: mongoose.Types.ObjectId })._id.toString()),
-      participants: conversation.participants.map((p) => ({
+      participants: (conversation.participants as any[]).map((p) => ({
         participantId: p.participantId.toString(),
         participantType: p.participantType as "user" | "company",
       })),
@@ -148,7 +158,6 @@ export class ChatRepository implements IChatRepository {
   }
 
   async getUserConversations(participantId: string, participantType: string): Promise<Conversation[]> {
-    console.log(`ChatRepo: getUserConversations for participantId=${participantId}, type=${participantType}`);
     
     const conversations = await ConversationModel.find({
       participants: { $elemMatch: { participantId: new mongoose.Types.ObjectId(participantId), participantType } }
@@ -156,12 +165,11 @@ export class ChatRepository implements IChatRepository {
       .sort({ updatedAt: -1 })
       .exec();
     
-    console.log(`ChatRepo: Found ${conversations.length} raw conversations for ${participantType}:${participantId}`);
 
     return await Promise.all(conversations.map(
-      async (c) => {
+      async (c: any) => {
         // Find the other participant - strictly exclude current person by BOTH id and type
-        const otherParticipant = c.participants.find(p => 
+        const otherParticipant = (c.participants as any[]).find(p => 
           p.participantId.toString() !== participantId || p.participantType !== participantType
         );
         let otherParticipantName = "Unknown";
@@ -185,7 +193,7 @@ export class ChatRepository implements IChatRepository {
 
         return new Conversation({
           id: new UniqueEntityID((c as { _id: mongoose.Types.ObjectId })._id.toString()),
-          participants: c.participants.map((p) => ({
+          participants: (c.participants as any[]).map((p) => ({
             participantId: p.participantId.toString(),
             participantType: p.participantType as "user" | "company",
           })),

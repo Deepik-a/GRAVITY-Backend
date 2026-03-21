@@ -52,6 +52,7 @@ import { ToggleFavouriteUseCase } from "@/application/use-cases/user/ToggleFavou
 import { GetFavouritesUseCase } from "@/application/use-cases/user/GetFavouritesUseCase";
 import { ChangePasswordUseCase } from "@/application/use-cases/user/ChangePasswordUseCase";
 import { CompleteBookingUseCase } from "@/application/use-cases/user/CompleteBookingUseCase";
+import { GetPublicStatsUseCase } from "@/application/use-cases/GetPublicStatsUseCase";
 
 
 
@@ -143,6 +144,7 @@ container.bind(TYPES.ToggleFavouriteUseCase).to(ToggleFavouriteUseCase);
 container.bind(TYPES.GetFavouritesUseCase).to(GetFavouritesUseCase);
 container.bind(TYPES.ChangePasswordUseCase).to(ChangePasswordUseCase);
 container.bind(TYPES.CompleteBookingUseCase).to(CompleteBookingUseCase);
+container.bind(TYPES.GetPublicStatsUseCase).to(GetPublicStatsUseCase);
 
 
 // ---------------- Bind Company Use Cases ----------------

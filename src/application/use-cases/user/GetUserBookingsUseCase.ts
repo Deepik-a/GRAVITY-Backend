@@ -11,7 +11,7 @@ export class GetUserBookingsUseCase implements IGetUserBookingsUseCase {
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository
   ) {}
 
-  async execute(userId: string): Promise<IBooking[]> {
-    return await this._bookingRepository.getUserBookings(userId);
+  async execute(userId: string, page = 1, limit = 10): Promise<{ bookings: IBooking[]; total: number }> {
+    return await this._bookingRepository.getUserBookingsPaged(userId, page, limit);
   }
 }

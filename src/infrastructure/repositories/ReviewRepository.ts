@@ -33,11 +33,19 @@ export class ReviewRepository extends BaseRepository<IReviewDocument> implements
   }
 
   private _mapToEntity(doc: unknown): IReview {
-    const d = doc as any;
+    const d = doc as {
+      _id: { toString(): string };
+      companyId: { toString(): string };
+      userId?: { _id?: { toString(): string }; toString(): string; name?: string; profileImage?: string };
+      rating: number;
+      comment: string;
+      createdAt: Date;
+      updatedAt: Date;
+    };
     const review: IReview = {
       id: d._id.toString(),
       companyId: d.companyId.toString(),
-      userId: d.userId._id ? d.userId._id.toString() : d.userId.toString(),
+      userId: d.userId && d.userId._id ? d.userId._id.toString() : d.userId?.toString() || "",
       rating: d.rating,
       comment: d.comment,
       createdAt: d.createdAt,

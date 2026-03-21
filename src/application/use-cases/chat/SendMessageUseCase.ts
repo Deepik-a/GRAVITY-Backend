@@ -51,6 +51,8 @@ export class SendMessageUseCase implements ISendMessageUseCase {
       senderId: data.senderId,
       senderType: data.senderType,
       content: data.content,
+      attachmentUrl: data.attachmentUrl,
+      attachmentType: data.attachmentType
     });
 
     const savedMessage = await this._chatRepository.saveMessage(message);

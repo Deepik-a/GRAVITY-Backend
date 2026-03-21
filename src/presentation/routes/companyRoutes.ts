@@ -8,6 +8,7 @@ import { CompanyDashboardController } from "@/presentation/controllers/companyCo
 import { AuthController } from "@/presentation/controllers/AuthController";
 import { SlotController } from "@/presentation/controllers/SlotController";
 import { SessionAuth } from "@/presentation/middlewares/authMiddleware";
+import { ROUTES } from "@/shared/constants/routes";
 const router = Router();
 
 const docController = container.get<CompanyDocumentController>(TYPES.CompanyDocumentController);
@@ -17,10 +18,10 @@ const companyAuth = container.get<SessionAuth>(TYPES.SessionAuth);
 const authController = container.get<AuthController>(TYPES.AuthController);
 const dashboardController = container.get<CompanyDashboardController>(TYPES.CompanyDashboardController);
 
-router.post("/logout", authController.logout.bind(authController));
+router.post(ROUTES.AUTH.LOGOUT.replace("/company", ""), authController.logout.bind(authController));
 
 router.post(
-  "/upload-documents",
+  ROUTES.COMPANY.VERIFICATION.replace("/company", ""),
   companyAuth.verify,
   companyAuth.authorize(["company"]),
   upload.array("documents", 3),
@@ -28,26 +29,26 @@ router.post(
 );
 
 router.get(
-  "/me",
+  ROUTES.COMPANY.ME.replace("/company", ""),
   companyAuth.verify,
   companyAuth.authorize(["company"]),
   profileController.getProfile.bind(profileController)
 );
 
 router.get(
-  "/profile/:companyId",
+  ROUTES.COMPANY.PROFILE.replace("/company", "") + "/:companyId",
   profileController.getProfile.bind(profileController)
 );
 
-router.put(
-  "/profile",
+router.patch(
+  ROUTES.COMPANY.PROFILE.replace("/company", ""),
   companyAuth.verify,
   companyAuth.authorize(["company"]),
   profileController.updateProfile.bind(profileController)
 );
 
 router.post(
-  "/profile/image",
+  ROUTES.COMPANY.PROFILE_IMAGE.replace("/company", ""),
   companyAuth.verify,
   companyAuth.authorize(["company"]),
   upload.single("image"),
@@ -55,7 +56,7 @@ router.post(
 );
 
 router.delete(
-  "/profile",
+  ROUTES.COMPANY.PROFILE.replace("/company", ""),
   companyAuth.verify,
   companyAuth.authorize(["company"]),
   profileController.deleteProfile.bind(profileController)
@@ -63,31 +64,31 @@ router.delete(
 
 // Slot Management
 router.get(
-  "/get-bookings",
+  ROUTES.COMPANY.BOOKINGS.replace("/company", ""),
   companyAuth.verify,
   companyAuth.authorize(["company"]),
   slotController.getCompanyBookings.bind(slotController)
 );
 router.patch(
-  "/bookings/:bookingId/reschedule",
+  ROUTES.COMPANY.BOOKING_UPDATE.replace("/company", "") + "/reschedule",
   companyAuth.verify,
   companyAuth.authorize(["company"]),
   slotController.rescheduleBooking.bind(slotController)
 );
 router.get(
-  "/slots/config", 
+  ROUTES.COMPANY.SLOTS_CONFIG.replace("/company", ""), 
   companyAuth.verify, 
   companyAuth.authorize(["company"]), 
   slotController.getConfig.bind(slotController)
 );
-router.post(
-  "/slots/config", 
+router.patch(
+  ROUTES.COMPANY.SLOTS_CONFIG.replace("/company", ""), 
   companyAuth.verify, 
   companyAuth.authorize(["company"]), 
   slotController.setConfig.bind(slotController)
 );
 router.delete(
-  "/slots/config", 
+  ROUTES.COMPANY.SLOTS_CONFIG.replace("/company", ""), 
   companyAuth.verify, 
   companyAuth.authorize(["company"]), 
   slotController.deleteConfig.bind(slotController)
@@ -97,14 +98,14 @@ import { RevenueController } from "@/presentation/controllers/RevenueController"
 const revenueController = container.get<RevenueController>(TYPES.RevenueController);
 
 router.get(
-  "/wallet",
+  ROUTES.COMPANY.WALLET.replace("/company", ""),
   companyAuth.verify,
   companyAuth.authorize(["company"]),
   revenueController.getCompanyWallet.bind(revenueController)
 );
 
 router.get(
-  "/dashboard/stats",
+  ROUTES.COMPANY.DASHBOARD_STATS.replace("/company", ""),
   companyAuth.verify,
   companyAuth.authorize(["company"]),
   dashboardController.getStats.bind(dashboardController)

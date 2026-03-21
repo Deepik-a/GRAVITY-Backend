@@ -6,6 +6,8 @@ export interface MessageProps {
   senderId: string;
   senderType: "user" | "company";
   content: string;
+  attachmentUrl?: string;
+  attachmentType?: "image" | "file";
   createdAt?: Date;
   status?: "sent" | "delivered" | "read";
 }
@@ -16,6 +18,8 @@ export class Message {
   public readonly senderId: string;
   public readonly senderType: "user" | "company";
   public readonly content: string;
+  public readonly attachmentUrl?: string;
+  public readonly attachmentType?: "image" | "file";
   public readonly createdAt: Date;
   public readonly status: "sent" | "delivered" | "read";
 
@@ -25,6 +29,8 @@ export class Message {
     this.senderId = props.senderId;
     this.senderType = props.senderType;
     this.content = props.content;
+    this.attachmentUrl = props.attachmentUrl;
+    this.attachmentType = props.attachmentType;
     this.createdAt = props.createdAt || new Date();
     this.status = props.status || "sent";
   }

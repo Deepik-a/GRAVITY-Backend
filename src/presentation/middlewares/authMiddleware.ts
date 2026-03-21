@@ -145,13 +145,10 @@ authorize(allowedRoles: string[]): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = req.user as AuthenticatedUser | undefined;
 
-    console.log("User Role:", user?.role); // Debugging
-    console.log("Allowed Roles:", allowedRoles); // Debugging
-
     if (!user || !user.role) {
       return res.status(StatusCode.FORBIDDEN).json({ 
         status: false, 
-        message: "Access Denied. User role not found." 
+        message: Messages.AUTH.ACCESS_DENIED 
       });
     }
 
@@ -161,7 +158,7 @@ authorize(allowedRoles: string[]): RequestHandler {
     if (!isAuthorized) {
       return res.status(StatusCode.FORBIDDEN).json({ 
         status: false, 
-        message: `Access Denied. Your role is: ${user.role}. Required roles: ${allowedRoles.join(", ")}` 
+        message: Messages.AUTH.ROLE_NOT_FOUND 
       });
     }
     next();

@@ -2,13 +2,43 @@ import { Request, Response } from "express";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { IGetVerifiedCompaniesUseCase } from "@/application/interfaces/use-cases/user/IGetVerifiedCompaniesUseCase";
+import { IGetCompanyProfileUseCase } from "@/application/interfaces/use-cases/company/IGetCompanyProfileUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
+import { GetPublicStatsUseCase } from "@/application/use-cases/GetPublicStatsUseCase";
 
 @injectable()
 export class CompanyController {
   constructor(
-    @inject(TYPES.GetVerifiedCompaniesUseCase) private _getVerifiedCompaniesUseCase: IGetVerifiedCompaniesUseCase
+    @inject(TYPES.GetVerifiedCompaniesUseCase) private _getVerifiedCompaniesUseCase: IGetVerifiedCompaniesUseCase,
+    @inject(TYPES.GetPublicStatsUseCase) private _getPublicStatsUseCase: GetPublicStatsUseCase,
+    @inject(TYPES.GetCompanyProfileUseCase) private readonly _getProfileUseCase: IGetCompanyProfileUseCase,
   ) {}
+
+  async getProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const { companyId } = req.params;
+      if (!companyId) {
+        res.status(StatusCode.BAD_REQUEST).json({ message: "Company ID is required" });
+        return;
+      }
+
+      const result = await this._getProfileUseCase.execute(companyId);
+      res.status(StatusCode.SUCCESS).json(result);
+    } catch (error: unknown) {
+      const err = error as Error;
+      res.status(StatusCode.INTERNAL_ERROR).json({ message: err.message || "Failed to fetch company profile" });
+    }
+  }
+
+  async getPublicStats(req: Request, res: Response): Promise<void> {
+    try {
+      const stats = await this._getPublicStatsUseCase.execute();
+      res.status(StatusCode.SUCCESS).json(stats);
+    } catch (error: unknown) {
+      const err = error as Error;
+      res.status(StatusCode.INTERNAL_ERROR).json({ message: err.message || "Failed to fetch stats" });
+    }
+  }
 
   async getVerifiedCompanies(req: Request, res: Response): Promise<void> {
     try {
