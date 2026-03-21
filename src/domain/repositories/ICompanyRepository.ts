@@ -55,7 +55,7 @@ updateDocumentStatus(
     totalPages: number;
   }>;
 
-  updateSubscription(companyId: string, subscription: any): Promise<void>;
+  updateSubscription(companyId: string, subscription: unknown): Promise<void>;
   findCompanyById(id: string): Promise<ICompany | null>;
   update(id: string, updates: Partial<ICompany>): Promise<ICompany | null>;
 }

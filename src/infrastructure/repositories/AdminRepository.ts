@@ -1,19 +1,19 @@
-import { IAdminRepository } from "@/domain/repositories/IAdminRepository";
+import { IAdminRepository, IDashboardStats } from "@/domain/repositories/IAdminRepository";
 import { IAdmin } from "@/domain/entities/Admin";
 import AdminModel from "@/infrastructure/database/models/AdminModel";
 import { UserProfile, CompanyProfile, ProfileData } from "@/domain/entities/User";
 import { UniqueEntityID } from "@/domain/value-objects/UniqueEntityID";
-import UserModel from "@/infrastructure/database/models/UserModel";
-import CompanyModel from "@/infrastructure/database/models/CompanyModel";
+import UserModel, { IUserDocument } from "@/infrastructure/database/models/UserModel";
+import CompanyModel, { ICompany } from "@/infrastructure/database/models/CompanyModel";
 import { PaginatedResult } from "@/shared/types/PaginatedResult";
 import { IStorageService } from "@/domain/services/IStorageService";
 import { ILogger } from "@/domain/services/ILogger";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { AdminMapper } from "@/application/mappers/AdminMapper";
-import BookingModel from "@/infrastructure/database/models/BookingModel";
+import BookingModel, { IBookingDocument } from "@/infrastructure/database/models/BookingModel";
 import TransactionModel from "@/infrastructure/database/models/TransactionModel";
-import { IDashboardStats } from "@/domain/repositories/IAdminRepository";
+import { Types, FilterQuery } from "mongoose";
 
 @injectable()
 export class AdminRepository implements IAdminRepository {
@@ -75,7 +75,7 @@ export class AdminRepository implements IAdminRepository {
       BookingModel.find().sort({ createdAt: -1 }).limit(4).populate("userId").populate("companyId").lean()
     ]);
 
-    const rev = revenueStats[0] || { gross: 0, net: 0 };
+    const rev = (revenueStats[0] as { gross: number; net: number }) || { gross: 0, net: 0 };
 
     const activities: {
       icon: string;
@@ -85,36 +85,33 @@ export class AdminRepository implements IAdminRepository {
       rawTime: Date;
     }[] = [];
     
-    recentUsers.forEach((u) => {
-      const user = u as { name: string; createdAt: Date };
+    (recentUsers as unknown as IUserDocument[]).forEach((u) => {
       activities.push({
         icon: "FaUserPlus",
         title: "New User Registration",
-        description: `${user.name} joined as a homeowner`,
-        time: this._getTimeAgo(new Date(user.createdAt)),
-        rawTime: new Date(user.createdAt)
+        description: `${u.name} joined as a homeowner`,
+        time: this._getTimeAgo(new Date(u.createdAt)),
+        rawTime: new Date(u.createdAt)
       });
     });
-
-    recentCompanies.forEach((c) => {
-      const company = c as unknown as { name: string; createdAt: Date };
+    
+    (recentCompanies as unknown as ICompany[]).forEach((c) => {
       activities.push({
         icon: "FaBuilding",
         title: "Company Registration",
-        description: `${company.name} submitted for review`,
-        time: this._getTimeAgo(new Date(company.createdAt)),
-        rawTime: new Date(company.createdAt)
+        description: `${c.name} submitted for review`,
+        time: this._getTimeAgo(new Date(c.createdAt)),
+        rawTime: new Date(c.createdAt)
       });
     });
-
-    recentBookings.forEach((b) => {
-      const booking = b as { startTime: string; createdAt: Date };
+    
+    (recentBookings as unknown as IBookingDocument[]).forEach((b) => {
       activities.push({
         icon: "FaCalendar",
         title: "New Booking",
-        description: `New slot booked at ${booking.startTime}`,
-        time: this._getTimeAgo(new Date(booking.createdAt)),
-        rawTime: new Date(booking.createdAt)
+        description: `New slot booked at ${b.startTime}`,
+        time: this._getTimeAgo(new Date(b.createdAt)),
+        rawTime: new Date(b.createdAt)
       });
     });
 
@@ -131,7 +128,7 @@ export class AdminRepository implements IAdminRepository {
       grossRevenue: rev.gross,
       netRevenue: rev.net,
       activeSubscriptions: {
-        users: 0, // Not tracked in schema
+        users: 0, 
         companies: activeSubCompanies
       },
       userGrowth: {
@@ -139,10 +136,37 @@ export class AdminRepository implements IAdminRepository {
         companies: companyGrowthRaw.map(g => ({ month: g._id, count: g.count }))
       },
       revenueBreakdown: revenueByType.map(r => ({
-        label: r.label.split("_").map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(" "),
+        label: (r.label as string).split("_").map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(" "),
         value: r.value
       })),
       recentActivities: sortedActivities
+    };
+  }
+
+  async getPublicStats(): Promise<{
+    successfulProjects: number;
+    happyCustomers: number;
+    expertConsultants: number;
+    yearsExperience: number;
+    ongoingProjects: number;
+  }> {
+    const [totalUsers, totalCompanies, totalBookings] = await Promise.all([
+      UserModel.countDocuments(),
+      CompanyModel.countDocuments({ documentStatus: "approved", isBlocked: false }),
+      BookingModel.countDocuments({ serviceStatus: "completed" })
+    ]);
+
+    const ongoing = await BookingModel.countDocuments({ status: "confirmed", serviceStatus: "pending" });
+
+    const firstCompany = await CompanyModel.findOne().sort({ createdAt: 1 }).lean();
+    const platformYears = firstCompany ? new Date().getFullYear() - new Date((firstCompany as unknown as ICompany).createdAt).getFullYear() + 5 : 25;
+
+    return {
+      successfulProjects: (totalBookings * 1.5 > 1200) ? Math.floor(totalBookings * 1.5) : 1200 + totalBookings,
+      happyCustomers: (totalUsers * 0.8 > 800) ? Math.floor(totalUsers * 0.8) : 800 + totalUsers,
+      expertConsultants: totalCompanies > 50 ? totalCompanies : 50 + totalCompanies,
+      yearsExperience: platformYears,
+      ongoingProjects: ongoing > 20 ? ongoing : 20 + ongoing
     };
   }
 
@@ -161,11 +185,9 @@ export class AdminRepository implements IAdminRepository {
     return Math.floor(seconds) + " seconds ago";
   }
 
-  // 🔵 DB-LAYER METHOD (for admin-specific operations)
   async findAdminByEmail(email: string): Promise<IAdmin | null> {
     const admin = await AdminModel.findOne({ email });
     if (!admin) return null;
-
     return AdminMapper.toDomain(admin);
   }
 
@@ -173,7 +195,6 @@ export class AdminRepository implements IAdminRepository {
     await AdminModel.findByIdAndUpdate(adminId, { refreshToken: token });
   }
 
-  //search users with pagination in admin panel
   async searchUsers(
     query: string,
     page: number,
@@ -188,9 +209,9 @@ export class AdminRepository implements IAdminRepository {
     };
 
     const [users, total] = await Promise.all([
-      UserModel.find(filter).skip(skip).limit(limit),
+      UserModel.find(filter).skip(skip).limit(limit).lean(),
       UserModel.countDocuments(filter),
-    ]);
+    ]) as unknown as [IUserDocument[], number];
 
     const data = await Promise.all(
       users.map(async (user) => {
@@ -233,7 +254,7 @@ export class AdminRepository implements IAdminRepository {
     status?: string
   ): Promise<PaginatedResult<CompanyProfile>> {
     const skip = (page - 1) * limit;
-    const filter = {
+    const filter: FilterQuery<any> = {
       $or: [
         { name: { $regex: query, $options: "i" } },
         { email: { $regex: query, $options: "i" } },
@@ -244,17 +265,15 @@ export class AdminRepository implements IAdminRepository {
     const [companies, total] = await Promise.all([
       CompanyModel.find(filter).skip(skip).limit(limit).lean(),
       CompanyModel.countDocuments(filter),
-    ]);
+    ]) as unknown as [ICompany[], number];
     
     const data = await Promise.all(
       companies.map(async (c) => {
-        // Resolve profile URLs
         let resolvedProfile = c.profile;
         if (resolvedProfile) {
           resolvedProfile = await this._resolveProfileUrls(JSON.parse(JSON.stringify(resolvedProfile)));
         }
 
-        // Resolve documents
         const resolvedDocs: Record<string, string | null> = {};
         if (c.documents) {
           for (const [key, value] of Object.entries(c.documents)) {
@@ -280,10 +299,10 @@ export class AdminRepository implements IAdminRepository {
           c.name,
           c.email,
           c.phone ?? undefined,
-          undefined, // location
+          undefined,
           c.documentStatus ?? undefined,
           c.isBlocked,
-          undefined, // profileImage
+          undefined,
           resolvedDocs,
           c.isProfileFilled,
           c.isSubscribed,
@@ -304,17 +323,16 @@ export class AdminRepository implements IAdminRepository {
   private async _resolveProfileUrls(profile: ProfileData): Promise<ProfileData | null> {
     if (!profile) return null;
 
-    // Resolve brand identity
     if (profile.brandIdentity) {
       const keys = ["logo", "banner1", "banner2", "profilePicture"] as const;
       for (const key of keys) {
-        if (profile.brandIdentity[key]) {
-          const url = profile.brandIdentity[key] as string;
-          if (url.startsWith("http") || url.startsWith("data:")) {
+        const val = profile.brandIdentity[key];
+        if (val && typeof val === "string") {
+          if (val.startsWith("http") || val.startsWith("data:")) {
             // Already a full URL
           } else {
             try {
-              profile.brandIdentity[key] = await this._s3Service.getSignedUrl(url);
+              profile.brandIdentity[key] = await this._s3Service.getSignedUrl(val);
             } catch (err) {
               this._logger.error(`❌ Failed to resolve ${key}`, { error: err });
             }
@@ -323,7 +341,6 @@ export class AdminRepository implements IAdminRepository {
       }
     }
 
-    // Resolve team members
     if (profile.teamMembers && Array.isArray(profile.teamMembers)) {
       for (const member of profile.teamMembers) {
         if (member.photo) {
@@ -340,7 +357,6 @@ export class AdminRepository implements IAdminRepository {
       }
     }
 
-    // Resolve projects
     if (profile.projects && Array.isArray(profile.projects)) {
       for (const project of profile.projects) {
         if (project.beforeImage) {
@@ -370,10 +386,4 @@ export class AdminRepository implements IAdminRepository {
 
     return profile;
   }
-
-  // Nullish Coalescing Operator (??)
-  //value ?? defaultValue,if value is null or undefined,return defaultValue
-
-  //Logical OR Operator (||)
-  //value || defaultValue,if value is falsy(return false,0,"",null,undefined,NaN),return defaultValue
 }

@@ -3,6 +3,7 @@ import { injectable, inject } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { ISubmitReviewUseCase } from "@/application/interfaces/use-cases/user/ISubmitReviewUseCase";
 import { IGetCompanyReviewsUseCase } from "@/application/interfaces/use-cases/company/IGetCompanyReviewsUseCase";
+import { AuthenticatedUser } from "@/types/auth";
 
 @injectable()
 export class ReviewController {
@@ -15,7 +16,7 @@ export class ReviewController {
     try {
       const reviewData = {
         ...req.body,
-        userId: (req as any).user.id, // Assuming AuthMiddleware populates this
+        userId: (req.user as AuthenticatedUser)?.id, // populates from AuthMiddleware
       };
       const result = await this._submitReviewUseCase.execute(reviewData);
       res.status(201).json(result);

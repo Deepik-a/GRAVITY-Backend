@@ -11,7 +11,7 @@ export class GetCompanyBookingsUseCase implements IGetCompanyBookingsUseCase {
     @inject(TYPES.BookingRepository) private _bookingRepository: IBookingRepository
   ) {}
 
-  async execute(companyId: string): Promise<IBooking[]> {
-    return await this._bookingRepository.getCompanyBookings(companyId);
+  async execute(companyId: string, page = 1, limit = 10): Promise<{ bookings: IBooking[]; total: number }> {
+    return await this._bookingRepository.getCompanyBookingsPaged(companyId, page, limit);
   }
 }

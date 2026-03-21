@@ -4,6 +4,8 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { GetCompanyDashboardStatsUseCase } from "@/application/use-cases/company/GetCompanyDashboardStatsUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { ILogger } from "@/domain/services/ILogger";
+import { AuthenticatedUser } from "@/types/auth";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class CompanyDashboardController {
@@ -16,9 +18,9 @@ export class CompanyDashboardController {
   async getStats(req: Request, res: Response, next: NextFunction) {
     this._logger.info("📥 Get company dashboard stats endpoint hit");
     try {
-      const companyId = (req.user as any)?.id;
+      const companyId = (req.user as AuthenticatedUser)?.id;
       if (!companyId) {
-        return res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+        return res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
       }
 
       const stats = await this._getDashboardStatsUseCase.execute(companyId);

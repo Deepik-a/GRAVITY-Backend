@@ -26,16 +26,26 @@ export class NotificationRepository implements INotificationRepository {
     await NotificationModel.updateMany({ recipientId, recipientType, isRead: false }, { isRead: true });
   }
 
-  private _mapToEntity(doc: any): INotification {
+  private _mapToEntity(doc: unknown): INotification {
+    const d = doc as {
+      _id: { toString(): string };
+      recipientId: string;
+      recipientType: "user" | "company";
+      title: string;
+      message: string;
+      type: string;
+      isRead: boolean;
+      createdAt: Date;
+    };
     return {
-      id: doc._id.toString(),
-      recipientId: doc.recipientId,
-      recipientType: doc.recipientType,
-      title: doc.title,
-      message: doc.message,
-      type: doc.type,
-      isRead: doc.isRead,
-      createdAt: doc.createdAt
+      id: d._id.toString(),
+      recipientId: d.recipientId,
+      recipientType: d.recipientType,
+      title: d.title,
+      message: d.message,
+      type: d.type,
+      isRead: d.isRead,
+      createdAt: d.createdAt
     };
   }
 }

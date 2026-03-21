@@ -28,7 +28,7 @@ export class S3StorageService implements IStorageService {
   ) {}
 
   // ------------------ UPLOAD  FILE TO S3 BUCKET------------------
-  async uploadFile(file: Express.Multer.File): Promise<string> {
+  async uploadFile(file: Express.Multer.File, folder = "company-documents/"): Promise<string> {
     const bucket = env.S3_BUCKET;
     
     let fileBuffer = file.buffer;
@@ -54,7 +54,8 @@ export class S3StorageService implements IStorageService {
       }
     }
 
-    const key = `company-documents/${Date.now()}_${fileName}`;
+    const keyFolder = folder.endsWith("/") ? folder : `${folder}/`;
+    const key = `${keyFolder}${Date.now()}_${fileName}`;
 
     await this._s3.send(
       new PutObjectCommand({

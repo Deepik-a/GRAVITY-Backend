@@ -14,6 +14,7 @@ import { ICompleteBookingUseCase } from "@/application/interfaces/use-cases/user
 import { IRescheduleBookingUseCase } from "@/application/interfaces/use-cases/company/IRescheduleBookingUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { AuthenticatedUser } from "@/types/auth";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class SlotController {
@@ -32,8 +33,10 @@ export class SlotController {
 
   async getAllBookings(req: Request, res: Response): Promise<void> {
     try {
-      const bookings = await this._getAllBookingsUseCase.execute();
-      res.status(StatusCode.SUCCESS).json(bookings);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const result = await this._getAllBookingsUseCase.execute(page, limit);
+      res.status(StatusCode.SUCCESS).json(result);
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
@@ -50,11 +53,13 @@ export class SlotController {
     try {
       const userId = (req.user as AuthenticatedUser)?.id;
       if (!userId) {
-        res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+        res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
         return;
       }
-      const bookings = await this._getUserBookingsUseCase.execute(userId);
-      res.status(StatusCode.SUCCESS).json(bookings);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const result = await this._getUserBookingsUseCase.execute(userId, page, limit);
+      res.status(StatusCode.SUCCESS).json(result);
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
@@ -69,11 +74,13 @@ export class SlotController {
     try {
       const companyId = (req.user as AuthenticatedUser)?.id;
       if (!companyId) {
-        res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+        res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
         return;
       }
-      const bookings = await this._getCompanyBookingsUseCase.execute(companyId);
-      res.status(StatusCode.SUCCESS).json(bookings);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const result = await this._getCompanyBookingsUseCase.execute(companyId, page, limit);
+      res.status(StatusCode.SUCCESS).json(result);
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
@@ -88,7 +95,7 @@ export class SlotController {
     try {
       const companyId = (req.user as AuthenticatedUser)?.id; // Assuming user info is in req.user from middleware
       if (!companyId) {
-         res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+         res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
          return;
       }
       const config = await this._setSlotConfigUseCase.execute({ ...req.body, companyId });
@@ -107,7 +114,7 @@ export class SlotController {
     try {
       const companyId = (req.user as AuthenticatedUser)?.id;
       if (!companyId) {
-         res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+         res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
          return;
       }
       const config = await this._getSlotConfigUseCase.execute(companyId);
@@ -126,7 +133,7 @@ export class SlotController {
     try {
       const { companyId } = req.params;
       if (!companyId) {
-         res.status(StatusCode.BAD_REQUEST).json({ message: "companyId is required" });
+         res.status(StatusCode.BAD_REQUEST).json({ message: Messages.COMPANY.ID_REQUIRED });
          return;
       }
       const config = await this._getSlotConfigUseCase.execute(companyId);
@@ -145,11 +152,11 @@ export class SlotController {
     try {
       const companyId = (req.user as AuthenticatedUser)?.id;
       if (!companyId) {
-         res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+         res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
          return;
       }
       await this._deleteSlotConfigUseCase.execute(companyId);
-      res.status(StatusCode.SUCCESS).json({ message: "Slot configuration deleted successfully" });
+      res.status(StatusCode.SUCCESS).json({ message: Messages.SLOT.CONFIG_DELETE_SUCCESS });
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
@@ -164,7 +171,7 @@ export class SlotController {
     try {
       const { companyId, date } = req.query;
       if (!companyId || !date) {
-        res.status(StatusCode.BAD_REQUEST).json({ message: "companyId and date are required" });
+        res.status(StatusCode.BAD_REQUEST).json({ message: Messages.SLOT.ID_DATE_REQUIRED });
         return;
       }
       const slots = await this._getAvailableSlotsUseCase.execute(companyId as string, date as string);
@@ -183,7 +190,7 @@ export class SlotController {
     try {
       const userId = (req.user as AuthenticatedUser)?.id;
       if (!userId) {
-         res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+         res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
          return;
       }
       const booking = await this._bookSlotUseCase.execute({ ...req.body, userId });
@@ -203,7 +210,7 @@ export class SlotController {
       const { bookingId } = req.params;
       const userId = (req.user as AuthenticatedUser)?.id;
       if (!userId) {
-        res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+        res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
         return;
       }
       const result = await this._completeBookingUseCase.execute(bookingId, userId);
@@ -223,7 +230,7 @@ export class SlotController {
       const { bookingId } = req.params;
       const { newDate, newStartTime } = req.body;
       await this._rescheduleBookingUseCase.execute(bookingId, new Date(newDate), newStartTime);
-      res.status(StatusCode.SUCCESS).json({ message: "Booking rescheduled successfully" });
+      res.status(StatusCode.SUCCESS).json({ message: Messages.BOOKING.RESCHEDULE_SUCCESS });
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
