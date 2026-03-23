@@ -4,6 +4,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { INotificationRepository } from "@/domain/repositories/INotificationRepository";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { AuthenticatedUser } from "@/types/auth";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class NotificationController {
@@ -15,14 +16,14 @@ export class NotificationController {
     try {
       const user = req.user as AuthenticatedUser;
       if (!user?.id) {
-        res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+        res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
         return;
       }
 
       const notifications = await this._notificationRepository.getNotifications(user.id, user.role);
       res.status(StatusCode.SUCCESS).json(notifications);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unexpected error occurred";
+      const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
       res.status(StatusCode.INTERNAL_ERROR).json({ message });
     }
   }
@@ -33,7 +34,7 @@ export class NotificationController {
       await this._notificationRepository.markAsRead(notificationId);
       res.status(StatusCode.SUCCESS).json({ success: true });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unexpected error occurred";
+      const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
       res.status(StatusCode.INTERNAL_ERROR).json({ message });
     }
   }
@@ -42,14 +43,14 @@ export class NotificationController {
     try {
       const user = req.user as AuthenticatedUser;
       if (!user?.id) {
-        res.status(StatusCode.UNAUTHORIZED).json({ message: "Unauthorized" });
+        res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
         return;
       }
 
       await this._notificationRepository.markAllAsRead(user.id, user.role);
       res.status(StatusCode.SUCCESS).json({ success: true });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unexpected error occurred";
+      const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
       res.status(StatusCode.INTERNAL_ERROR).json({ message });
     }
   }

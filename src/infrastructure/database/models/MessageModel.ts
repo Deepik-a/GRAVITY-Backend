@@ -5,6 +5,8 @@ export interface IMessageSchema extends Document {
   senderId: mongoose.Types.ObjectId;
   senderType: "user" | "company";
   content: string;
+  attachmentUrl?: string;
+  attachmentType?: "image" | "file";
   status: "sent" | "delivered" | "read";
   createdAt: Date;
 }
@@ -15,6 +17,8 @@ const MessageSchema: Schema = new Schema(
     senderId: { type: Schema.Types.ObjectId, required: true },
     senderType: { type: String, enum: ["user", "company"], required: true },
     content: { type: String, required: true },
+    attachmentUrl: { type: String },
+    attachmentType: { type: String, enum: ["image", "file"] },
     status: { type: String, enum: ["sent", "delivered", "read"], default: "sent" },
   },
   { timestamps: true }

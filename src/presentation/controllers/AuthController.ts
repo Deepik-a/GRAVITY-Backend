@@ -34,6 +34,7 @@ import { ILogger } from "@/domain/services/ILogger";
 import { UserSignUp } from "@/domain/entities/User";
 import { AppError } from "@/shared/error/AppError";
 import { cookieData } from "@/shared/constants/cookieData";
+import { Messages } from "@/shared/constants/message";
 
 
 
@@ -75,10 +76,10 @@ async login(req: Request, res: Response, next: NextFunction) {
      this._logger.info("Req.body from login", { loginDto });
     const { repo, role, user }: DetectRoleResponseDto = await this._detectUserRoleUseCase.execute(loginDto.email);
     
-    if (!user) throw new AppError("User not found", StatusCode.NOT_FOUND);
+    if (!user) throw new AppError(Messages.USER.NOT_FOUND, StatusCode.NOT_FOUND);
     
     if (!role || !repo) {
-  throw new AppError("Invalid role or repository", StatusCode.BAD_REQUEST);
+  throw new AppError(Messages.AUTH.INVALID_ROLE_REPO, StatusCode.BAD_REQUEST);
 }
 
     const result: LoginResponseDto = await this._loginUseCase.execute({
@@ -123,7 +124,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
     this._logger.info("========== 🟩 Google Login START ==========");
     const { token, role: frontendRole } = req.body;
 
-    if (!token) throw new AppError("Google token required", StatusCode.BAD_REQUEST);
+    if (!token) throw new AppError(Messages.AUTH.INVALID_TOKEN, StatusCode.BAD_REQUEST);
 
     const googlePayload = await verifyGoogleToken(token);
     const email = googlePayload.email;
@@ -256,7 +257,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
         });
       });
 
-      return res.status(StatusCode.SUCCESS).json({ success: true, message: "Logged out successfully" });
+      return res.status(StatusCode.SUCCESS).json({ success: true, message: Messages.AUTH.LOGOUT_SUCCESS });
     } catch (err) {
       next(err);
     }

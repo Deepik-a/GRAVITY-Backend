@@ -4,6 +4,7 @@ import { container } from "@/infrastructure/DI/inversify.config";
 import { TYPES } from "@/infrastructure/DI/types";
 import { SubscriptionController } from "@/presentation/controllers/SubscriptionController";
 import { SessionAuth } from "@/presentation/middlewares/authMiddleware";
+import { ROUTES } from "@/shared/constants/routes";
 
 const router = Router();
 
@@ -12,15 +13,14 @@ const sessionAuth = container.get<SessionAuth>(TYPES.SessionAuth);
 
 // Admin Routes
 router.post(
-  "/admin/plans",
+  ROUTES.SUBSCRIPTIONS.ADMIN_PLANS.replace("/subscriptions", ""),
   sessionAuth.verify,
   sessionAuth.authorize(["admin"]),
   subscriptionController.createPlan.bind(subscriptionController)
 );
 
-// Public/Company Routes
 router.get(
-  "/plans",
+  ROUTES.SUBSCRIPTIONS.PLANS.replace("/subscriptions", ""),
   subscriptionController.getPlans.bind(subscriptionController)
 );
 

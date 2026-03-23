@@ -4,43 +4,42 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { ProfileController } from "@/presentation/controllers/userController/ProfileController";
 import { SlotController } from "@/presentation/controllers/SlotController";
 import { CompanyController } from "@/presentation/controllers/userController/CompanyController";
-import { CompanyProfileController } from "@/presentation/controllers/companyController/CompanyProfileController";
 import { AuthController } from "@/presentation/controllers/AuthController";
 import { SessionAuth } from "@/presentation/middlewares/authMiddleware"; 
-
+import { ROUTES } from "@/shared/constants/routes";
 const router = Router();
 const profileController = container.get<ProfileController>(TYPES.ProfileController);
 const slotController = container.get<SlotController>(TYPES.SlotController);
 const companyController = container.get<CompanyController>(TYPES.CompanyController);
-const companyProfileController = container.get<CompanyProfileController>(TYPES.CompanyProfileController);
 const userAuth = container.get<SessionAuth>(TYPES.SessionAuth);
 const authController = container.get<AuthController>(TYPES.AuthController);
 
 import { upload } from "@/presentation/middlewares/MulterUpload";
 
 // Public route - Get all verified companies
-router.get("/companies", companyController.getVerifiedCompanies.bind(companyController));
-router.get("/companies/:companyId/profile", companyProfileController.getProfile.bind(companyProfileController));
+router.get(ROUTES.USER.COMPANIES.replace("/user", ""), companyController.getVerifiedCompanies.bind(companyController));
+router.get(ROUTES.USER.COMPANY_PROFILE.replace("/user", ""), companyController.getProfile.bind(companyController));
+router.get(ROUTES.USER.STATS.replace("/user", ""), companyController.getPublicStats.bind(companyController));
 
-router.post("/logout", authController.logout.bind(authController));
+router.post(ROUTES.AUTH.LOGOUT.replace("/user", ""), authController.logout.bind(authController));
 
 
 router.get(
-  "/profile", 
+  ROUTES.USER.PROFILE.replace("/user", ""), 
   userAuth.verify, 
   userAuth.authorize(["user", "company"]), 
   profileController.getProfile.bind(profileController)
 );
 
-router.put(
-  "/profile",
+router.patch(
+  ROUTES.USER.PROFILE.replace("/user", ""),
   userAuth.verify,
   userAuth.authorize(["user", "company"]),
   profileController.updateProfile.bind(profileController)
 );
 
 router.post(
-  "/profile/image",
+  ROUTES.USER.PROFILE_IMAGE.replace("/user", ""),
   userAuth.verify,
   userAuth.authorize(["user", "company"]),
   upload.single("image"),
@@ -48,39 +47,39 @@ router.post(
 );
 
 router.patch(
-  "/profile/field",
+  ROUTES.USER.PROFILE_FIELD.replace("/user", ""),
   userAuth.verify,
   userAuth.authorize(["user", "company"]),
   profileController.deleteProfileField.bind(profileController)
 );
 
 router.get(
-  "/profile/favourites",
+  ROUTES.USER.FAVOURITES.replace("/user", ""),
   userAuth.verify,
   userAuth.authorize(["user", "company"]),
   profileController.getFavourites.bind(profileController)
 );
 
 router.post(
-  "/profile/favourites",
+  ROUTES.USER.FAVOURITES.replace("/user", ""),
   userAuth.verify,
   userAuth.authorize(["user", "company"]),
   profileController.toggleFavourite.bind(profileController)
 );
 
-router.put(
-  "/profile/password",
+router.patch(
+  ROUTES.USER.PROFILE_PASSWORD.replace("/user", ""),
   userAuth.verify,
   userAuth.authorize(["user", "company"]),
   profileController.changePassword.bind(profileController)
 );
 
 // Slot Selection and Booking
-router.get("/slots/available", userAuth.verify, userAuth.authorize(["user", "company"]), slotController.getAvailableSlots.bind(slotController));
-router.get("/companies/:companyId/slots/config", userAuth.verify, userAuth.authorize(["user", "company"]), slotController.getCompanyConfig.bind(slotController));
-router.post("/slots/book", userAuth.verify, userAuth.authorize(["user", "company"]), slotController.bookSlot.bind(slotController));
-router.get("/bookings", userAuth.verify, userAuth.authorize(["user", "company"]), slotController.getUserBookings.bind(slotController));
-router.patch("/bookings/:bookingId/complete", userAuth.verify, userAuth.authorize(["user", "company"]), slotController.completeBooking.bind(slotController));
+router.get(ROUTES.USER.SLOTS_AVAILABLE.replace("/user", ""), userAuth.verify, userAuth.authorize(["user", "company"]), slotController.getAvailableSlots.bind(slotController));
+router.get(ROUTES.USER.SLOTS_CONFIG.replace("/user", ""), userAuth.verify, userAuth.authorize(["user", "company"]), slotController.getCompanyConfig.bind(slotController));
+router.post(ROUTES.USER.BOOK_SLOT.replace("/user", ""), userAuth.verify, userAuth.authorize(["user", "company"]), slotController.bookSlot.bind(slotController));
+router.get(ROUTES.USER.BOOKINGS.replace("/user", ""), userAuth.verify, userAuth.authorize(["user", "company"]), slotController.getUserBookings.bind(slotController));
+router.patch(ROUTES.USER.BOOKING_COMPLETE.replace("/user", ""), userAuth.verify, userAuth.authorize(["user", "company"]), slotController.completeBooking.bind(slotController));
 
 import { ReviewController } from "@/presentation/controllers/ReviewController";
 
@@ -90,14 +89,14 @@ const reviewController = container.get<ReviewController>(TYPES.ReviewController)
 
 // Reviews
 router.post(
-  "/reviews",
+  ROUTES.USER.REVIEWS.replace("/user", ""),
   userAuth.verify,
   userAuth.authorize(["user"]),
   reviewController.submitReview.bind(reviewController)
 );
 
 router.get(
-  "/companies/:companyId/reviews",
+  ROUTES.USER.COMPANY_REVIEWS.replace("/user", ""),
   // Public or User? Let's generic public access if needed, or userAuth
   // userAuth.verify, 
   // userAuth.authorize(["user", "company"]), // Optional: Authenticated only?

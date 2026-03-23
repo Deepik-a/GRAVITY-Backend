@@ -70,6 +70,7 @@ export const TYPES = {
   GetFavouritesUseCase: Symbol.for("GetFavouritesUseCase"),
   ChangePasswordUseCase: Symbol.for("ChangePasswordUseCase"),
   CompleteBookingUseCase: Symbol.for("CompleteBookingUseCase"),
+  GetPublicStatsUseCase: Symbol.for("GetPublicStatsUseCase"),
 
   // Controllers
   AdminController: Symbol.for("AdminController"),

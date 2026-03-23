@@ -7,7 +7,8 @@ export class StripeService {
 
   constructor() {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-      apiVersion: "2025-01-27.acacia" as any,
+      // @ts-expect-error: Suppressing stripe api version mismatch
+      apiVersion: "2025-01-27.acacia",
     });
   }
 
@@ -41,10 +42,10 @@ export class StripeService {
       cancel_url: params.cancelUrl,
       customer_email: params.customerEmail,
       metadata: {
-        type: 'booking',
+        type: "booking",
         bookingId: params.bookingId,
       },
-    } as any);
+    } as Stripe.Checkout.SessionCreateParams);
   }
 
   async createSubscriptionCheckoutSession(params: {
@@ -77,11 +78,11 @@ export class StripeService {
       cancel_url: params.cancelUrl,
       customer_email: params.customerEmail,
       metadata: {
-        type: 'subscription',
+        type: "subscription",
         planId: params.planId,
         companyId: params.companyId,
       },
-    } as any);
+    } as Stripe.Checkout.SessionCreateParams);
   }
 
   async verifyWebhookSignature(payload: string | Buffer, signature: string, secret: string) {

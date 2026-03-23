@@ -1,21 +1,17 @@
-import { BaseRepository } from "@/infrastructure/repositories/BaseRepository";
 import SlotConfigModel from "@/infrastructure/database/models/SlotConfigModel";
 import { ISlotRepository } from "@/domain/repositories/ISlotRepository";
 import { ISlotConfig } from "@/domain/entities/SlotConfig";
 import { injectable } from "inversify";
+import mongoose from "mongoose";
 
 @injectable()
 export class SlotRepository
-  extends BaseRepository<any>
   implements ISlotRepository
 {
-  constructor() {
-    super(SlotConfigModel);
-  }
-
+  private readonly model = SlotConfigModel;
   async setConfig(config: ISlotConfig): Promise<ISlotConfig> {
     const updated = await this.model.findOneAndUpdate(
-      { companyId: config.companyId },
+      { companyId: new mongoose.Types.ObjectId(config.companyId) },
       { $set: config },
       { upsert: true, new: true }
     ).lean();
@@ -24,20 +20,20 @@ export class SlotRepository
   }
 
   async getConfigByCompanyId(companyId: string): Promise<ISlotConfig | null> {
-    const found = await this.model.findOne({ companyId }).lean();
+    const found = await this.model.findOne({ companyId: new mongoose.Types.ObjectId(companyId) }).lean();
     if (!found) return null;
     return this._mapToEntity(found);
   }
 
   async deleteConfig(companyId: string): Promise<boolean> {
-    const result = await this.model.deleteOne({ companyId });
+    const result = await this.model.deleteOne({ companyId: new mongoose.Types.ObjectId(companyId) });
     return result.deletedCount > 0;
   }
 
   private _mapToEntity(doc: unknown): ISlotConfig {
     const d = doc as {
-      _id: { toString(): string };
-      companyId: { toString(): string };
+      _id: mongoose.Types.ObjectId;
+      companyId: mongoose.Types.ObjectId;
       startDate: Date;
       endDate: Date;
       startTime: string;

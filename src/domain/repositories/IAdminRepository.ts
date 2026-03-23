@@ -8,6 +8,13 @@ export interface IAdminRepository {
     searchUsers(query: string, page: number, limit: number): Promise<PaginatedResult<UserProfile>>;
     searchCompanies(query: string, page: number, limit: number, status?: string): Promise<PaginatedResult<CompanyProfile>>;
     getDashboardStats(): Promise<IDashboardStats>;
+    getPublicStats(): Promise<{
+      successfulProjects: number;
+      happyCustomers: number;
+      expertConsultants: number;
+      yearsExperience: number;
+      ongoingProjects: number;
+    }>;
 }
 
 export interface IDashboardStats {
