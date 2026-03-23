@@ -240,22 +240,21 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
   // ---------------- LOGOUT ----------------
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
-      const isAdminRoute = req.originalUrl.startsWith("/admin");
-      const isCompanyRoute = req.originalUrl.startsWith("/company");
+      // Clear ALL potential auth cookies to prevent session leakage
+      const cookieNames = [
+        "userAccessToken", "userRefreshToken",
+        "companyAccessToken", "companyRefreshToken",
+        "adminAccessToken", "adminRefreshToken"
+      ];
       
-      let accessKey = "userAccessToken";
-      let refreshKey = "userRefreshToken";
-
-      if (isAdminRoute) {
-        accessKey = "adminAccessToken";
-        refreshKey = "adminRefreshToken";
-      } else if (isCompanyRoute) {
-        accessKey = "companyAccessToken";
-        refreshKey = "companyRefreshToken";
-      }
-
-      res.clearCookie(accessKey, { path: "/" });
-      res.clearCookie(refreshKey, { path: "/" });
+      cookieNames.forEach(name => {
+        res.clearCookie(name, { 
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict" as const
+        });
+      });
 
       return res.status(StatusCode.SUCCESS).json({ success: true, message: "Logged out successfully" });
     } catch (err) {

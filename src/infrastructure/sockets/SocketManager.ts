@@ -68,7 +68,8 @@ export class SocketManager {
         // Send list of online users/companies?
         // For now, adhere to existing flow but maybe filter
         const onlineUsers = Array.from(this.userSockets.keys());
-        socket.emit("online_users", onlineUsers);
+        const onlineCompanies = Array.from(this.companySockets.keys());
+        socket.emit("online_users", [...onlineUsers, ...onlineCompanies]);
       });
 
       socket.on("typing", (data: { senderId: string, receiverId: string, receiverType: string }) => {
