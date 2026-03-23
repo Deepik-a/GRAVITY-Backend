@@ -239,16 +239,23 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
   }
 
   // ---------------- LOGOUT ----------------
-  // ---------------- LOGOUT ----------------
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
-      // Clear all possible cookies on global logout
-      res.clearCookie("userAccessToken", { path: "/" });
-      res.clearCookie("userRefreshToken", { path: "/" });
-      res.clearCookie("companyAccessToken", { path: "/" });
-      res.clearCookie("companyRefreshToken", { path: "/" });
-      res.clearCookie("adminAccessToken", { path: "/" });
-      res.clearCookie("adminRefreshToken", { path: "/" });
+      // Clear ALL potential auth cookies to prevent session leakage
+      const cookieNames = [
+        "userAccessToken", "userRefreshToken",
+        "companyAccessToken", "companyRefreshToken",
+        "adminAccessToken", "adminRefreshToken"
+      ];
+      
+      cookieNames.forEach(name => {
+        res.clearCookie(name, { 
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict" as const
+        });
+      });
 
       return res.status(StatusCode.SUCCESS).json({ success: true, message: Messages.AUTH.LOGOUT_SUCCESS });
     } catch (err) {

@@ -43,7 +43,7 @@ logger.info(process.cwd(), { cwd: process.cwd() });
 // CORS
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
+    origin: [env.FRONTEND_URL, env.FRONTEND_URL.replace("www.", "")],
     credentials: true,
   })
 );
