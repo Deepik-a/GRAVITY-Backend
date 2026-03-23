@@ -26,7 +26,7 @@ export class SocketManager {
     this.logger = container.get<ILogger>(TYPES.Logger);
     SocketManager.io = new SocketIOServer<object, object, object, object>(server, {
       cors: {
-        origin: env.FRONTEND_URL,
+        origin: [env.FRONTEND_URL, env.FRONTEND_URL.replace("www.", "")],
         credentials: true,
       },
     });
