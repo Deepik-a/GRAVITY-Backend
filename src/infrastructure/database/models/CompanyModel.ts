@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 import { ObjectId } from "mongodb";
 import { ICompanyProfile } from "@/domain/entities/Company";
 
-export interface ICompany extends Document {
+export interface ICompany extends Omit<Document, "_id"> {
   _id: ObjectId;
   name: string;
   email: string;
