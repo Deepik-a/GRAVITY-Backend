@@ -50,18 +50,8 @@ export class CompleteBookingUseCase implements ICompleteBookingUseCase {
     const platformFee = grossAmount * (platformFeeRate / 100);
     const settlementAmount = grossAmount - platformFee;
 
-    // Create settlement transaction record
-    await this._transactionRepository.createTransaction({
-      type: "company_payout",
-      amount: settlementAmount,
-      status: "pending_transfer",
-      bookingId: bookingId,
-      companyId: booking.companyId,
-      description: `Settlement for booking ${bookingId} (${platformFeeRate}% platform fee)`,
-      commissionRate: platformFeeRate,
-      commissionAmount: platformFee,
-      netAmount: settlementAmount
-    });
+    // Note: 'company_payout' transaction is already created in StripeWebhookUseCase 
+    // with 'pending_transfer' status when the booking is paid.
 
     // Notify Company
     await this._notificationService.createNotification({

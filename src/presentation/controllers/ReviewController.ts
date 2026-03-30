@@ -16,6 +16,7 @@ export class ReviewController {
     try {
       const reviewData = {
         ...req.body,
+        companyId: req.params.companyId || req.body.companyId,
         userId: (req.user as AuthenticatedUser)?.id, // populates from AuthMiddleware
       };
       const result = await this._submitReviewUseCase.execute(reviewData);

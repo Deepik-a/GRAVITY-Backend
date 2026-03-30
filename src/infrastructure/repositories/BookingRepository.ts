@@ -223,8 +223,8 @@ export class BookingRepository implements IBookingRepository {
     };
     const booking: IBooking = {
       id: d._id.toString(),
-      companyId: typeof d.companyId === "object" && d.companyId?._id ? d.companyId._id.toString() : d.companyId.toString(),
-      userId: typeof d.userId === "object" && d.userId?._id ? d.userId._id.toString() : d.userId.toString(),
+      companyId: d.companyId ? ((d.companyId as any)._id ? (d.companyId as any)._id.toString() : d.companyId.toString()) : "",
+      userId: d.userId ? ((d.userId as any)._id ? (d.userId as any)._id.toString() : d.userId.toString()) : "",
       date: d.date,
       startTime: d.startTime,
       endTime: d.endTime,
