@@ -140,7 +140,7 @@ export class SlotController {
          res.status(StatusCode.BAD_REQUEST).json({ message: Messages.COMPANY.ID_REQUIRED });
          return;
       }
-      const config = await this._getSlotConfigUseCase.execute(companyId);
+      const config = await this._getSlotConfigUseCase.execute(companyId as string);
       res.status(StatusCode.SUCCESS).json(config);
     } catch (error: unknown) {
       if (error instanceof AppError) {
@@ -217,7 +217,7 @@ export class SlotController {
         res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
         return;
       }
-      const result = await this._completeBookingUseCase.execute(bookingId, userId);
+      const result = await this._completeBookingUseCase.execute(bookingId as string, userId);
       res.status(StatusCode.SUCCESS).json(result);
     } catch (error: unknown) {
       if (error instanceof AppError) {
@@ -233,7 +233,7 @@ export class SlotController {
     try {
       const { bookingId } = req.params;
       const { newDate, newStartTime } = req.body;
-      await this._rescheduleBookingUseCase.execute(bookingId, new Date(newDate), newStartTime);
+      await this._rescheduleBookingUseCase.execute(bookingId as string, new Date(newDate), newStartTime);
       res.status(StatusCode.SUCCESS).json({ message: Messages.BOOKING.RESCHEDULE_SUCCESS });
     } catch (error: unknown) {
       if (error instanceof AppError) {
@@ -253,7 +253,7 @@ export class SlotController {
         res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
         return;
       }
-      await this._cancelBookingUseCase.execute(companyId, bookingId);
+      await this._cancelBookingUseCase.execute(companyId, bookingId as string);
       res.status(StatusCode.SUCCESS).json({ message: "Booking cancelled successfully" });
     } catch (error: unknown) {
       if (error instanceof AppError) {
@@ -268,7 +268,7 @@ export class SlotController {
   async refundBooking(req: Request, res: Response): Promise<void> {
     try {
       const { bookingId } = req.params;
-      await this._refundBookingUseCase.execute(bookingId);
+      await this._refundBookingUseCase.execute(bookingId as string);
       res.status(StatusCode.SUCCESS).json({ message: "Refund processed successfully" });
     } catch (error: unknown) {
       if (error instanceof AppError) {
