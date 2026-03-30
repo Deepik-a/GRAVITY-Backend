@@ -20,7 +20,7 @@ export class NotificationController {
         return;
       }
 
-      const notifications = await this._notificationRepository.getNotifications(user.id, user.role);
+      const notifications = await this._notificationRepository.getNotifications(user.id as string, user.role);
       res.status(StatusCode.SUCCESS).json(notifications);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
@@ -31,7 +31,7 @@ export class NotificationController {
   async markAsRead(req: Request, res: Response): Promise<void> {
     try {
       const { notificationId } = req.params;
-      await this._notificationRepository.markAsRead(notificationId);
+      await this._notificationRepository.markAsRead(notificationId as string);
       res.status(StatusCode.SUCCESS).json({ success: true });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;

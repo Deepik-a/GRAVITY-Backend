@@ -30,7 +30,7 @@ export class CompanyProfileController {
         return res.status(StatusCode.BAD_REQUEST).json({ message: Messages.COMPANY.ID_REQUIRED });
       }
 
-      const result = await this._getProfileUseCase.execute(companyId);
+      const result = await this._getProfileUseCase.execute(companyId as string);
       return res.status(StatusCode.SUCCESS).json(result);
     } catch (err) {
       this._logger.error("🔥 Get profile error:", { error: err });

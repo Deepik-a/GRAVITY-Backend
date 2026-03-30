@@ -16,7 +16,7 @@ export class ReviewController {
     try {
       const reviewData = {
         ...req.body,
-        companyId: req.params.companyId || req.body.companyId,
+        companyId: (req.params.companyId as string) || req.body.companyId,
         userId: (req.user as AuthenticatedUser)?.id, // populates from AuthMiddleware
       };
       const result = await this._submitReviewUseCase.execute(reviewData);
@@ -29,7 +29,7 @@ export class ReviewController {
   async getCompanyReviews(req: Request, res: Response, next: NextFunction) {
     try {
       const { companyId } = req.params;
-      const result = await this._getCompanyReviewsUseCase.execute(companyId);
+      const result = await this._getCompanyReviewsUseCase.execute(companyId as string);
       res.status(200).json(result);
     } catch (error) {
       next(error);

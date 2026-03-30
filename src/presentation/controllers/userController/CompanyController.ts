@@ -22,7 +22,7 @@ export class CompanyController {
         return;
       }
 
-      const result = await this._getProfileUseCase.execute(companyId);
+      const result = await this._getProfileUseCase.execute(companyId as string);
       res.status(StatusCode.SUCCESS).json(result);
     } catch (error: unknown) {
       const err = error as Error;

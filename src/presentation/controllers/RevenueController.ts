@@ -27,7 +27,7 @@ export class RevenueController {
   async initiatePayout(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const result = await this._initiateCompanyPayoutUseCase.execute(id);
+      const result = await this._initiateCompanyPayoutUseCase.execute(id as string);
       res.status(200).json({ success: result });
     } catch (error) {
       next(error);
@@ -36,7 +36,7 @@ export class RevenueController {
 
   async getCompanyWallet(req: Request, res: Response, next: NextFunction) {
     try {
-      const companyId = req.params.companyId || (req.user as AuthenticatedUser)?.id;
+      const companyId = (req.params.companyId as string) || (req.user as AuthenticatedUser)?.id;
       const result = await this._getCompanyWalletUseCase.execute(companyId);
       res.status(200).json(result);
     } catch (error) {

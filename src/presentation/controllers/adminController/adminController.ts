@@ -116,7 +116,7 @@ export class AdminLoginController {
     try {
       const { id } = req.params;
       const { approve } = req.body;
-      const verifyDto: VerifyCompanyRequestDto = { companyId: id, approve };
+      const verifyDto: VerifyCompanyRequestDto = { companyId: id as string, approve };
       this._logger.info("📨 Verify Company Request:", { verifyDto });
 
       if (!id || approve === undefined) {
@@ -147,7 +147,7 @@ export class AdminLoginController {
           .json({ message: Messages.ADMIN.BLOCK_REQUIRED });
       }
       const result = await this._toggleUserBlockStatusUseCase.execute({
-        id,
+        id: id as string,
         isBlocked,
       });
       return res
@@ -176,7 +176,7 @@ export class AdminLoginController {
           .json({ message: Messages.ADMIN.BLOCK_REQUIRED });
       }
       const result = await this._toggleCompanyBlockStatusUseCase.execute({
-        id,
+        id: id as string,
         isBlocked,
       });
       return res
