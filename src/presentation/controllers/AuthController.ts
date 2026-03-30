@@ -161,6 +161,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
 
     return res.status(StatusCode.SUCCESS).json(result);
   } catch (err) {
+    this._logger.error("❌ Google Login Error:", { error: err });
     next(err);
   }
 }
@@ -251,9 +252,9 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
       cookieNames.forEach(name => {
         res.clearCookie(name, { 
           path: "/",
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict" as const
+          httpOnly: cookieData.httpONLY,
+          secure: cookieData.SECURE,
+          sameSite: cookieData.SAME_SITE
         });
       });
 

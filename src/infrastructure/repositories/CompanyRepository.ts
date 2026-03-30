@@ -300,7 +300,7 @@ export class CompanyRepository
     } else sort.createdAt = -1;
     const [companies, total] = await Promise.all([this.model.find(filter).sort(sort).skip(skip).limit(limit).lean(), this.model.countDocuments(filter)]);
     const resolvedData = await Promise.all((companies as any[]).map(async (c: any) => this._mapToCompany(c)));
-    return { data: resolvedData, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { companies: resolvedData, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async updateSubscription(companyId: string, subscription: any): Promise<void> {

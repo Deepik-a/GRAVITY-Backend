@@ -12,6 +12,8 @@ import { IGetCompanyBookingsUseCase } from "@/application/interfaces/use-cases/c
 import { IGetAllBookingsUseCase } from "@/application/interfaces/use-cases/admin/IGetAllBookingsUseCase";
 import { ICompleteBookingUseCase } from "@/application/interfaces/use-cases/user/ICompleteBookingUseCase";
 import { IRescheduleBookingUseCase } from "@/application/interfaces/use-cases/company/IRescheduleBookingUseCase";
+import { ICancelBookingUseCase } from "@/application/interfaces/use-cases/company/ICancelBookingUseCase";
+import { IRefundBookingUseCase } from "@/application/use-cases/admin/RefundBookingUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { AuthenticatedUser } from "@/types/auth";
 import { Messages } from "@/shared/constants/message";
@@ -28,7 +30,9 @@ export class SlotController {
     @inject(TYPES.GetUserBookingsUseCase) private _getUserBookingsUseCase: IGetUserBookingsUseCase,
     @inject(TYPES.GetAllBookingsUseCase) private _getAllBookingsUseCase: IGetAllBookingsUseCase,
     @inject(TYPES.CompleteBookingUseCase) private _completeBookingUseCase: ICompleteBookingUseCase,
-    @inject(TYPES.RescheduleBookingUseCase) private _rescheduleBookingUseCase: IRescheduleBookingUseCase
+    @inject(TYPES.RescheduleBookingUseCase) private _rescheduleBookingUseCase: IRescheduleBookingUseCase,
+    @inject(TYPES.CancelBookingUseCase) private _cancelBookingUseCase: ICancelBookingUseCase,
+    @inject(TYPES.RefundBookingUseCase) private _refundBookingUseCase: IRefundBookingUseCase
   ) {}
 
   async getAllBookings(req: Request, res: Response): Promise<void> {
@@ -231,6 +235,41 @@ export class SlotController {
       const { newDate, newStartTime } = req.body;
       await this._rescheduleBookingUseCase.execute(bookingId, new Date(newDate), newStartTime);
       res.status(StatusCode.SUCCESS).json({ message: Messages.BOOKING.RESCHEDULE_SUCCESS });
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+      } else {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        res.status(StatusCode.INTERNAL_ERROR).json({ message });
+      }
+    }
+  }
+
+  async cancelBooking(req: Request, res: Response): Promise<void> {
+    try {
+      const { bookingId } = req.params;
+      const companyId = (req.user as AuthenticatedUser)?.id;
+      if (!companyId) {
+        res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
+        return;
+      }
+      await this._cancelBookingUseCase.execute(companyId, bookingId);
+      res.status(StatusCode.SUCCESS).json({ message: "Booking cancelled successfully" });
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+      } else {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        res.status(StatusCode.INTERNAL_ERROR).json({ message });
+      }
+    }
+  }
+
+  async refundBooking(req: Request, res: Response): Promise<void> {
+    try {
+      const { bookingId } = req.params;
+      await this._refundBookingUseCase.execute(bookingId);
+      res.status(StatusCode.SUCCESS).json({ message: "Refund processed successfully" });
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });

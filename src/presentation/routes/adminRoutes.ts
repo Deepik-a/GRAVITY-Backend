@@ -24,7 +24,8 @@ router.patch(ROUTES.ADMIN.USERS_BLOCK.replace("/admin", ""), adminAuth.verify, a
 router.patch(ROUTES.ADMIN.COMPANIES_BLOCK.replace("/admin", ""), adminAuth.verify, adminAuth.authorize(["admin"]), adminController.toggleCompanyBlockStatus.bind(adminController));
 router.get(ROUTES.ADMIN.USERS_SEARCH.replace("/admin", ""), adminAuth.verify,adminAuth.authorize(["admin"]),adminController.SearchUsers.bind(adminController));
 router.get(ROUTES.ADMIN.COMPANIES_SEARCH.replace("/admin", ""), adminAuth.verify, adminAuth.authorize(["admin"]), adminController.searchCompanies.bind(adminController));
-router.get(ROUTES.COMPANY.BOOKINGS.replace("/admin", ""), adminAuth.verify, adminAuth.authorize(["admin"]), slotController.getAllBookings.bind(slotController));
+router.get(ROUTES.ADMIN.BOOKINGS.replace("/admin", ""), adminAuth.verify, adminAuth.authorize(["admin"]), slotController.getAllBookings.bind(slotController));
+router.patch("/bookings/:bookingId/refund", adminAuth.verify, adminAuth.authorize(["admin"]), slotController.refundBooking.bind(slotController));
 
 import { RevenueController } from "@/presentation/controllers/RevenueController";
 const revenueController = container.get<RevenueController>(TYPES.RevenueController);
