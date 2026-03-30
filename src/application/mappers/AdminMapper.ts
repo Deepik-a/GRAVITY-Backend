@@ -7,7 +7,7 @@ export const AdminMapper = {
       id: admin._id.toString(),
       email: admin.email,
       password: admin.password,
-      role: admin.role,
+      role: admin.role || "admin",
       refreshToken: admin.refreshToken,
     };
   }

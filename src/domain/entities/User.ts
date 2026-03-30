@@ -43,6 +43,7 @@ export interface UserProfileDetails {
   isBlocked?:boolean;
   role?: string;
   bookingCount?:number;
+  walletBalance?:number;
 }
 
 
@@ -102,7 +103,8 @@ export class UserProfile implements UserProfileDetails {
     public bio?: string,
     public isBlocked?:boolean,
     public role?: string,
-    public bookingCount?:number|undefined
+    public bookingCount?:number|undefined,
+    public walletBalance?:number|undefined
   ) {}
 }
 

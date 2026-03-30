@@ -95,6 +95,14 @@ router.post(
   reviewController.submitReview.bind(reviewController)
 );
 
+// Alternative POST route for RESTful consistency (used by frontend)
+router.post(
+  ROUTES.USER.COMPANY_REVIEWS.replace("/user", ""),
+  userAuth.verify,
+  userAuth.authorize(["user"]),
+  reviewController.submitReview.bind(reviewController)
+);
+
 router.get(
   ROUTES.USER.COMPANY_REVIEWS.replace("/user", ""),
   // Public or User? Let's generic public access if needed, or userAuth

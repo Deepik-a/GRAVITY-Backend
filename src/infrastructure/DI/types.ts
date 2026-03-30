@@ -34,6 +34,7 @@ export const TYPES = {
   SearchCompanyUseCase:Symbol.for("SearchCompanyUseCase"),
   GetAllBookingsUseCase: Symbol.for("GetAllBookingsUseCase"),
   GetAdminDashboardStatsUseCase: Symbol.for("GetAdminDashboardStatsUseCase"),
+  RefundBookingUseCase: Symbol.for("RefundBookingUseCase"),
 
   // Use Cases - User/Auth
   DetectUserRoleUseCase: Symbol.for("DetectUserRoleUseCase"),
@@ -56,6 +57,7 @@ export const TYPES = {
   DeleteSlotConfigUseCase: Symbol.for("DeleteSlotConfigUseCase"),
   GetCompanyBookingsUseCase: Symbol.for("GetCompanyBookingsUseCase"),
   RescheduleBookingUseCase: Symbol.for("RescheduleBookingUseCase"),
+  CancelBookingUseCase: Symbol.for("CancelBookingUseCase"),
   ConfirmBookingUseCase: Symbol.for("ConfirmBookingUseCase"),
   GetCompanyDashboardStatsUseCase: Symbol.for("GetCompanyDashboardStatsUseCase"),
 

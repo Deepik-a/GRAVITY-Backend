@@ -47,6 +47,7 @@ export const ROUTES = {
     LOGIN: "/admin/login",
     USER_MANAGEMENT: "/admin/usermanagment",
     COMPANY_MANAGEMENT: "/admin/companies",
+    BOOKINGS: "/admin/bookings",
     DASHBOARD_STATS: "/admin/dashboard-stats",
     TRANSACTIONS: "/admin/transactions",
     VERIFY_COMPANY: "/admin/companies/:id/verify",

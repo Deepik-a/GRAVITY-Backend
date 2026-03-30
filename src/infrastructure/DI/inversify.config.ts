@@ -32,6 +32,7 @@ import { SearchUserUseCase } from "@/application/use-cases/admin/SearchUsersUseC
 import { SearchCompanyUseCase } from "@/application/use-cases/admin/SearchCompanyUseCase";
 import { GetAllBookingsUseCase } from "@/application/use-cases/admin/GetAllBookingsUseCase";
 import { GetAdminDashboardStatsUseCase } from "@/application/use-cases/admin/GetAdminDashboardStatsUseCase";
+import { RefundBookingUseCase } from "@/application/use-cases/admin/RefundBookingUseCase";
 
 // ---------------- Use Cases (User/Auth) ----------------
 import { DetectUserRoleUseCase } from "@/application/use-cases/user/DetectUserRoleUseCase";
@@ -69,6 +70,7 @@ import { GetSlotConfigUseCase } from "@/application/use-cases/company/GetSlotCon
 import { DeleteSlotConfigUseCase } from "@/application/use-cases/company/DeleteSlotConfigUseCase";
 import { GetCompanyBookingsUseCase } from "@/application/use-cases/company/GetCompanyBookingsUseCase";
 import { RescheduleBookingUseCase } from "@/application/use-cases/company/RescheduleBookingUseCase";
+import { CancelBookingUseCase } from "@/application/use-cases/company/CancelBookingUseCase";
 import { ConfirmBookingUseCase } from "@/application/use-cases/company/ConfirmBookingUseCase";
 import { GetCompanyDashboardStatsUseCase } from "@/application/use-cases/company/GetCompanyDashboardStatsUseCase";
 
@@ -124,6 +126,7 @@ container.bind(TYPES.SearchUserUseCase).to(SearchUserUseCase);
 container.bind(TYPES.SearchCompanyUseCase).to(SearchCompanyUseCase);
 container.bind(TYPES.GetAllBookingsUseCase).to(GetAllBookingsUseCase);
 container.bind(TYPES.GetAdminDashboardStatsUseCase).to(GetAdminDashboardStatsUseCase);
+container.bind(TYPES.RefundBookingUseCase).to(RefundBookingUseCase);
 
 // ---------------- Bind User/Auth Use Cases ----------------
 container.bind(TYPES.DetectUserRoleUseCase).to(DetectUserRoleUseCase);
@@ -157,6 +160,7 @@ container.bind(TYPES.GetSlotConfigUseCase).to(GetSlotConfigUseCase);
 container.bind(TYPES.DeleteSlotConfigUseCase).to(DeleteSlotConfigUseCase);
 container.bind(TYPES.GetCompanyBookingsUseCase).to(GetCompanyBookingsUseCase);
 container.bind(TYPES.RescheduleBookingUseCase).to(RescheduleBookingUseCase);
+container.bind(TYPES.CancelBookingUseCase).to(CancelBookingUseCase);
 container.bind(TYPES.ConfirmBookingUseCase).to(ConfirmBookingUseCase);
 container.bind(TYPES.GetCompanyDashboardStatsUseCase).to(GetCompanyDashboardStatsUseCase);
 

@@ -75,6 +75,12 @@ router.patch(
   companyAuth.authorize(["company"]),
   slotController.rescheduleBooking.bind(slotController)
 );
+router.patch(
+  ROUTES.COMPANY.BOOKING_UPDATE.replace("/company", "") + "/cancel",
+  companyAuth.verify,
+  companyAuth.authorize(["company"]),
+  slotController.cancelBooking.bind(slotController)
+);
 router.get(
   ROUTES.COMPANY.SLOTS_CONFIG.replace("/company", ""), 
   companyAuth.verify, 

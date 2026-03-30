@@ -48,7 +48,7 @@ updateDocumentStatus(
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }): Promise<{
-    data: ICompany[];
+    companies: ICompany[];
     total: number;
     page: number;
     limit: number;
