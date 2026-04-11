@@ -98,6 +98,7 @@ async login(req: Request, res: Response, next: NextFunction) {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
+      domain: cookieData.DOMAIN,
       maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
       path: "/", 
     });
@@ -106,6 +107,7 @@ async login(req: Request, res: Response, next: NextFunction) {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
+      domain: cookieData.DOMAIN,
       maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
       path: "/",
     });
@@ -146,6 +148,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
+      domain: cookieData.DOMAIN,
       maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
       path: "/",
     });
@@ -154,6 +157,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
+      domain: cookieData.DOMAIN,
       maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
       path: "/",
     });
@@ -208,6 +212,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
           httpOnly: cookieData.httpONLY,
           secure: cookieData.SECURE,
           sameSite: cookieData.SAME_SITE,
+          domain: cookieData.DOMAIN,
           maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
           path: "/",
         });
@@ -216,6 +221,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
           httpOnly: cookieData.httpONLY,
           secure: cookieData.SECURE,
           sameSite: cookieData.SAME_SITE,
+          domain: cookieData.DOMAIN,
           maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
           path: "/",
         });
