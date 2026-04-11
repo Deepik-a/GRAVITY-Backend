@@ -37,13 +37,33 @@ export class GetAvailableSlotsUseCase implements IGetAvailableSlotsUseCase {
     // 2. Generate Potential Slots
     const potentialSlots = this.generateSlots(config);
 
-    // 3. Filter Booked Slots - ONLY exclude confirmed (paid) ones 
+    // 3. Filter Past Slots if date is Today
+    const now = new Date();
+    
+    // Robust today check: Parse dateStr components to avoid UTC/Local timezone shifts
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const isToday = now.getFullYear() === y && 
+                    (now.getMonth() + 1) === m && 
+                    now.getDate() === d;
+    
+    let futureSlots = potentialSlots;
+    if (isToday) {
+      const currentTotalMins = now.getHours() * 60 + now.getMinutes();
+
+      futureSlots = potentialSlots.filter(time => {
+        const [h, min] = time.split(":").map(Number);
+        const slotTotalMins = h * 60 + min;
+        return slotTotalMins > currentTotalMins;
+      });
+    }
+
+    // 4. Filter Booked Slots - ONLY exclude confirmed (paid) ones 
     // to allow "first to pay" behavior for concurrent pending bookings.
     const bookedBookings = await this._bookingRepository.getBookingsByCompanyAndDate(companyId, date, ["confirmed"]);
     const bookedTimes = bookedBookings.map(b => b.startTime);
 
 
-    return potentialSlots.filter(time => !bookedTimes.includes(time));
+    return futureSlots.filter(time => !bookedTimes.includes(time));
   }
 
   private generateSlots(config: ISlotConfig): string[] {

@@ -58,6 +58,17 @@ export class GoogleAuthUseCase implements IGoogleAuthUseCase {
 
       user = await finalRepo.createWithGoogle(newUser);
       isNewUser = true;
+    } else {
+      // If user exists but name is missing, update it
+      if (!user.name && googleUser.name) {
+          (user as any).name = googleUser.name;
+          if (finalRepo) {
+              const userId = (user as any).id?.toString();
+              if (userId) {
+                  await (finalRepo as any).updateUserProfile(userId, { name: googleUser.name });
+              }
+          }
+      }
     }
 
     // 3. SAFETY CHECK
@@ -70,18 +81,20 @@ export class GoogleAuthUseCase implements IGoogleAuthUseCase {
       throw new AppError(Messages.AUTH.ACCOUNT_BLOCKED, StatusCode.FORBIDDEN);
     }
 
-    // 4. COMPANY VERIFICATION CHECK
-    const isCompany = user.role === "company";
-    const isPending = user.status === "pending";
-    if (isCompany && isPending && !isNewUser) {
-      if (user.documentStatus === "pending") {
-        throw new AppError("Company verification is pending approval.", StatusCode.FORBIDDEN);
-      }
-    }
+    // 4. COMPANY VERIFICATION CHECK (Passed to frontend to handle)
+    // Removed the check that throws FORBIDDEN for pending documentStatus
+    // This allows the frontend to show the "pending" message as requested.
+
 
     // 5. GENERATE JWT
     const subject = (user as { id?: string; googleId?: string }).id?.toString() || (user as { googleId: string }).googleId;
-    const payload = { userId: subject, role: user.role, status: user.status };
+    const payload = { 
+      userId: subject, 
+      role: user.role, 
+      status: user.status,
+      name: user.name,
+      email: user.email
+    };
 
     const accessToken = this._jwtService.signAccessToken(payload);
     const refreshToken = this._jwtService.signRefreshToken(payload);

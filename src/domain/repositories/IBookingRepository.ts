@@ -8,7 +8,7 @@ export interface IBookingRepository {
 
   getUserBookingsPaged(userId: string, page: number, limit: number): Promise<{ bookings: IBooking[]; total: number }>;
   getCompanyBookingsPaged(companyId: string, page: number, limit: number): Promise<{ bookings: IBooking[]; total: number }>;
-  getAllBookingsPaged(page: number, limit: number): Promise<{ bookings: IBooking[]; total: number }>;
+  getAllBookingsPaged(page: number, limit: number, search?: string): Promise<{ bookings: IBooking[]; total: number }>;
   checkSlotAvailability(companyId: string, date: Date, startTime: string): Promise<boolean>;
   cancelBooking(bookingId: string): Promise<boolean>;
   getStats(companyId: string): Promise<{

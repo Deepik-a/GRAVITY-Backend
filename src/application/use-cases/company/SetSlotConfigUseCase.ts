@@ -27,7 +27,7 @@ export class SetSlotConfigUseCase implements ISetSlotConfigUseCase {
 
     const sub = company.subscription;
     if (!company.isSubscribed) {
-      throw new AppError(`Active subscription required to configure slots. (isSubscribed: ${company.isSubscribed}, Status: ${sub?.status || "none"})`, StatusCode.FORBIDDEN);
+      throw new AppError("Active subscription required to configure slots.", StatusCode.FORBIDDEN);
     }
 
     if (sub?.endDate && new Date() > new Date(sub.endDate)) {

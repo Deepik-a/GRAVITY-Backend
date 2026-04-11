@@ -79,7 +79,7 @@ export interface GoogleUserResponseDto {
   googleId: string;
   token: string;
   role: "user" | "company";
-  documentStatus?: "pending" | "verified" | "rejected";
+  documentStatus?: "pending" | "verified" | "rejected" | "not_submitted";
   isProfileFilled?: boolean;
   isSubscribed?: boolean;
 }
@@ -89,7 +89,7 @@ export interface GoogleAuthResponseDto {
   accessToken: string;
   refreshToken: string;
   isNewUser: boolean;
-  documentStatus?: "pending" | "verified" | "rejected";
+  documentStatus?: "pending" | "verified" | "rejected" | "not_submitted";
   rejectionReason?: string | null;
 }
 

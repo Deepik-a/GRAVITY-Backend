@@ -7,6 +7,7 @@ export interface SendMessageDTO {
   receiverType: "user" | "company";
   content: string;
   attachmentUrl?: string;
+  attachmentKey?: string;
   attachmentType?: "image" | "file";
 }
 

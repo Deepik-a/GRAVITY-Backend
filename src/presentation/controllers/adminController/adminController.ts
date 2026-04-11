@@ -115,8 +115,8 @@ export class AdminLoginController {
   async verifyCompany(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { approve } = req.body;
-      const verifyDto: VerifyCompanyRequestDto = { companyId: id as string, approve };
+      const { approve, reason } = req.body;
+      const verifyDto: VerifyCompanyRequestDto = { companyId: id as string, approve, reason };
       this._logger.info("📨 Verify Company Request:", { verifyDto });
 
       if (!id || approve === undefined) {

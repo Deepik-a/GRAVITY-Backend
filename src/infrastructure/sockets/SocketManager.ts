@@ -14,6 +14,9 @@ interface SendMessageData {
   receiverId: string;
   receiverType: "user" | "company";
   content: string;
+  attachmentUrl?: string;
+  attachmentKey?: string;
+  attachmentType?: "image" | "file";
 }
 
 export class SocketManager {

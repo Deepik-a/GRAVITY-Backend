@@ -25,6 +25,20 @@ export class BookSlotUseCase implements IBookSlotUseCase {
     const config = await this._slotRepository.getConfigByCompanyId(companyId);
     if (!config) throw new AppError("Company has no slot configuration.", StatusCode.NOT_FOUND);
 
+    // 2. Prevent booking past slots
+    const now = new Date();
+    const bookingDate = new Date(date);
+    if (bookingDate.toDateString() === now.toDateString()) {
+      const [h, m] = startTime.split(":").map(Number);
+      const slotMins = h * 60 + m;
+      const currentMins = now.getHours() * 60 + now.getMinutes();
+      if (slotMins <= currentMins) {
+        throw new AppError("This time slot has already passed for today.", StatusCode.BAD_REQUEST);
+      }
+    } else if (bookingDate < now) {
+       throw new AppError("Cannot book slots in the past.", StatusCode.BAD_REQUEST);
+    }
+
     // IMPORTANT: Check for existing bookings to prevent E11000 duplicate key error
     // If a booking exists for this slot (even if pending), we handle it.
     const existing = await this._bookingRepository.findOneBooking(companyId, date, startTime);

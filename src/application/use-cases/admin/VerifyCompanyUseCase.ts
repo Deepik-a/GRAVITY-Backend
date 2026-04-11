@@ -21,8 +21,9 @@ export class VerifyCompanyUseCase implements IVerifyCompanyUseCase {
     const updatedCompany = await this._companyRepo.updateDocumentStatus({ companyId }, status, reason);
 
     // Email only when rejecting
-    if (!approve && reason) {
-      await this._emailService.sendRejectionEmail(updatedCompany.email, reason);
+    if (!approve) {
+      const rejectionReason = reason || "Your documents were rejected. Please review and re-upload accordingly.";
+      await this._emailService.sendRejectionEmail(updatedCompany.email, rejectionReason);
     }
 
     return {

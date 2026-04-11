@@ -9,7 +9,7 @@ export interface UserSignUpDetails {
   provider:"local"|"google"
   phone?: string;
   status?: "pending" | "verified";
-  documentStatus?: "pending" | "verified" | "rejected";
+  documentStatus?: "pending" | "verified" | "rejected" | "not_submitted";
   rejectionReason?: string | null;
   isBlocked?: boolean;
   isProfileFilled?: boolean;
@@ -24,7 +24,7 @@ export interface GoogleSignUpDetails {
   provider:"local"|"google";
   status?: "pending" | "verified";
   id?: UniqueEntityID;
-  documentStatus?: "pending" | "verified" | "rejected";
+  documentStatus?: "pending" | "verified" | "rejected" | "not_submitted";
   rejectionReason?: string | null;
   isBlocked?: boolean;
   isProfileFilled?: boolean;
@@ -60,7 +60,7 @@ export class UserSignUp implements UserSignUpDetails {
     public provider: "local" | "google" = "local",
     public phone = "",        // optional → move down
   public status: "pending" | "verified", // optional → move down
-    public documentStatus?: "pending" | "verified" | "rejected",
+    public documentStatus?: "pending" | "verified" | "rejected" | "not_submitted",
     public rejectionReason?: string | null,
     public isBlocked = false,
     public isProfileFilled = false,
@@ -80,7 +80,7 @@ export class GoogleSignUp implements GoogleSignUpDetails {
     public provider:"local"|"google",
     public status?: "pending" | "verified",
     public id?: UniqueEntityID, // Added ID
-    public documentStatus?: "pending" | "verified" | "rejected", // Added
+    public documentStatus?: "pending" | "verified" | "rejected" | "not_submitted", // Added
     public rejectionReason?: string | null, // Added
     public isBlocked = false,
     public isProfileFilled = false,

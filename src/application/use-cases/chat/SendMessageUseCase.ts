@@ -52,6 +52,7 @@ export class SendMessageUseCase implements ISendMessageUseCase {
       senderType: data.senderType,
       content: data.content,
       attachmentUrl: data.attachmentUrl,
+      attachmentKey: data.attachmentKey,
       attachmentType: data.attachmentType
     });
 
