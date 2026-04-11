@@ -4,6 +4,8 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { ISubmitReviewUseCase } from "@/application/interfaces/use-cases/user/ISubmitReviewUseCase";
 import { IGetCompanyReviewsUseCase } from "@/application/interfaces/use-cases/company/IGetCompanyReviewsUseCase";
 import { AuthenticatedUser } from "@/types/auth";
+import BookingModel from "@/infrastructure/database/models/BookingModel";
+import { StatusCode } from "@/domain/enums/StatusCode";
 
 @injectable()
 export class ReviewController {
@@ -14,10 +16,27 @@ export class ReviewController {
 
   async submitReview(req: Request, res: Response, next: NextFunction) {
     try {
+      const userId = (req.user as AuthenticatedUser)?.id;
+      const companyId = (req.params.companyId as string) || req.body.companyId;
+
+      const eligible = await BookingModel.exists({
+        userId,
+        companyId,
+        serviceStatus: "completed",
+        paymentStatus: "paid",
+      });
+
+      if (!eligible) {
+        res.status(StatusCode.FORBIDDEN).json({
+          message: "You can only review a company after completing a paid consultation.",
+        });
+        return;
+      }
+
       const reviewData = {
         ...req.body,
-        companyId: (req.params.companyId as string) || req.body.companyId,
-        userId: (req.user as AuthenticatedUser)?.id, // populates from AuthMiddleware
+        companyId,
+        userId, // populates from AuthMiddleware
       };
       const result = await this._submitReviewUseCase.execute(reviewData);
       res.status(201).json(result);

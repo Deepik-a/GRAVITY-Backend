@@ -18,6 +18,6 @@ export async function verifyGoogleToken(idToken: string): Promise<VerifiedGoogle
   return {
     googleId: payload.sub || "",
     email: payload.email,
-    name: payload.name || "",
+    name: payload.name || `${payload.given_name || ""} ${payload.family_name || ""}`.trim() || "",
   };
 }

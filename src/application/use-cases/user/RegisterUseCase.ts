@@ -34,15 +34,33 @@ export class RegisterUseCase implements IRegisterUseCase {
     
     // 1) Check if email exists in current role
     const existing = await repo.findByEmail(payload.email);
-    if (existing) throw new AppError("Email already in use",StatusCode.BAD_REQUEST);
+    if (existing) {
+      const provider = (existing as { provider?: string }).provider;
+      if (provider === "google" && !payload.googleId) {
+        throw new AppError("Email already registered with Google. Please sign in with Google.", StatusCode.BAD_REQUEST);
+      }
+      throw new AppError("Email already in use", StatusCode.BAD_REQUEST);
+    }
 
     // 2) Check if email exists in OTHER role
     if (role === "user") {
       const existingCompany = await this._companyRepo.findByEmail(payload.email);
-      if (existingCompany) throw new AppError("Email is already registered as company",StatusCode.BAD_REQUEST);
+      if (existingCompany) {
+        const provider = (existingCompany as { provider?: string }).provider;
+        if (provider === "google" && !payload.googleId) {
+          throw new AppError("Email already registered with Google. Please sign in with Google.", StatusCode.BAD_REQUEST);
+        }
+        throw new AppError("Email is already registered as company", StatusCode.BAD_REQUEST);
+      }
     } else {
       const existingUser = await this._userRepo.findByEmail(payload.email);
-      if (existingUser) throw new AppError("Email is already registered as user",StatusCode.BAD_REQUEST);
+      if (existingUser) {
+        const provider = (existingUser as { provider?: string }).provider;
+        if (provider === "google" && !payload.googleId) {
+          throw new AppError("Email already registered with Google. Please sign in with Google.", StatusCode.BAD_REQUEST);
+        }
+        throw new AppError("Email is already registered as user", StatusCode.BAD_REQUEST);
+      }
     }
 
     // ---------------- Google Signup ----------------

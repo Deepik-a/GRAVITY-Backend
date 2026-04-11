@@ -6,6 +6,7 @@ export interface IMessageSchema extends Document {
   senderType: "user" | "company";
   content: string;
   attachmentUrl?: string;
+  attachmentKey?: string; // Add this
   attachmentType?: "image" | "file";
   status: "sent" | "delivered" | "read";
   createdAt: Date;
@@ -18,6 +19,7 @@ const MessageSchema: Schema = new Schema(
     senderType: { type: String, enum: ["user", "company"], required: true },
     content: { type: String, required: true },
     attachmentUrl: { type: String },
+    attachmentKey: { type: String }, // Add this
     attachmentType: { type: String, enum: ["image", "file"] },
     status: { type: String, enum: ["sent", "delivered", "read"], default: "sent" },
   },

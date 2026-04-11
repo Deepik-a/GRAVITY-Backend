@@ -33,13 +33,13 @@ export class AdminLoginUseCase implements IAdminLoginUseCase {
   
 
     if (!admin) {
-      throw new AppError("Admin not found", StatusCode.NOT_FOUND);
+      throw new AppError("admin email wrong", StatusCode.NOT_FOUND);
     }
 
     // 2. Check password
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
-      throw new AppError("Invalid credentials", StatusCode.UNAUTHORIZED);
+      throw new AppError("admin password wrong", StatusCode.UNAUTHORIZED);
     }
 
     // 3. Sign tokens

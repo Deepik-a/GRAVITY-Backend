@@ -95,9 +95,10 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
                 if (finalBooking?.status === "cancelled") {
                   return { success: false, message: "This slot was just taken by someone else who paid first." };
                 }
-                return { success: true, message: "Booking already confirmed." };
+                return { success: true, message: "Booking already confirmed.", bookingId, sessionId: session.id, booking: finalBooking };
               }
-              return { success: true, message: "Booking confirmed successfully!" };
+              const finalBooking = await this._bookingRepository.findById(bookingId);
+              return { success: true, message: "Booking confirmed successfully!", bookingId, sessionId: session.id, booking: finalBooking };
           }
        }
 

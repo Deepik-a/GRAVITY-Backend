@@ -27,7 +27,7 @@ export interface ICompany extends Omit<Document, "_id"> {
     Trade_License?: string | null;
   };
 
-  documentStatus: "pending" | "verified" | "rejected";
+  documentStatus: "pending" | "verified" | "rejected" | "not_submitted";
   rejectionReason?: string | null;
   subscription?: {
     planId?: ObjectId | null;
@@ -96,8 +96,8 @@ const CompanySchema = new Schema<ICompany>(
 
     documentStatus: {
       type: String,
-      enum: ["pending", "verified", "rejected"],
-      default: "pending",
+      enum: ["pending", "verified", "rejected", "not_submitted"],
+      default: "not_submitted",
     },
 
     rejectionReason: {
