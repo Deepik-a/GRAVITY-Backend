@@ -3,18 +3,20 @@
     "target": "ES2020",
     "module": "CommonJS",
     "moduleResolution": "Node",
+
     "rootDir": "src",
     "outDir": "dist",
-    "baseUrl": ".",
+
+    "baseUrl": "src",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["*"]
     },
+
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
     ],
+
     "types": [
       "node",
       "express",
@@ -26,18 +28,21 @@
       "nodemailer",
       "passport-google-oauth20"
     ],
+
     "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-      "sourceMap": true, //for easy debugging using breakpoints
+
+    "sourceMap": true
   },
+
   "include": [
     "src",
     "src/types/**/*.d.ts"
-  ],
-
+  ]
 }
