@@ -257,11 +257,20 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
       ];
       
       cookieNames.forEach(name => {
+        // Clear both host-only and domain-scoped cookies for reliability across
+        // api/frontend subdomains in production.
         res.clearCookie(name, { 
           path: "/",
           httpOnly: cookieData.httpONLY,
           secure: cookieData.SECURE,
           sameSite: cookieData.SAME_SITE
+        });
+        res.clearCookie(name, {
+          path: "/",
+          domain: cookieData.DOMAIN,
+          httpOnly: cookieData.httpONLY,
+          secure: cookieData.SECURE,
+          sameSite: cookieData.SAME_SITE,
         });
       });
 

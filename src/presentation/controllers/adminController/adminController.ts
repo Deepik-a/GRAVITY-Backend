@@ -70,6 +70,7 @@ export class AdminLoginController {
         httpOnly: cookieData.httpONLY,
         secure: cookieData.SECURE,
         sameSite: cookieData.SAME_SITE,
+        domain: cookieData.DOMAIN,
         maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
         path: "/",
       });
@@ -78,6 +79,7 @@ export class AdminLoginController {
         httpOnly: cookieData.httpONLY,
         secure: cookieData.SECURE,
         sameSite: cookieData.SAME_SITE,
+        domain: cookieData.DOMAIN,
         maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
         path: "/",
       });

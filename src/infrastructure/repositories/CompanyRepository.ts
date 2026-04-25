@@ -48,6 +48,19 @@ export class CompanyRepository
       @inject(TYPES.Logger) private readonly _logger: ILogger,
   ) {}
 
+  private async _resolveAssetUrl(path?: string | null): Promise<string | undefined> {
+    if (!path) return undefined;
+    if (path.startsWith("http") || path.startsWith("data:") || path.startsWith("blob:")) {
+      return path;
+    }
+    try {
+      return await this._s3Service.getSignedUrl(path);
+    } catch (err) {
+      this._logger.error(`// Failed to resolve asset URL: ${path}`, { error: err });
+      return path;
+    }
+  }
+
   private async _resolveProfileUrls(profile: unknown): Promise<ICompanyProfile | null> {
     if (!profile) return null;
     const p = profile as ICompanyProfile;
@@ -318,7 +331,7 @@ export class CompanyRepository
         new UniqueEntityID(doc._id.toString()), 
         doc.name, 
         doc.email, 
-        doc.profileImage || undefined, 
+        await this._resolveAssetUrl(doc.profileImage || undefined), 
         doc.phone || undefined, 
         doc.companyLocation || undefined, 
         doc.bio || undefined, 
@@ -348,7 +361,7 @@ export class CompanyRepository
         new UniqueEntityID(doc._id.toString()), 
         doc.name, 
         doc.email, 
-        doc.profileImage || undefined, 
+        await this._resolveAssetUrl(doc.profileImage || undefined), 
         doc.phone || undefined, 
         doc.companyLocation || undefined, 
         doc.bio || undefined,
@@ -458,7 +471,11 @@ export class CompanyRepository
       phone: d.phone ?? null, 
       role: d.role, 
       status: d.status,
-      documents: d.documents || {}, 
+      documents: {
+        GST_Certificate: await this._resolveAssetUrl(d.documents?.GST_Certificate ?? undefined) ?? null,
+        RERA_License: await this._resolveAssetUrl(d.documents?.RERA_License ?? undefined) ?? null,
+        Trade_License: await this._resolveAssetUrl(d.documents?.Trade_License ?? undefined) ?? null,
+      },
       documentStatus: d.documentStatus, 
       rejectionReason: d.rejectionReason ?? null,
       location: d.companyLocation ?? null, 

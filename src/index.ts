@@ -45,7 +45,13 @@ logger.info(process.cwd(), { cwd: process.cwd() });
 
 app.use(
   cors({
-    origin: [env.FRONTEND_URL, env.FRONTEND_URL.replace("www.", "")],
+    origin: (() => {
+      const frontend = new URL(env.FRONTEND_URL);
+      const host = frontend.hostname.replace(/^www\./, "");
+      const baseOrigin = `${frontend.protocol}//${host}`;
+      const wwwOrigin = `${frontend.protocol}//www.${host}`;
+      return [baseOrigin, wwwOrigin];
+    })(),
     credentials: true,
   })
 );
