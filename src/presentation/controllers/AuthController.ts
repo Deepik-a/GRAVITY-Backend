@@ -33,7 +33,7 @@ import { SignupResponseDto } from "@/application/dtos/user/SignupResponseDto";
 import { ILogger } from "@/domain/services/ILogger";
 import { UserSignUp } from "@/domain/entities/User";
 import { AppError } from "@/shared/error/AppError";
-import { cookieData } from "@/shared/constants/cookieData";
+import { cookieData, getCookieDomain } from "@/shared/constants/cookieData";
 import { Messages } from "@/shared/constants/message";
 
 
@@ -93,13 +93,14 @@ async login(req: Request, res: Response, next: NextFunction) {
 
     const accessKey = role === "company" ? "companyAccessToken" : "userAccessToken";
     const refreshKey = role === "company" ? "companyRefreshToken" : "userRefreshToken";
+    const cookieDomain = getCookieDomain(req.hostname);
 
     res.cookie(accessKey, result.accessToken, {
       httpOnly: cookieData.httpONLY,
       
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
-      domain: cookieData.DOMAIN,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
       maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
       path: "/", 
     });
@@ -108,7 +109,7 @@ async login(req: Request, res: Response, next: NextFunction) {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
-      domain: cookieData.DOMAIN,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
       maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
       path: "/",
     });
@@ -144,12 +145,13 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
 
     const accessKey = result.user.role === "company" ? "companyAccessToken" : "userAccessToken";
     const refreshKey = result.user.role === "company" ? "companyRefreshToken" : "userRefreshToken";
+    const cookieDomain = getCookieDomain(req.hostname);
 
     res.cookie(accessKey, result.accessToken, {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
-      domain: cookieData.DOMAIN,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
       maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
       path: "/",
     });
@@ -158,7 +160,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
       httpOnly: cookieData.httpONLY,
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
-      domain: cookieData.DOMAIN,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
       maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
       path: "/",
     });
@@ -208,12 +210,13 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
       if (result.success && result.accessToken && result.refreshToken && result.role) {
         const accessKey = result.role === "company" ? "companyAccessToken" : "userAccessToken";
         const refreshKey = result.role === "company" ? "companyRefreshToken" : "userRefreshToken";
+        const cookieDomain = getCookieDomain(req.hostname);
 
         res.cookie(accessKey, result.accessToken, {
           httpOnly: cookieData.httpONLY,
           secure: cookieData.SECURE,
           sameSite: cookieData.SAME_SITE,
-          domain: cookieData.DOMAIN,
+          ...(cookieDomain ? { domain: cookieDomain } : {}),
           maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
           path: "/",
         });
@@ -222,7 +225,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
           httpOnly: cookieData.httpONLY,
           secure: cookieData.SECURE,
           sameSite: cookieData.SAME_SITE,
-          domain: cookieData.DOMAIN,
+          ...(cookieDomain ? { domain: cookieDomain } : {}),
           maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
           path: "/",
         });
@@ -256,6 +259,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
         "adminAccessToken", "adminRefreshToken"
       ];
       
+      const cookieDomain = getCookieDomain(req.hostname);
       cookieNames.forEach(name => {
         // Clear both host-only and domain-scoped cookies for reliability across
         // api/frontend subdomains in production.
@@ -267,7 +271,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
         });
         res.clearCookie(name, {
           path: "/",
-          domain: cookieData.DOMAIN,
+          ...(cookieDomain ? { domain: cookieDomain } : {}),
           httpOnly: cookieData.httpONLY,
           secure: cookieData.SECURE,
           sameSite: cookieData.SAME_SITE,
