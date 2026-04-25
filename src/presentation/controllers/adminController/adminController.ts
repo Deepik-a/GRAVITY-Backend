@@ -50,7 +50,7 @@ export class AdminLoginController {
       const stats = await this._getDashboardStatsUseCase.execute();
       return res.status(StatusCode.SUCCESS).json(stats);
     } catch (error) {
-      this._logger.error("❌ Error fetching dashboard stats:", { error });
+      this._logger.error("// Error fetching dashboard stats:", { error });
       next(error);
     }
   }
@@ -59,13 +59,13 @@ export class AdminLoginController {
 
   async login(req: Request, res: Response, next: NextFunction) {
     try {
-      this._logger.info("🟦 Admin Login Controller Hit");
+      this._logger.info(" Admin Login Controller Hit");
 
       const loginDto: AdminLoginRequestDto = req.body;
       const result: AdminLoginResponseDto =
         await this._adminLoginUseCase.execute(loginDto);
 
-      // ✅ Admin Specific Cookies
+      //  Admin Specific Cookies
       res.cookie("adminAccessToken", result.accessToken, {
         httpOnly: cookieData.httpONLY,
         secure: cookieData.SECURE,
@@ -87,7 +87,7 @@ export class AdminLoginController {
         user: result.user
       });
     } catch (error) {
-      this._logger.error("❌ Error in admin login controller:", { error });
+      this._logger.error("// Error in admin login controller:", { error });
       next(error);
     }
   }
@@ -200,7 +200,7 @@ export class AdminLoginController {
 
     return res.status(StatusCode.SUCCESS).json({
       message: Messages.USER.USERSEARCH_SUCCESS,
-      users: result.data,        // ✅ mapping here
+      users: result.data,        //  mapping here
       total: result.total,
       page: result.page,
       limit: result.limit,

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { PaymentStatus } from "@/domain/enums/PaymentStatus";
 
 export interface IBookingDocument extends Document {
   companyId: mongoose.Types.ObjectId;
@@ -9,7 +10,7 @@ export interface IBookingDocument extends Document {
   status: "pending" | "confirmed" | "cancelled";
   price: number;
   adminCommission: number;
-  paymentStatus: "pending" | "paid" | "failed";
+  paymentStatus: PaymentStatus;
   serviceStatus: "pending" | "completed";
   payoutStatus: "pending" | "completed";
   stripeSessionId?: string;
@@ -29,8 +30,8 @@ const BookingSchema = new Schema<IBookingDocument>(
     adminCommission: { type: Number, required: true, default: 0 },
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "failed"],
-      default: "pending",
+      enum: Object.values(PaymentStatus),
+      default: PaymentStatus.PENDING,
     },
     stripeSessionId: { type: String },
     status: {

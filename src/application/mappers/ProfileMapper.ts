@@ -14,7 +14,8 @@ export const ProfileMapper = {
       profile.location,
       profile.bio,
       profile.isBlocked,
-      profile.role
+      profile.role,
+      profile.walletBalance
     );
   },
 
@@ -29,7 +30,9 @@ export const ProfileMapper = {
       dto.location,
       dto.bio,
       dto.isBlocked,
-      dto.role
+      dto.role,
+      undefined, // bookingCount
+      dto.walletBalance
     );
   }
 };

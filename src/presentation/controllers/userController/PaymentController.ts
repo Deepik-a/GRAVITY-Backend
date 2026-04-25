@@ -6,6 +6,7 @@ import { ICreateSubscriptionCheckoutSessionUseCase } from "@/application/interfa
 import { IStripeWebhookUseCase } from "@/application/interfaces/use-cases/payment/IStripeWebhookUseCase";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { AppError } from "@/shared/error/AppError";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class PaymentController {
@@ -31,7 +32,7 @@ export class PaymentController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -55,7 +56,7 @@ export class PaymentController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -69,8 +70,8 @@ export class PaymentController {
       const result = await this._stripeWebhookUseCase.execute(req.body, sig, webhookSecret);
       res.status(StatusCode.SUCCESS).json(result);
     } catch (error: unknown) {
-       const message = error instanceof Error ? error.message : "Unknown error";
-       res.status(StatusCode.BAD_REQUEST).send(`Webhook Error: ${message}`);
+       const message = error instanceof Error ? error.message : Messages.GENERIC.UNKNOWN_ERROR;
+       res.status(StatusCode.BAD_REQUEST).send(`${Messages.GENERIC.WEBHOOK_ERROR}: ${message}`);
     }
   }
 
@@ -78,7 +79,7 @@ export class PaymentController {
     try {
       const sessionId = (req.query.sessionId || req.params.sessionId) as string;
       if (!sessionId) {
-        throw new AppError("Session ID is required", StatusCode.BAD_REQUEST);
+        throw new AppError(Messages.GENERIC.SESSION_ID_REQUIRED, StatusCode.BAD_REQUEST);
       }
       const result = await this._stripeWebhookUseCase.verifySession(sessionId as string);
       if (!result.success) {
@@ -92,7 +93,7 @@ export class PaymentController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }

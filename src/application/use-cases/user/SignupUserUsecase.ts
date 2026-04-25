@@ -10,6 +10,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { IRegisterUseCase } from "@/application/interfaces/use-cases/user/IRegisterUseCase";
 import { SignupRequestDto } from "@/application/dtos/user/SignupRequestDto";
 import { SignupResponseDto } from "@/application/dtos/user/SignupResponseDto";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class RegisterUseCase implements IRegisterUseCase {
@@ -23,18 +24,34 @@ export class RegisterUseCase implements IRegisterUseCase {
     const { role } = payload;
     const repo = role === "company" ? this._companyRepo : this._userRepo;
 
-    
     // 1) Check if email exists in current role
     const existing = await repo.findByEmail(payload.email);
-    if (existing) throw new Error("Email already in use");
+    
+    if (existing) {
+      // Check if user signed up with Google
+      if (existing.provider === "google") {
+        throw new Error(Messages.AUTH.EMAIL_REGISTERED_WITH_GOOGLE);
+      }
+      throw new Error(Messages.AUTH.EMAIL_ALREADY_IN_USE);
+    }
 
     // 2) Check if email exists in OTHER role
     if (role === "user") {
       const existingCompany = await this._companyRepo.findByEmail(payload.email);
-      if (existingCompany) throw new Error("Email is already registered as company");
+      if (existingCompany) {
+        if (existingCompany.provider === "google") {
+          throw new Error(Messages.AUTH.EMAIL_REGISTERED_WITH_GOOGLE);
+        }
+        throw new Error(Messages.AUTH.EMAIL_REGISTERED_AS_COMPANY);
+      }
     } else {
       const existingUser = await this._userRepo.findByEmail(payload.email);
-      if (existingUser) throw new Error("Email is already registered as user");
+      if (existingUser) {
+        if (existingUser.provider === "google") {
+          throw new Error(Messages.AUTH.EMAIL_REGISTERED_WITH_GOOGLE);
+        }
+        throw new Error(Messages.AUTH.EMAIL_REGISTERED_AS_USER);
+      }
     }
 
     // ---------------- Google Signup ----------------
@@ -53,7 +70,7 @@ export class RegisterUseCase implements IRegisterUseCase {
     }
 
     // ---------------- Local Signup ----------------
-    if (!payload.password) throw new Error("Password required");
+    if (!payload.password) throw new Error(Messages.AUTH.PASSWORD_REQUIRED);
 
     const hashedPassword = await bcrypt.hash(payload.password, 10);
 
@@ -75,4 +92,3 @@ export class RegisterUseCase implements IRegisterUseCase {
     return { message: `OTP sent to ${payload.email}. Please verify to complete signup.` };
   }
 }
-

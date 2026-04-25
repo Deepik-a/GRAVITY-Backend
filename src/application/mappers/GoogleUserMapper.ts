@@ -7,7 +7,7 @@ export const GoogleUserMapper = {
     token: string
   ): GoogleUserResponseDto {
     return {
-      id: user.id ? user.id.toString() : "", // ✅ Map id
+      id: user.id ? user.id.toString() : "", //  Map id
       name: user.name,
       email: user.email,
       googleId: user.googleId,

@@ -5,6 +5,7 @@ import { IReview } from "@/domain/entities/Review";
 import { NotificationService } from "@/application/services/NotificationService";
 
 import { ISubmitReviewUseCase } from "@/application/interfaces/use-cases/user/ISubmitReviewUseCase";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class SubmitReviewUseCase implements ISubmitReviewUseCase {
@@ -20,8 +21,8 @@ export class SubmitReviewUseCase implements ISubmitReviewUseCase {
     await this._notificationService.createNotification({
       recipientId: review.companyId,
       recipientType: "company",
-      title: "New Review Received",
-      message: `A user has submitted a ${review.rating}-star review for your service.`,
+      title: Messages.NOTIFICATION.NEW_REVIEW_TITLE,
+      message: Messages.NOTIFICATION.NEW_REVIEW_MESSAGE.replace("{rating}", review.rating.toString()),
       type: "NEW_REVIEW",
     });
 

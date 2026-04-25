@@ -23,7 +23,7 @@ export class ReviewRepository extends BaseRepository<IReviewDocument> implements
     try {
       return await this._s3Service.getSignedUrl(url);
     } catch (err) {
-      this._logger.error(`❌ Failed to resolve review user profile image: ${url}`, { error: err });
+      this._logger.error(`// Failed to resolve review user profile image: ${url}`, { error: err });
       return url;
     }
   }

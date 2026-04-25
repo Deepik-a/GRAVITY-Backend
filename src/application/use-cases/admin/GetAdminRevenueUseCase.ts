@@ -1,6 +1,7 @@
 import { injectable, inject } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
+import { PaymentStatus } from "@/domain/enums/PaymentStatus";
 
 import { AdminRevenueResponseDto } from "@/application/dtos/admin/AdminRevenueResponseDto";
 import { IGetAdminRevenueUseCase } from "@/application/interfaces/use-cases/admin/IGetAdminRevenueUseCase";
@@ -13,7 +14,7 @@ export class GetAdminRevenueUseCase implements IGetAdminRevenueUseCase {
 
   async execute(): Promise<AdminRevenueResponseDto> {
     const bookings = await this._bookingRepository.getAllBookings();
-    const paidBookings = bookings.filter(b => b.paymentStatus === "paid");
+    const paidBookings = bookings.filter(b => b.paymentStatus === PaymentStatus.PAID);
     
     // Revenue logic:
     // Total collected: sum of price

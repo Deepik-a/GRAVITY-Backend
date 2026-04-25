@@ -29,7 +29,7 @@ JWT_ACCESS_EXPIRATION: z.enum(["15m", "30m", "1h", "1d"]).default("15m"),
 const _env = envSchema.safeParse(process.env);
 
 if (!_env.success) {
-  logger.error("❌ Invalid environment variables:", {
+  logger.error("// Invalid environment variables:", {
     errors: z.treeifyError(_env.error),
   });
   process.exit(1);

@@ -6,6 +6,7 @@ import { IReviewRepository } from "@/domain/repositories/IReviewRepository";
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class GetCompanyDashboardStatsUseCase {
@@ -19,7 +20,7 @@ export class GetCompanyDashboardStatsUseCase {
   async execute(companyId: string) {
     const company = await this._companyRepository.findCompanyById(companyId);
     if (!company) {
-      throw new AppError("Company not found", StatusCode.NOT_FOUND);
+      throw new AppError(Messages.COMPANY.NOT_FOUND, StatusCode.NOT_FOUND);
     }
 
     const [bookingStats, transactionStats, averageRating] = await Promise.all([

@@ -5,6 +5,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { inject, injectable } from "inversify";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class DeleteCompanyProfileUseCase implements IDeleteCompanyProfileUseCase {
@@ -16,7 +17,7 @@ export class DeleteCompanyProfileUseCase implements IDeleteCompanyProfileUseCase
     const updatedCompany = await this._companyRepository.deleteProfile(companyId);
     
     if (!updatedCompany) {
-      throw new AppError("Company not found", StatusCode.NOT_FOUND);
+      throw new AppError(Messages.COMPANY.NOT_FOUND, StatusCode.NOT_FOUND);
     }
 
     return updatedCompany;

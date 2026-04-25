@@ -3,6 +3,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { ITransactionRepository } from "@/domain/repositories/ITransactionRepository";
+import { PaymentStatus } from "@/domain/enums/PaymentStatus";
 
 import { IInitiateCompanyPayoutUseCase } from "@/application/interfaces/use-cases/admin/IInitiateCompanyPayoutUseCase";
 
@@ -18,7 +19,7 @@ export class InitiateCompanyPayoutUseCase implements IInitiateCompanyPayoutUseCa
     const booking = await this._bookingRepository.findById(bookingId);
     if (!booking) throw new Error("Booking not found");
     
-    if (booking.paymentStatus !== "paid") {
+    if (booking.paymentStatus !== PaymentStatus.PAID) {
       throw new Error("Booking payment is not completed yet.");
     }
     

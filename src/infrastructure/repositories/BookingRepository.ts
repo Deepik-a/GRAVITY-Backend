@@ -1,8 +1,31 @@
 import BookingModel from "@/infrastructure/database/models/BookingModel";
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { IBooking } from "@/domain/entities/Booking";
-import { FilterQuery, Types } from "mongoose";
+import { FilterQuery, Types, PipelineStage } from "mongoose";
 import { injectable } from "inversify";
+import { PaymentStatus } from "@/domain/enums/PaymentStatus";
+
+interface BookingDocument {
+  _id: { toString: () => string };
+  id?: string;
+  companyId: { _id: { toString: () => string } } | { toString: () => string };
+  userId: { _id: { toString: () => string } } | { toString: () => string };
+  date: Date;
+  startTime: string;
+  endTime: string;
+  status?: "pending" | "confirmed" | "cancelled";
+  price?: number;
+  adminCommission?: number;
+  paymentStatus?: PaymentStatus;
+  serviceStatus?: "pending" | "completed";
+  payoutStatus?: "pending" | "completed";
+  stripeSessionId?: string;
+  isRescheduled?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  userDetails?: { name: string; email: string; profileImage?: string };
+  companyDetails?: { name: string; logo?: string };
+}
 
 @injectable()
 export class BookingRepository implements IBookingRepository {
@@ -24,7 +47,7 @@ export class BookingRepository implements IBookingRepository {
 
   async createBooking(booking: IBooking): Promise<IBooking> {
     const created = await this.model.create(booking);
-    return this._mapToEntity(created.toObject());
+    return this._mapToEntity(created.toObject() as unknown as Record<string, unknown>);
   }
 
   async getBookingsByCompanyAndDate(companyId: string, date: Date, statuses?: string[]): Promise<IBooking[]> {
@@ -45,6 +68,10 @@ export class BookingRepository implements IBookingRepository {
     }
 
     const bookings = await this.model.find(query).lean();
+
+
+
+
     return bookings.map(b => this._mapToEntity(b));
   }
 
@@ -98,11 +125,11 @@ export class BookingRepository implements IBookingRepository {
     return !existingConfirmed;
   }
 
-  async getAllBookingsPaged(page: number, limit: number, search: string = ""): Promise<{ bookings: IBooking[]; total: number }> {
+  async getAllBookingsPaged(page: number, limit: number, search = ""): Promise<{ bookings: IBooking[]; total: number }> {
     const skip = (page - 1) * limit;
     
     // Aggregation Pipeline for global search and join
-    const pipeline: any[] = [
+    const pipeline: PipelineStage[] = [
       // 1. Initial lookup for user
       {
         $lookup: {
@@ -154,7 +181,7 @@ export class BookingRepository implements IBookingRepository {
     const total = result[0].metadata[0]?.total || 0;
 
     return {
-      bookings: bookings.map((b: any) => this._mapToEntity(b)),
+      bookings: bookings.map((b: Record<string, unknown>) => this._mapToEntity(b)),
       total
     };
   }
@@ -245,19 +272,19 @@ export class BookingRepository implements IBookingRepository {
     return bookings.map(b => this._mapToEntity(b));
   }
 
-  private _mapToEntity(doc: any): IBooking {
-    const d = doc;
+  private _mapToEntity(doc: Record<string, unknown>): IBooking {
+    const d = doc as unknown as BookingDocument;
     const booking: IBooking = {
       id: d._id ? d._id.toString() : d.id,
-      companyId: d.companyId ? (d.companyId._id ? d.companyId._id.toString() : d.companyId.toString()) : "",
-      userId: d.userId ? (d.userId._id ? d.userId._id.toString() : d.userId.toString()) : "",
+      companyId: d.companyId ? ("_id" in d.companyId ? d.companyId._id.toString() : d.companyId.toString()) : "",
+      userId: d.userId ? ("_id" in d.userId ? d.userId._id.toString() : d.userId.toString()) : "",
       date: d.date,
       startTime: d.startTime,
       endTime: d.endTime,
       status: (d.status || "pending") as "pending" | "confirmed" | "cancelled",
       price: d.price,
       adminCommission: d.adminCommission,
-      paymentStatus: (d.paymentStatus || "pending") as "pending" | "paid" | "failed",
+      paymentStatus: (d.paymentStatus || PaymentStatus.PENDING) as PaymentStatus,
       serviceStatus: (d.serviceStatus || "pending") as "pending" | "completed",
       payoutStatus: (d.payoutStatus || "pending") as "pending" | "completed",
       stripeSessionId: d.stripeSessionId,
@@ -269,35 +296,36 @@ export class BookingRepository implements IBookingRepository {
     // Priority 1: Direct userDetails (from aggregation)
     if (d.userDetails && typeof d.userDetails === "object") {
         booking.userDetails = {
-            name: d.userDetails.name || "",
-            email: d.userDetails.email || "",
-            profileImage: d.userDetails.profileImage,
+            name: (d.userDetails as { name?: string }).name || "",
+            email: (d.userDetails as { email?: string }).email || "",
+            profileImage: (d.userDetails as { profileImage?: string }).profileImage,
         };
     } 
     // Priority 2: Populated userId (from .populate())
-    else if (typeof d.userId === "object" && d.userId !== null && "name" in d.userId) {
+    else if (!booking.userDetails && d.userId && typeof d.userId === "object") {
       booking.userDetails = {
-        name: d.userId.name || "",
-        email: d.userId.email || "",
-        profileImage: d.userId.profileImage,
+        name: (d.userId as { name?: string }).name || "",
+        email: (d.userId as { email?: string }).email || "",
+        profileImage: (d.userId as { profileImage?: string }).profileImage,
       };
     }
 
     // Priority 1: Direct companyDetails (from aggregation)
     if (d.companyDetails && typeof d.companyDetails === "object") {
         booking.companyDetails = {
-            name: d.companyDetails.name || "",
-            logo: d.companyDetails.logo,
+            name: (d.companyDetails as { name?: string }).name || "",
+            logo: (d.companyDetails as { logo?: string }).logo,
         };
     }
     // Priority 2: Populated companyId (from .populate())
     else if (typeof d.companyId === "object" && d.companyId !== null && "name" in d.companyId) {
       booking.companyDetails = {
-        name: d.companyId.name || "",
-        logo: d.companyId.logo,
+        name: (d.companyId as { name?: string }).name || "",
+        logo: (d.companyId as { logo?: string }).logo,
       };
     }
 
     return booking;
   }
 }
+

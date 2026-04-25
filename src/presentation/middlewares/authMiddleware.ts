@@ -36,8 +36,18 @@ export class SessionAuth {
         accessKey = "companyAccessToken";
         refreshKey = "companyRefreshToken";
       } else if (isUserRoute) {
-        accessKey = "userAccessToken";
-        refreshKey = "userRefreshToken";
+        // Some /user routes are shared by user and company roles.
+        // Honor an explicit x-role header when present.
+        if (requestedRole === "company") {
+          accessKey = "companyAccessToken";
+          refreshKey = "companyRefreshToken";
+        } else if (requestedRole === "admin") {
+          accessKey = "adminAccessToken";
+          refreshKey = "adminRefreshToken";
+        } else {
+          accessKey = "userAccessToken";
+          refreshKey = "userRefreshToken";
+        }
       } else if (requestedRole) {
         // Shared routes with explicit role header
         if (requestedRole === "admin") {
@@ -182,7 +192,7 @@ private async _checkBlockStatus(role: string, userId: string): Promise<boolean> 
 
   // 2. റോൾ അനുസരിച്ച് ശരിയായ റിപ്പോസിറ്ററി തിരഞ്ഞെടുക്കുന്നു
   if (!role) {
-    this._logger.error("❌ Block Check Failure: Role is missing", { userId });
+    this._logger.error("// Block Check Failure: Role is missing", { userId });
     return true; // Assume blocked for safety
   }
 

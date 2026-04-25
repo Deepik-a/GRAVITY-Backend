@@ -61,11 +61,11 @@ export class GoogleAuthUseCase implements IGoogleAuthUseCase {
     } else {
       // If user exists but name is missing, update it
       if (!user.name && googleUser.name) {
-          (user as any).name = googleUser.name;
+          (user as { name?: string }).name = googleUser.name;
           if (finalRepo) {
-              const userId = (user as any).id?.toString();
+              const userId = (user as { id?: { toString: () => string } }).id?.toString();
               if (userId) {
-                  await (finalRepo as any).updateUserProfile(userId, { name: googleUser.name });
+                  await (finalRepo as { updateUserProfile: (id: string, updates: Record<string, unknown>) => Promise<unknown> }).updateUserProfile(userId, { name: googleUser.name });
               }
           }
       }

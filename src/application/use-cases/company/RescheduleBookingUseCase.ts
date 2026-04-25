@@ -5,6 +5,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { NotificationService } from "@/application/services/NotificationService";
+import { Messages } from "@/shared/constants/message";
 
 import { IRescheduleBookingUseCase } from "@/application/interfaces/use-cases/company/IRescheduleBookingUseCase";
 
@@ -19,23 +20,23 @@ export class RescheduleBookingUseCase implements IRescheduleBookingUseCase {
   async execute(bookingId: string, newDate: Date, newStartTime: string): Promise<void> {
     const booking = await this._bookingRepository.findById(bookingId);
     if (!booking) {
-      throw new AppError("Booking not found.", StatusCode.NOT_FOUND);
+      throw new AppError(Messages.BOOKING.NOT_FOUND, StatusCode.NOT_FOUND);
     }
 
     if (booking.status === "cancelled") {
-      throw new AppError("Cannot reschedule a cancelled booking.", StatusCode.BAD_REQUEST);
+      throw new AppError(Messages.COMPANY.BOOKING_CANCELLED_STATE_INVALID, StatusCode.BAD_REQUEST);
     }
 
     // Verify Slot is actually available for this company on this date
-    const config = await this._slotRepository.getConfigByCompanyId(booking.companyId);
+    const config = await this._slotRepository.getConfigForCompanyOnDate(booking.companyId, newDate);
     if (!config) {
-      throw new AppError("Company has no slot configuration.", StatusCode.NOT_FOUND);
+      throw new AppError(Messages.SLOT.CONFIG_NOT_FOUND, StatusCode.NOT_FOUND);
     }
 
     // Check if the slot is already booked
     const alreadyBooked = await this._bookingRepository.getBookingsByCompanyAndDate(booking.companyId, newDate);
     if (alreadyBooked.some(b => b.startTime === newStartTime && b.id !== bookingId)) {
-      throw new AppError("This slot is already booked.", StatusCode.CONFLICT);
+      throw new AppError(Messages.COMPANY.SLOT_ALREADY_BOOKED, StatusCode.CONFLICT);
     }
 
     // Calculate new endTime

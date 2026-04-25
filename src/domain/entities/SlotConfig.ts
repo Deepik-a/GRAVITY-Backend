@@ -8,7 +8,7 @@ export interface ISlotConfig {
   slotDuration: number; // in minutes
   bufferTime: number;   // in minutes
   weekdays: string[];   // e.g., ["Monday", "Tuesday"]
-  exceptionalDays: Date[]; // Dates where slots are not available
+  exceptionalDays: Date[]; // Optional: dates (on available weekdays) where slots are closed
   createdAt?: Date;
   updatedAt?: Date;
 }

@@ -6,6 +6,7 @@ import { IInitiateCompanyPayoutUseCase } from "@/application/interfaces/use-case
 import { IGetCompanyWalletUseCase } from "@/application/interfaces/use-cases/company/IGetCompanyWalletUseCase";
 
 import { AuthenticatedUser } from "@/types/auth";
+import { StatusCode } from "@/domain/enums/StatusCode";
 
 @injectable()
 export class RevenueController {
@@ -18,7 +19,7 @@ export class RevenueController {
   async getAdminRevenue(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await this._getAdminRevenueUseCase.execute();
-      res.status(200).json(result);
+      res.status(StatusCode.SUCCESS).json(result);
     } catch (error) {
       next(error);
     }
@@ -28,7 +29,7 @@ export class RevenueController {
     try {
       const { id } = req.params;
       const result = await this._initiateCompanyPayoutUseCase.execute(id as string);
-      res.status(200).json({ success: result });
+      res.status(StatusCode.SUCCESS).json({ success: result });
     } catch (error) {
       next(error);
     }
@@ -38,7 +39,7 @@ export class RevenueController {
     try {
       const companyId = (req.params.companyId as string) || (req.user as AuthenticatedUser)?.id;
       const result = await this._getCompanyWalletUseCase.execute(companyId);
-      res.status(200).json(result);
+      res.status(StatusCode.SUCCESS).json(result);
     } catch (error) {
       next(error);
     }

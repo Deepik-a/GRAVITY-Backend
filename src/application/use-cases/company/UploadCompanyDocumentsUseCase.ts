@@ -7,6 +7,8 @@ import { Messages } from "@/shared/constants/message";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { ILogger } from "@/domain/services/ILogger"; 
+import { AppError } from "@/shared/error/AppError";
+import { StatusCode } from "@/domain/enums/StatusCode";
 
 @injectable()
 export class UploadCompanyDocumentsUseCase
@@ -32,7 +34,7 @@ export class UploadCompanyDocumentsUseCase
         email,
         received: files?.length || 0,
       });
-      throw new Error("Exactly 3 documents are required");
+      throw new AppError(Messages.COMPANY.DOCUMENTS_REQUIRED, StatusCode.BAD_REQUEST);
     }
 
     try {
@@ -61,7 +63,7 @@ export class UploadCompanyDocumentsUseCase
 
       if (!updatedCompany) {
         this._logger.error("Company not found for document update", { email });
-        throw new Error("Company not found with this email");
+        throw new AppError(Messages.COMPANY.COMPANY_NOT_FOUND_WITH_EMAIL, StatusCode.NOT_FOUND);
       }
 
       await this._companyRepo.updateDocumentStatus({ email }, "pending");

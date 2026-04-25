@@ -96,6 +96,7 @@ async login(req: Request, res: Response, next: NextFunction) {
 
     res.cookie(accessKey, result.accessToken, {
       httpOnly: cookieData.httpONLY,
+      
       secure: cookieData.SECURE,
       sameSite: cookieData.SAME_SITE,
       domain: cookieData.DOMAIN,
@@ -165,7 +166,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
 
     return res.status(StatusCode.SUCCESS).json(result);
   } catch (err) {
-    this._logger.error("❌ Google Login Error:", { error: err });
+    this._logger.error("// Google Login Error:", { error: err });
     next(err);
   }
 }

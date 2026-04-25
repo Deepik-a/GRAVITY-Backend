@@ -7,6 +7,7 @@ import { NotificationService } from "@/application/services/NotificationService"
 import UserModel from "@/infrastructure/database/models/UserModel";
 import TransactionModel from "@/infrastructure/database/models/TransactionModel";
 import { Types } from "mongoose";
+import { PaymentStatus } from "@/domain/enums/PaymentStatus";
 
 export interface IRefundBookingUseCase {
   execute(bookingId: string): Promise<void>;
@@ -29,7 +30,7 @@ export class RefundBookingUseCase implements IRefundBookingUseCase {
       throw new AppError("Only cancelled bookings can be refunded.", StatusCode.BAD_REQUEST);
     }
 
-    if (booking.paymentStatus === "refunded" as "paid" | "failed" | "pending") {
+    if (booking.paymentStatus === PaymentStatus.REFUNDED) {
       throw new AppError("Booking is already refunded.", StatusCode.BAD_REQUEST);
     }
 
@@ -58,7 +59,7 @@ export class RefundBookingUseCase implements IRefundBookingUseCase {
 
     // Update booking payment status
     await this._bookingRepository.updateById(bookingId, { 
-      paymentStatus: "refunded" as "paid" | "failed" | "pending"
+      paymentStatus: PaymentStatus.REFUNDED
     });
 
     // Notify User

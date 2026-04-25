@@ -6,6 +6,8 @@ import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { NotificationService } from "@/application/services/NotificationService";
 
 import { ICompleteBookingUseCase } from "@/application/interfaces/use-cases/user/ICompleteBookingUseCase";
+import { Messages } from "@/shared/constants/message";
+import { PaymentStatus } from "@/domain/enums/PaymentStatus";
 
 @injectable()
 export class CompleteBookingUseCase implements ICompleteBookingUseCase {
@@ -20,19 +22,19 @@ export class CompleteBookingUseCase implements ICompleteBookingUseCase {
     const booking = await this._bookingRepository.findById(bookingId);
     
     if (!booking) {
-      throw new Error("Booking not found");
+      throw new Error(Messages.BOOKING.NOT_FOUND);
     }
 
     if (booking.userId.toString() !== userId) {
-      throw new Error("Unauthorized to complete this booking");
+      throw new Error(Messages.BOOKING.UNAUTHORIZED);
     }
 
     if (booking.serviceStatus === "completed") {
-      throw new Error("Service already marked as completed");
+      throw new Error(Messages.BOOKING.SERVICE_ALREADY_COMPLETED);
     }
 
-    if (booking.paymentStatus !== "paid") {
-      throw new Error("Cannot complete a booking that hasn't been paid for");
+    if (booking.paymentStatus !== PaymentStatus.PAID) {
+      throw new Error(Messages.BOOKING.BOOKING_NOT_PAID);
     }
 
     // Update booking status
@@ -57,14 +59,16 @@ export class CompleteBookingUseCase implements ICompleteBookingUseCase {
     await this._notificationService.createNotification({
       recipientId: booking.companyId,
       recipientType: "company",
-      title: "Booking Completed",
-      message: `User has marked the booking for ${new Date(booking.date).toLocaleDateString()} as completed. Settlement of ${settlementAmount} initiated.`,
+      title: Messages.NOTIFICATION.BOOKING_COMPLETED_TITLE,
+      message: Messages.NOTIFICATION.BOOKING_COMPLETED_MESSAGE
+        .replace("{date}", new Date(booking.date).toLocaleDateString())
+        .replace("{amount}", settlementAmount.toString()),
       type: "BOOKING_COMPLETED",
     });
 
     return {
       success: true,
-      message: "Service marked as completed and settlement initiated",
+      message: Messages.BOOKING.COMPLETE_SUCCESS,
       settlementAmount,
       platformFee
     };

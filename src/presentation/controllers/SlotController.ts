@@ -46,7 +46,7 @@ export class SlotController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -69,7 +69,7 @@ export class SlotController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -90,7 +90,7 @@ export class SlotController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -109,7 +109,7 @@ export class SlotController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -122,13 +122,13 @@ export class SlotController {
          res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
          return;
       }
-      const config = await this._getSlotConfigUseCase.execute(companyId);
-      res.status(StatusCode.SUCCESS).json(config);
+      const configs = await this._getSlotConfigUseCase.execute(companyId);
+      res.status(StatusCode.SUCCESS).json(configs);
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -141,13 +141,13 @@ export class SlotController {
          res.status(StatusCode.BAD_REQUEST).json({ message: Messages.COMPANY.ID_REQUIRED });
          return;
       }
-      const config = await this._getSlotConfigUseCase.execute(companyId as string);
-      res.status(StatusCode.SUCCESS).json(config);
+      const configs = await this._getSlotConfigUseCase.execute(companyId as string);
+      res.status(StatusCode.SUCCESS).json(configs);
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -160,13 +160,22 @@ export class SlotController {
          res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
          return;
       }
-      await this._deleteSlotConfigUseCase.execute(companyId);
+      const ruleId = req.query.ruleId as string | undefined;
+      if (!ruleId) {
+        res.status(StatusCode.BAD_REQUEST).json({ message: Messages.SLOT.RULE_ID_REQUIRED });
+        return;
+      }
+      const deleted = await this._deleteSlotConfigUseCase.execute(companyId, ruleId);
+      if (!deleted) {
+        res.status(StatusCode.NOT_FOUND).json({ message: Messages.SLOT.RULE_NOT_FOUND });
+        return;
+      }
       res.status(StatusCode.SUCCESS).json({ message: Messages.SLOT.CONFIG_DELETE_SUCCESS });
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -185,7 +194,7 @@ export class SlotController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -204,7 +213,7 @@ export class SlotController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -224,7 +233,7 @@ export class SlotController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -240,7 +249,7 @@ export class SlotController {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -255,12 +264,12 @@ export class SlotController {
         return;
       }
       await this._cancelBookingUseCase.execute(companyId, bookingId as string);
-      res.status(StatusCode.SUCCESS).json({ message: "Booking cancelled successfully" });
+      res.status(StatusCode.SUCCESS).json({ message: Messages.BOOKING.BOOKING_CANCELLED });
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }
@@ -270,12 +279,12 @@ export class SlotController {
     try {
       const { bookingId } = req.params;
       await this._refundBookingUseCase.execute(bookingId as string);
-      res.status(StatusCode.SUCCESS).json({ message: "Refund processed successfully" });
+      res.status(StatusCode.SUCCESS).json({ message: Messages.BOOKING.REFUND_PROCESSED });
     } catch (error: unknown) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });
       } else {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        const message = error instanceof Error ? error.message : Messages.GENERIC.INTERNAL_ERROR;
         res.status(StatusCode.INTERNAL_ERROR).json({ message });
       }
     }

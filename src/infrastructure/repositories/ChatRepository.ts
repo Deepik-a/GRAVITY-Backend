@@ -10,6 +10,8 @@ import { IStorageService } from "@/domain/services/IStorageService";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import mongoose from "mongoose";
+import { IConversationSchema } from "@/infrastructure/database/models/ConversationModel";
+import { IMessageSchema } from "@/infrastructure/database/models/MessageModel";
 
 @injectable()
 export class ChatRepository implements IChatRepository {
@@ -60,18 +62,18 @@ export class ChatRepository implements IChatRepository {
       .exec();
 
     return await Promise.all(messages.map(
-      async (m: any) =>
+      async (m: IMessageSchema) =>
         new Message({
-          id: new UniqueEntityID((m as { _id: mongoose.Types.ObjectId })._id.toString()),
+          id: new UniqueEntityID((m._id as mongoose.Types.ObjectId).toString()),
           conversationId: m.conversationId.toString(),
           senderId: m.senderId.toString(),
           senderType: m.senderType as "user" | "company",
-          content: m.content,
+          content: m.content as string,
           attachmentUrl: await this._resolveAttachmentUrl(m.attachmentKey || m.attachmentUrl),
-          attachmentKey: m.attachmentKey,
+          attachmentKey: m.attachmentKey as string | undefined,
           attachmentType: m.attachmentType as "image" | "file",
           status: m.status as "sent" | "delivered" | "read",
-          createdAt: m.createdAt,
+          createdAt: m.createdAt as Date,
         })
     ));
   }
@@ -110,7 +112,7 @@ export class ChatRepository implements IChatRepository {
 
     return new Conversation({
       id: new UniqueEntityID((created as { _id: mongoose.Types.ObjectId })._id.toString()),
-      participants: (created.participants as any[]).map((p) => ({
+      participants: (created.participants as { participantId: { toString: () => string }; participantType: string }[]).map((p) => ({
         participantId: p.participantId.toString(),
         participantType: p.participantType as "user" | "company",
       })),
@@ -131,7 +133,7 @@ export class ChatRepository implements IChatRepository {
 
     return new Conversation({
       id: new UniqueEntityID((conversation as { _id: mongoose.Types.ObjectId })._id.toString()),
-      participants: (conversation.participants as any[]).map((p) => ({
+      participants: (conversation.participants as { participantId: { toString: () => string }; participantType: string }[]).map((p) => ({
         participantId: p.participantId.toString(),
         participantType: p.participantType as "user" | "company",
       })),
@@ -149,7 +151,7 @@ export class ChatRepository implements IChatRepository {
 
     return new Conversation({
       id: new UniqueEntityID((conversation as { _id: mongoose.Types.ObjectId })._id.toString()),
-      participants: (conversation.participants as any[]).map((p) => ({
+      participants: (conversation.participants as { participantId: { toString: () => string }; participantType: string }[]).map((p) => ({
         participantId: p.participantId.toString(),
         participantType: p.participantType as "user" | "company",
       })),
@@ -170,9 +172,9 @@ export class ChatRepository implements IChatRepository {
     
 
     return await Promise.all(conversations.map(
-      async (c: any) => {
+      async (c: IConversationSchema) => {
         // Find the other participant - strictly exclude current person by BOTH id and type
-        const otherParticipant = (c.participants as any[]).find(p => 
+        const otherParticipant = (c.participants as { participantId: { toString: () => string }; participantType: string }[]).find(p => 
           p.participantId.toString() !== participantId || p.participantType !== participantType
         );
         let otherParticipantName = "Unknown";
@@ -195,8 +197,8 @@ export class ChatRepository implements IChatRepository {
         }
 
         return new Conversation({
-          id: new UniqueEntityID((c as { _id: mongoose.Types.ObjectId })._id.toString()),
-          participants: (c.participants as any[]).map((p) => ({
+          id: new UniqueEntityID((c._id as mongoose.Types.ObjectId).toString()),
+          participants: c.participants.map((p) => ({
             participantId: p.participantId.toString(),
             participantType: p.participantType as "user" | "company",
           })),

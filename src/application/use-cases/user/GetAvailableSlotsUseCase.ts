@@ -3,9 +3,6 @@ import { ISlotConfig } from "@/domain/entities/SlotConfig";
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-import { AppError } from "@/shared/error/AppError";
-import { StatusCode } from "@/domain/enums/StatusCode";
-
 import { IGetAvailableSlotsUseCase } from "@/application/interfaces/use-cases/user/IGetAvailableSlotsUseCase";
 
 @injectable()
@@ -16,32 +13,17 @@ export class GetAvailableSlotsUseCase implements IGetAvailableSlotsUseCase {
   ) {}
 
   async execute(companyId: string, dateStr: string): Promise<string[]> {
-    const date = new Date(dateStr);
-    const config = await this._slotRepository.getConfigByCompanyId(companyId);
-
-    if (!config) {
-      throw new AppError("No slot configuration found for this company.", StatusCode.NOT_FOUND);
-    }
-
-    // 1. Basic Date Checks
-    if (date < config.startDate || date > config.endDate) return [];
-
-    const dayName = date.toLocaleString("en-US", { weekday: "long" });
-    if (!config.weekdays.includes(dayName)) return [];
-
-    const isExceptional = config.exceptionalDays.some(ex => 
-      new Date(ex).toDateString() === date.toDateString()
-    );
-    if (isExceptional) return [];
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    const config = await this._slotRepository.getConfigForCompanyOnDate(companyId, date);
+    if (!config) return [];
 
     // 2. Generate Potential Slots
     const potentialSlots = this.generateSlots(config);
 
     // 3. Filter Past Slots if date is Today
     const now = new Date();
-    
-    // Robust today check: Parse dateStr components to avoid UTC/Local timezone shifts
-    const [y, m, d] = dateStr.split("-").map(Number);
+
     const isToday = now.getFullYear() === y && 
                     (now.getMonth() + 1) === m && 
                     now.getDate() === d;
