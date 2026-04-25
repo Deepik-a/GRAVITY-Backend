@@ -6,7 +6,7 @@ import { StatusCode } from "@/domain/enums/StatusCode";
 import { IGetAllUsersUseCase } from "@/application/interfaces/use-cases/admin/IGetAllUsersUseCase";
 import { IGetAllCompaniesUseCase } from "@/application/interfaces/use-cases/admin/IGetAllCompaniesUseCase";
 import { IVerifyCompanyUseCase } from "@/application/interfaces/use-cases/admin/IVerifyCompanyUseCase";
-import { cookieData } from "@/shared/constants/cookieData";
+import { cookieData, getCookieDomain } from "@/shared/constants/cookieData";
 import { AdminLoginRequestDto } from "@/application/dtos/admin/AdminLoginRequestDto";
 import { VerifyCompanyRequestDto } from "@/application/dtos/admin/VerifyCompanyRequestDto";
 import { UserListResponseDto } from "@/application/dtos/admin/UserListResponseDto";
@@ -64,13 +64,14 @@ export class AdminLoginController {
       const loginDto: AdminLoginRequestDto = req.body;
       const result: AdminLoginResponseDto =
         await this._adminLoginUseCase.execute(loginDto);
+      const cookieDomain = getCookieDomain(req.hostname);
 
       //  Admin Specific Cookies
       res.cookie("adminAccessToken", result.accessToken, {
         httpOnly: cookieData.httpONLY,
         secure: cookieData.SECURE,
         sameSite: cookieData.SAME_SITE,
-        domain: cookieData.DOMAIN,
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
         maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
         path: "/",
       });
@@ -79,7 +80,7 @@ export class AdminLoginController {
         httpOnly: cookieData.httpONLY,
         secure: cookieData.SECURE,
         sameSite: cookieData.SAME_SITE,
-        domain: cookieData.DOMAIN,
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
         maxAge: cookieData.MAX_AGE_REFRESH_TOKEN,
         path: "/",
       });
