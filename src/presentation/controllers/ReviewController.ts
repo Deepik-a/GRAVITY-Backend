@@ -6,6 +6,7 @@ import { IGetCompanyReviewsUseCase } from "@/application/interfaces/use-cases/co
 import { AuthenticatedUser } from "@/types/auth";
 import BookingModel from "@/infrastructure/database/models/BookingModel";
 import { StatusCode } from "@/domain/enums/StatusCode";
+import { PaymentStatus } from "@/domain/enums/PaymentStatus";
 
 @injectable()
 export class ReviewController {
@@ -23,7 +24,7 @@ export class ReviewController {
         userId,
         companyId,
         serviceStatus: "completed",
-        paymentStatus: "paid",
+        paymentStatus: PaymentStatus.PAID,
       });
 
       if (!eligible) {
@@ -39,7 +40,7 @@ export class ReviewController {
         userId, // populates from AuthMiddleware
       };
       const result = await this._submitReviewUseCase.execute(reviewData);
-      res.status(201).json(result);
+      res.status(StatusCode.CREATED).json(result);
     } catch (error) {
       next(error);
     }
@@ -49,7 +50,7 @@ export class ReviewController {
     try {
       const { companyId } = req.params;
       const result = await this._getCompanyReviewsUseCase.execute(companyId as string);
-      res.status(200).json(result);
+      res.status(StatusCode.SUCCESS).json(result);
     } catch (error) {
       next(error);
     }

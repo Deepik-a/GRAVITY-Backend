@@ -6,11 +6,9 @@ import { IDeleteSlotConfigUseCase } from "@/application/interfaces/use-cases/com
 
 @injectable()
 export class DeleteSlotConfigUseCase implements IDeleteSlotConfigUseCase {
-  constructor(
-    @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository
-  ) {}
+  constructor(@inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository) {}
 
-  async execute(companyId: string): Promise<boolean> {
-    return await this._slotRepository.deleteConfig(companyId);
+  async execute(companyId: string, ruleId: string): Promise<boolean> {
+    return await this._slotRepository.deleteConfigById(companyId, ruleId);
   }
 }

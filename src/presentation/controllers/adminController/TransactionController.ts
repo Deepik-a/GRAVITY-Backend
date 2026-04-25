@@ -3,6 +3,7 @@ import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { IGetAllTransactionsUseCase, GetAllTransactionsFilters } from "@/application/interfaces/use-cases/admin/IGetAllTransactionsUseCase";
 import { ILogger } from "@/domain/services/ILogger";
+import { StatusCode } from "@/domain/enums/StatusCode";
 
 @injectable()
 export class TransactionController {
@@ -26,13 +27,13 @@ export class TransactionController {
 
       const result = await this.getAllTransactionsUseCase.execute(filters);
 
-      res.status(200).json({
+      res.status(StatusCode.SUCCESS).json({
         success: true,
         data: result,
       });
     } catch (error) {
       this.logger.error("Error fetching transactions:", { error: error instanceof Error ? error.message : String(error) });
-      res.status(500).json({
+      res.status(StatusCode.INTERNAL_ERROR).json({
         success: false,
         message: "Failed to fetch transactions",
         error: error instanceof Error ? error.message : "Unknown error",

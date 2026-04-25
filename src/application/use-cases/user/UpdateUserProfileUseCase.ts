@@ -6,6 +6,7 @@ import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
 import { IUpdateUserProfileUseCase } from "@/application/interfaces/use-cases/user/IUpdateUserProfileUseCase";
 import { UpdateUserProfileRequestDto } from "@/application/dtos/user/ProfileRequestDto";
+import { Messages } from "@/shared/constants/message";
 
 
 
@@ -15,9 +16,9 @@ export class UpdateUserProfileUseCase implements IUpdateUserProfileUseCase {
   constructor( @inject(TYPES.AuthRepository) private _userRepository: IAuthRepository) {}
 
   async execute(dto: UpdateUserProfileRequestDto): Promise<ProfileResponseDTO> {
-    if (!dto.id) throw new Error("User ID is required");
+    if (!dto.id) throw new Error(Messages.USER.USER_ID_REQUIRED);
 
-    // ✅ Separate ID from updates to avoid trying to update the _id field
+    //  Separate ID from updates to avoid trying to update the _id field
     const { id, ...updates } = dto;
 
     const updated = await this._userRepository.updateUserProfile(
@@ -25,7 +26,7 @@ export class UpdateUserProfileUseCase implements IUpdateUserProfileUseCase {
       updates
     );
 
-    if (!updated) throw new Error("Failed to update profile");
+    if (!updated) throw new Error(Messages.USER.PROFILE_UPDATE_FAILED);
 
     return ProfileMapper.toResponseDTO(updated);
   }

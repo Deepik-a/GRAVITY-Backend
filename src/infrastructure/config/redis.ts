@@ -26,12 +26,12 @@ export const connectRedis = async () => {
     if (!redisClient.isOpen) {
       logger.info("Connecting to Redis...");
       await redisClient.connect();
-      logger.info("✅ Connected to Redis");
+      logger.info(" Connected to Redis");
     } else {
       logger.info("Redis already connected");
     }
   } catch (err) {
-    logger.error("❌ Redis Connection Failed. Make sure Redis is running.", { error: err });
+    logger.error(" Redis Connection Failed. Make sure Redis is running.", { error: err });
     // Note: We're not re-throwing here so the server can attempt to start/log properly, 
     // although features requiring Redis will fail until it's up.
   }

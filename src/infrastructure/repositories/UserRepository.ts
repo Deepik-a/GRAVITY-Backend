@@ -30,31 +30,24 @@ export class UserRepository
     try {
       return await this._s3Service.getSignedUrl(url);
     } catch (err) {
-      this._logger.error(`❌ Failed to resolve user profile image: ${url}`, { error: err });
+      this._logger.error(`// Failed to resolve user profile image: ${url}`, { error: err });
       return url;
     }
   }
 
-  private async _resolveCompanyProfileUrls(profile: unknown): Promise<any> {
+  private async _resolveCompanyProfileUrls(profile: unknown): Promise<Record<string, unknown> | null> {
     if (!profile) return null;
-    const p = profile as {
-      brandIdentity?: {
-        logo?: string;
-        banner1?: string;
-        banner2?: string;
-        profilePicture?: string;
-      }
-    };
-    if (p.brandIdentity) {
-      const brandIdentity = p.brandIdentity;
-      const keys: (keyof typeof brandIdentity)[] = ["logo", "banner1", "banner2", "profilePicture"];
+    const p = profile as Record<string, unknown>;
+    const brandIdentity = p.brandIdentity as Record<string, string | undefined> | undefined;
+    if (brandIdentity) {
+      const keys: ("logo" | "banner1" | "banner2" | "profilePicture")[] = ["logo", "banner1", "banner2", "profilePicture"];
       for (const key of keys) {
         const val = brandIdentity[key];
         if (val && typeof val === "string" && !val.startsWith("http")) {
           try {
             brandIdentity[key] = await this._s3Service.getSignedUrl(val);
           } catch (err) {
-            this._logger.error(`❌ Failed to resolve company ${key}`, { error: err });
+            this._logger.error(`// Failed to resolve company ${key}`, { error: err });
           }
         }
       }
@@ -82,14 +75,14 @@ export class UserRepository
       created.provider as "local" | "google",
       created.phone || "",
       created.status as "pending" | "verified",
-      created.documentStatus as any,
+      created.documentStatus as "pending" | "verified" | "rejected",
       created.rejectionReason,
       created.isBlocked
     );
   }
 
   async findByEmail(email: string): Promise<UserSignUp | null> {
-    const found = await this.model.findOne({ email, provider: "local" }).exec();
+    const found = await this.model.findOne({ email }).exec();
     if (!found) return null;
 
     return new UserSignUp(
@@ -101,7 +94,7 @@ export class UserRepository
       found.provider as "local" | "google",
       found.phone ?? "",
       found.status as "pending" | "verified",
-      found.documentStatus as any,
+      found.documentStatus as "pending" | "verified" | "rejected",
       found.rejectionReason,
       found.isBlocked,
       found.isProfileFilled,
@@ -134,7 +127,7 @@ export class UserRepository
       created.provider as "local" | "google",
       created.status as "pending" | "verified",
       new UniqueEntityID((created as { _id: Types.ObjectId })._id.toString()),
-      created.documentStatus as any,
+      created.documentStatus as "pending" | "verified" | "rejected",
       created.rejectionReason,
       created.isBlocked
     );
@@ -151,7 +144,7 @@ export class UserRepository
       record.provider as "local" | "google",
       record.status as "pending" | "verified",
       new UniqueEntityID((record as { _id: Types.ObjectId })._id.toString()),
-      record.documentStatus as any,
+      record.documentStatus as "pending" | "verified" | "rejected",
       record.rejectionReason,
       record.isBlocked
     );
@@ -168,7 +161,7 @@ export class UserRepository
       record.provider as "local" | "google",
       record.status as "pending" | "verified",
       new UniqueEntityID((record as { _id: Types.ObjectId })._id.toString()),
-      record.documentStatus as any,
+      record.documentStatus as "pending" | "verified" | "rejected",
       record.rejectionReason,
       record.isBlocked
     );
@@ -187,11 +180,13 @@ export class UserRepository
       user.location ?? undefined,
       user.bio ?? undefined,
       user.isBlocked ?? false,
-      user.role
+      user.role,
+      undefined, // bookingCount
+      user.walletBalance
     );
   }
 
-  async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
+  async updateProfile(userId: string, updates: Record<string, unknown>): Promise<UserProfile | null> {
     const updated = await this.model.findByIdAndUpdate(userId, { $set: updates }, { new: true }).exec();
     if (!updated) return null;
 
@@ -204,7 +199,28 @@ export class UserRepository
       updated.location ?? undefined,
       updated.bio ?? undefined,
       updated.isBlocked,
-      updated.role
+      updated.role,
+      undefined, // bookingCount
+      updated.walletBalance
+    );
+  }
+
+  async updateUserProfile(userId: string, updates: Record<string, unknown>): Promise<UserProfile | null> {
+    const updated = await this.model.findByIdAndUpdate(userId, { $set: updates }, { new: true }).exec();
+    if (!updated) return null;
+
+    return new UserProfile(
+      new UniqueEntityID((updated as { _id: Types.ObjectId })._id.toString()),
+      updated.name,
+      updated.email,
+      await this._resolveUserImageUrl(updated.profileImage ?? undefined),
+      updated.phone ?? undefined,
+      updated.location ?? undefined,
+      updated.bio ?? undefined,
+      updated.isBlocked,
+      updated.role,
+      undefined, // bookingCount
+      updated.walletBalance
     );
   }
 
@@ -221,7 +237,9 @@ export class UserRepository
           u.location ?? undefined,
           u.bio ?? undefined,
           u.isBlocked,
-          u.role
+          u.role,
+          undefined, // bookingCount
+          u.walletBalance
         )
       )
     );
@@ -240,7 +258,9 @@ export class UserRepository
       updated.location ?? undefined,
       updated.bio ?? undefined,
       updated.isBlocked,
-      updated.role
+      updated.role,
+      undefined, // bookingCount
+      updated.walletBalance
     );
   }
 
@@ -274,7 +294,7 @@ export class UserRepository
     const favourites = (user.favourites as unknown[]) || [];
     const resolvedFavourites = await Promise.all(
       favourites.map(async (f) => {
-        const companyObj = f as { _id?: Types.ObjectId; id?: string; profile?: any; toObject?: () => any };
+        const companyObj = f as { _id?: Types.ObjectId; id?: string; profile?: Record<string, unknown>; toObject?: () => Record<string, unknown> };
         const plainCompany = companyObj.toObject ? companyObj.toObject() : companyObj;
         if (plainCompany.profile) {
           plainCompany.profile = await this._resolveCompanyProfileUrls(plainCompany.profile);

@@ -1,3 +1,5 @@
+import { PaymentStatus } from "@/domain/enums/PaymentStatus";
+
 export interface IBooking {
   id?: string;
   companyId: string;
@@ -8,7 +10,7 @@ export interface IBooking {
   status: "pending" | "confirmed" | "cancelled";
   price?: number;
   adminCommission?: number;
-  paymentStatus?: "pending" | "paid" | "failed";
+  paymentStatus?: PaymentStatus;
   serviceStatus?: "pending" | "completed";
   payoutStatus?: "pending" | "completed";
   stripeSessionId?: string;

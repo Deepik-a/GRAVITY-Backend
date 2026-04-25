@@ -20,7 +20,7 @@
 
 // Internal details (like ObjectId creation logic) are hidden from the outside world.
 
-// ✅ So yes — encapsulation is used here.
+//  So yes — encapsulation is used here.
 // 2️⃣ Abstraction
 
 // Abstraction means defining high-level behavior while hiding complex details.

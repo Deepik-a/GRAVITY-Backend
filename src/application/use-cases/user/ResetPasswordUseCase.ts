@@ -21,7 +21,7 @@ export class ResetPasswordUseCase implements IResetPasswordUseCase {
       const key = `otp:${OtpPurpose.FORGOT_PASSWORD}:${email}`;
     // Read role saved in OTP stage
     const data = await redisClient.get(`otp:${OtpPurpose.FORGOT_PASSWORD}:${email}`);   
-    if (!data) throw new AppError("Password reset session expired", StatusCode.BAD_REQUEST);
+    if (!data) throw new AppError(Messages.AUTH.PASSWORD_RESET_EXPIRED, StatusCode.BAD_REQUEST);
 
     const { role } = JSON.parse(data);
 

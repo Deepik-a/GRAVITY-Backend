@@ -1,11 +1,12 @@
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
-
 import { IBookingRepository } from "@/domain/repositories/IBookingRepository";
 import { ICompanyRepository } from "@/domain/repositories/ICompanyRepository";
 import { IUserRepository } from "@/domain/repositories/IUserRepository";
 import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
+import { Messages } from "@/shared/constants/message";
+import { PaymentStatus } from "@/domain/enums/PaymentStatus";
 
 import { ICreateCheckoutSessionUseCase } from "@/application/interfaces/use-cases/payment/ICreateCheckoutSessionUseCase";
 import { IStripeService } from "@/domain/services/IStripeService";
@@ -22,17 +23,17 @@ export class CreateCheckoutSessionUseCase implements ICreateCheckoutSessionUseCa
   async execute(bookingId: string, successUrl: string, cancelUrl: string) {
     const booking = await this._bookingRepository.findById(bookingId);
     if (!booking) {
-      throw new AppError("Booking not found", StatusCode.NOT_FOUND);
+      throw new AppError(Messages.BOOKING.NOT_FOUND, StatusCode.NOT_FOUND);
     }
 
     const company = await this._companyRepository.getProfile(booking.companyId);
     if (!company) {
-      throw new AppError("Company not found", StatusCode.NOT_FOUND);
+      throw new AppError(Messages.COMPANY.NOT_FOUND, StatusCode.NOT_FOUND);
     }
 
     const user = await this._userRepository.findById(booking.userId);
     if (!user) {
-      throw new AppError("User not found", StatusCode.NOT_FOUND);
+      throw new AppError(Messages.USER.NOT_FOUND, StatusCode.NOT_FOUND);
     }
 
     const fee = company.profile?.consultationFee || 0;
@@ -57,7 +58,7 @@ export class CreateCheckoutSessionUseCase implements ICreateCheckoutSessionUseCa
       stripeSessionId: session.id,
       price: fee,
       adminCommission: adminCommission,
-      paymentStatus: "pending"
+      paymentStatus: PaymentStatus.PENDING
     });
 
     return session.url;

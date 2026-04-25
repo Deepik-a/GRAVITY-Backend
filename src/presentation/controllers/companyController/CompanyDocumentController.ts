@@ -40,12 +40,12 @@ export class CompanyDocumentController {
       // Call use case with DTO
       const result: UploadDocumentsResponseDto = await this._uploadDocsUseCase.execute(uploadDto);
 
-      this._logger.info("✅ Files uploaded successfully", { result });
+      this._logger.info(" Files uploaded successfully", { result });
 
       return res.status(StatusCode.SUCCESS).json(result);
 
     } catch (err) {
-      this._logger.error("🔥 Controller error:", { error: err });
+      this._logger.error(" Controller error:", { error: err });
       next(err);
     }
   }

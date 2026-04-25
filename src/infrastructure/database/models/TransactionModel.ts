@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITransactionDocument extends Document {
-  type: "booking_payment" | "subscription_payment" | "admin_commission" | "company_payout";
+  type: "booking_payment" | "subscription_payment" | "admin_commission" | "company_payout" | "booking_refund";
   amount: number;
   status: "pending" | "completed" | "failed" | "pending_transfer";
   
@@ -29,7 +29,7 @@ const TransactionSchema = new Schema<ITransactionDocument>(
   {
     type: { 
       type: String, 
-      enum: ["booking_payment", "subscription_payment", "admin_commission", "company_payout"], 
+      enum: ["booking_payment", "subscription_payment", "admin_commission", "company_payout", "booking_refund"], 
       required: true 
     },
     amount: { type: Number, required: true },

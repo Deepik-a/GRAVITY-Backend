@@ -17,7 +17,7 @@ export interface ICompanyRepository {
 updateDocumentStatus(
   params: { email?: string; companyId?: string },
   status: "pending" | "verified" | "rejected",
-  reason?: string // ✅ add optional reason
+  reason?: string //  add optional reason
 ): Promise<ICompany>;
 
   // Save or Update a company (optional)

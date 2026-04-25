@@ -73,7 +73,7 @@ export interface VerifiedGoogleUser {
 }
 
 export interface GoogleUserResponseDto {
-  id: string; // ✅ Added id
+  id: string; // Added id
   name: string;
   email: string;
   googleId: string;

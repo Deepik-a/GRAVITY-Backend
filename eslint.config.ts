@@ -17,12 +17,12 @@ export default tseslint.config(
          ...globals.commonjs,
         ...globals.es2021,
       },
-       sourceType: "script" // ✅ CommonJS
+       sourceType: "script" // CommonJS
     },
     rules: {
       "no-console": "warn",
       "no-unused-vars": "off", // Turned off in favor of @typescript-eslint/no-unused-vars
-           // ✅ CommonJS allow
+           // CommonJS allow
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
       "@typescript-eslint/no-explicit-any": "error",

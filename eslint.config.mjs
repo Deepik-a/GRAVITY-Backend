@@ -15,14 +15,14 @@ export default tseslint.config(
         ...globals.node,
         ...globals.es2021,
       },
-       sourceType: "script", // ✅ CommonJS mode
+       sourceType: "script", // CommonJS mode
     },
     rules: {
       "no-console": "warn",
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
 
-        // ❌ ESM-only restrictions OFF
+        // // ESM-only restrictions OFF
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-var-requires": "off",
       

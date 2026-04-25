@@ -16,7 +16,7 @@ export interface ISlotConfigDocument extends Document {
 
 const SlotConfigSchema = new Schema<ISlotConfigDocument>(
   {
-    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true, unique: true },
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     startTime: { type: String, required: true },
@@ -28,6 +28,8 @@ const SlotConfigSchema = new Schema<ISlotConfigDocument>(
   },
   { timestamps: true }
 );
+
+SlotConfigSchema.index({ companyId: 1, startDate: 1 });
 
 const SlotConfigModel = mongoose.model<ISlotConfigDocument>("SlotConfig", SlotConfigSchema);
 export default SlotConfigModel;

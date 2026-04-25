@@ -2,6 +2,7 @@ import { IChatRepository } from "@/domain/repositories/IChatRepository";
 import { Message } from "@/domain/entities/Message";
 import { inject, injectable } from "inversify";
 import { TYPES } from "@/infrastructure/DI/types";
+import { Messages } from "@/shared/constants/message";
 
 
 
@@ -16,23 +17,23 @@ export class SendMessageUseCase implements ISendMessageUseCase {
   async execute(data: SendMessageDTO): Promise<Message> {
     // Validation: Ensure sender and receiver are different
     if (data.senderId === data.receiverId) {
-      throw new Error("Cannot send message to yourself");
+      throw new Error(Messages.CHAT.SENDER_RECEIVER_SAME);
     }
 
     // Validation: Ensure participantType is provided
     if (!data.senderType) {
-      throw new Error("Sender participantType is required");
+      throw new Error(Messages.CHAT.SENDER_TYPE_REQUIRED);
     }
     if (!data.receiverType) {
-      throw new Error("Receiver participantType is required");
+      throw new Error(Messages.CHAT.RECEIVER_TYPE_REQUIRED);
     }
 
     // Validation: Ensure valid participantType values
     if (data.senderType !== "user" && data.senderType !== "company") {
-      throw new Error("Invalid sender participantType. Must be 'user' or 'company'");
+      throw new Error(Messages.CHAT.INVALID_SENDER_TYPE);
     }
     if (data.receiverType !== "user" && data.receiverType !== "company") {
-      throw new Error("Invalid receiver participantType. Must be 'user' or 'company'");
+      throw new Error(Messages.CHAT.INVALID_RECEIVER_TYPE);
     }
 
     // 1. Get or create conversation

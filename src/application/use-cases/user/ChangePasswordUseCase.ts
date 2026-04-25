@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import { ChangePasswordDto } from "@/application/dtos/AuthDTOs";
 
 import { IChangePasswordUseCase } from "@/application/interfaces/use-cases/user/IChangePasswordUseCase";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class ChangePasswordUseCase implements IChangePasswordUseCase {
@@ -17,12 +18,12 @@ export class ChangePasswordUseCase implements IChangePasswordUseCase {
 
   async execute(userId: string, { oldPassword, newPassword }: ChangePasswordDto): Promise<void> {
     if (!userId || !oldPassword || !newPassword) {
-      throw new AppError("All fields are required", StatusCode.BAD_REQUEST);
+      throw new AppError(Messages.VALIDATION.REQUIRED_FIELDS_MISSING, StatusCode.BAD_REQUEST);
     }
 
     const isValid = await this._userRepository.verifyPassword(userId, oldPassword);
     if (!isValid) {
-      throw new AppError("Incorrect current password", StatusCode.BAD_REQUEST);
+      throw new AppError(Messages.AUTH.INVALID_CREDENTIALS, StatusCode.BAD_REQUEST);
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);

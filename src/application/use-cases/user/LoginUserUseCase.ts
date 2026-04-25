@@ -19,14 +19,14 @@ export class LoginUserUseCase implements ILoginUserUseCase {
   constructor(@inject(TYPES.JwtService) private readonly _jwtService: IJwtService) {}
 
   async execute({ email, password, repo, role }: LoginInput): Promise<LoginResponseDto> {
-    if (!password) throw new AppError("Password is required", StatusCode.BAD_REQUEST);
+    if (!password) throw new AppError(Messages.AUTH.PASSWORD_REQUIRED, StatusCode.BAD_REQUEST);
 
     // 1️⃣ FRESH CHECK: Always fetch latest data from DB to get current status
     // Input-ൽ നിന്ന് കിട്ടുന്ന 'user' ഒബ്‌ജക്റ്റിനെ ആശ്രയിക്കാതെ നേരിട്ട് സെർച്ച് ചെയ്യുന്നു
     const freshUser = await (repo as IAuthRepository).findByEmail(email) as unknown as AuthenticatableUser;
     
     if (!freshUser) {
-      throw new AppError("User not found", StatusCode.NOT_FOUND);
+      throw new AppError(Messages.USER.NOT_FOUND, StatusCode.NOT_FOUND);
     }
 
     // ⛔ BLOCK CHECK: Using fresh data from database
@@ -44,7 +44,7 @@ if (freshUser.provider === "google" && !freshUser.password) {
 
 if (!freshUser.password) {
   throw new AppError(
-Messages.AUTH.No_PASSWORD,
+Messages.AUTH.NO_PASSWORD,
     StatusCode.UNAUTHORIZED
   );
 }
@@ -52,7 +52,7 @@ Messages.AUTH.No_PASSWORD,
 
     // 2️⃣ ROLE CHECK
     if (freshUser.role !== role) {
-      throw new AppError("Invalid role for this login", StatusCode.FORBIDDEN);
+      throw new AppError(Messages.AUTH.INVALID_ROLE_REPO, StatusCode.FORBIDDEN);
     }
 
     // 3️⃣ ADMIN LOGIN HANDLER
@@ -63,7 +63,7 @@ Messages.AUTH.No_PASSWORD,
     // 4️⃣ PASSWORD VALIDATION (for User & Company)
     const isPasswordValid = await bcrypt.compare(password, freshUser.password);
     if (!isPasswordValid) {
-      throw new AppError("Invalid password", StatusCode.UNAUTHORIZED);
+      throw new AppError(Messages.AUTH.INVALID_CREDENTIALS, StatusCode.UNAUTHORIZED);
     }
 
     const subjectId = freshUser.id.toString();
@@ -105,7 +105,7 @@ Messages.AUTH.No_PASSWORD,
     adminRepo: IAdminRepository
   ) {
     const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) throw new AppError("Invalid admin password", StatusCode.UNAUTHORIZED);
+    if (!isMatch) throw new AppError(Messages.AUTH.INVALID_CREDENTIALS, StatusCode.UNAUTHORIZED);
 
     const accessToken = this._jwtService.signAccessToken({
       id: admin.id.toString(),

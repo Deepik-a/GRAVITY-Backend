@@ -32,7 +32,7 @@ async execute(dto: VerifyOtpRequestDto) {
     if (purpose === OtpPurpose.SIGNUP) {
       // Load temp user from Redis
       const tempData = await redisClient.get(`tempUser:${email}`);
-      if (!tempData) throw new AppError("User data expired or not found in Redis", StatusCode.BAD_REQUEST);
+      if (!tempData) throw new AppError(Messages.AUTH.EMAIL_EXPIRED_REDIS, StatusCode.BAD_REQUEST);
 
       const parsed = JSON.parse(tempData);
       const role = parsed.role; 
@@ -88,7 +88,7 @@ async execute(dto: VerifyOtpRequestDto) {
       const user = await this._userRepository.findByEmail(email);
       const company = await this._companyRepository.findByEmail(email);
 
-      if (!user && !company) throw new AppError("No account found for this email", StatusCode.NOT_FOUND);
+      if (!user && !company) throw new AppError(Messages.AUTH.ACCOUNT_NOT_FOUND, StatusCode.NOT_FOUND);
 
       const role = user ? "user" : "company";
     
@@ -99,10 +99,10 @@ async execute(dto: VerifyOtpRequestDto) {
       };
     }
 
-    throw new AppError("Invalid OTP purpose", StatusCode.BAD_REQUEST);
+    throw new AppError(Messages.AUTH.INVALID_OTP_PURPOSE, StatusCode.BAD_REQUEST);
   } catch (err: unknown) {
     if (err instanceof AppError) throw err;
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = err instanceof Error ? err.message : Messages.GENERIC.UNKNOWN_ERROR;
     // Propagate as AppError if possible, or 400
     throw new AppError(message, StatusCode.BAD_REQUEST);
   }

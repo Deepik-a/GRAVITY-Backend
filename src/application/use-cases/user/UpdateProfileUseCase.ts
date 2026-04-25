@@ -13,26 +13,27 @@ interface UpdateProfileInput {
   bio?: string;
 }
 import { IUpdateUserProfileUseCase } from "@/application/interfaces/use-cases/user/IUpdateUserProfileUseCase";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class UpdateUserProfileUseCase implements IUpdateUserProfileUseCase {
   constructor( @inject(TYPES.AuthRepository) private _userRepository: IAuthRepository) {}
 
   async execute(data: UpdateProfileInput): Promise<ProfileResponseDTO> {
-    if (!data.id) throw new Error("User ID is required");
+    if (!data.id) throw new Error(Messages.USER.USER_ID_REQUIRED);
 
-    // ✅ Convert string to UniqueEntityID before updating
+    //  Convert string to UniqueEntityID before updating
     const uniqueId = new UniqueEntityID(data.id);
 
     const updated = await this._userRepository.updateUserProfile(
       data.id,
       {
         ...data,
-        id: uniqueId, // ✅ pass domain value object
+        id: uniqueId, //  pass domain value object
       }
     );
 
-    if (!updated) throw new Error("Failed to update profile");
+    if (!updated) throw new Error(Messages.USER.PROFILE_UPDATE_FAILED);
 
     return ProfileMapper.toResponseDTO(updated);
   }

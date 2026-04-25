@@ -13,7 +13,7 @@ import { TYPES } from "@/infrastructure/DI/types";
 import { AdminMapper } from "@/application/mappers/AdminMapper";
 import BookingModel, { IBookingDocument } from "@/infrastructure/database/models/BookingModel";
 import TransactionModel from "@/infrastructure/database/models/TransactionModel";
-import { Types, FilterQuery } from "mongoose";
+import { FilterQuery } from "mongoose";
 
 @injectable()
 export class AdminRepository implements IAdminRepository {
@@ -220,7 +220,7 @@ export class AdminRepository implements IAdminRepository {
           try {
             profileImage = await this._s3Service.getSignedUrl(profileImage);
           } catch (err) {
-            this._logger.error(`❌ Failed to resolve user profileImage: ${user.name}`, { error: err });
+            this._logger.error(`// Failed to resolve user profileImage: ${user.name}`, { error: err });
           }
         }
 
@@ -233,7 +233,9 @@ export class AdminRepository implements IAdminRepository {
           user.location ?? undefined,
           user.bio ?? undefined,
           user.isBlocked,
-          user.role ?? undefined
+          user.role ?? undefined,
+          undefined, // bookingCount
+          user.walletBalance
         );
       })
     );
@@ -254,7 +256,7 @@ export class AdminRepository implements IAdminRepository {
     status?: string
   ): Promise<PaginatedResult<CompanyProfile>> {
     const skip = (page - 1) * limit;
-    const filter: FilterQuery<any> = {
+    const filter: FilterQuery<Record<string, unknown>> = {
       $or: [
         { name: { $regex: query, $options: "i" } },
         { email: { $regex: query, $options: "i" } },
@@ -284,7 +286,7 @@ export class AdminRepository implements IAdminRepository {
                 try {
                   resolvedDocs[key] = await this._s3Service.getSignedUrl(value);
                 } catch (err) {
-                  this._logger.error(`❌ Failed to resolve doc: ${key}`, { error: err });
+                  this._logger.error(`// Failed to resolve doc: ${key}`, { error: err });
                   resolvedDocs[key] = value;
                 }
               }
@@ -334,7 +336,7 @@ export class AdminRepository implements IAdminRepository {
             try {
               profile.brandIdentity[key] = await this._s3Service.getSignedUrl(val);
             } catch (err) {
-              this._logger.error(`❌ Failed to resolve ${key}`, { error: err });
+              this._logger.error(`// Failed to resolve ${key}`, { error: err });
             }
           }
         }
@@ -350,7 +352,7 @@ export class AdminRepository implements IAdminRepository {
             try {
               member.photo = await this._s3Service.getSignedUrl(member.photo);
             } catch (err) {
-              this._logger.error(`❌ Failed to resolve team member photo: ${member.name}`, { error: err });
+              this._logger.error(`// Failed to resolve team member photo: ${member.name}`, { error: err });
             }
           }
         }
@@ -366,7 +368,7 @@ export class AdminRepository implements IAdminRepository {
             try {
               project.beforeImage = await this._s3Service.getSignedUrl(project.beforeImage);
             } catch (err) {
-              this._logger.error(`❌ Failed to resolve project beforeImage: ${project.title}`, { error: err });
+              this._logger.error(`// Failed to resolve project beforeImage: ${project.title}`, { error: err });
             }
           }
         }
@@ -377,7 +379,7 @@ export class AdminRepository implements IAdminRepository {
             try {
               project.afterImage = await this._s3Service.getSignedUrl(project.afterImage);
             } catch (err) {
-              this._logger.error(`❌ Failed to resolve project afterImage: ${project.title}`, { error: err });
+              this._logger.error(`// Failed to resolve project afterImage: ${project.title}`, { error: err });
             }
           }
         }

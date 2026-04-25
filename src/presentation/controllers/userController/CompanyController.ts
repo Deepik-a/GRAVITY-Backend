@@ -6,6 +6,9 @@ import { IGetCompanyProfileUseCase } from "@/application/interfaces/use-cases/co
 import { StatusCode } from "@/domain/enums/StatusCode";
 import { GetPublicStatsUseCase } from "@/application/use-cases/GetPublicStatsUseCase";
 
+
+
+
 @injectable()
 export class CompanyController {
   constructor(

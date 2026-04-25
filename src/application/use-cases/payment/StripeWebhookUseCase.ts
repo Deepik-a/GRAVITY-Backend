@@ -10,6 +10,8 @@ import { Stripe } from "stripe";
 
 import { IStripeWebhookUseCase } from "@/application/interfaces/use-cases/payment/IStripeWebhookUseCase";
 import { IStripeService } from "@/domain/services/IStripeService";
+import { Messages } from "@/shared/constants/message";
+import { PaymentStatus } from "@/domain/enums/PaymentStatus";
 
 @injectable()
 export class StripeWebhookUseCase implements IStripeWebhookUseCase {
@@ -29,10 +31,8 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
       event = await this._stripeService.verifyWebhookSignature(payload, signature, secret);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      throw new Error(`Webhook Error: ${message}`);
+      throw new Error(`${Messages.GENERIC.WEBHOOK_ERROR}: ${message}`);
     }
-
-    console.log(`[StripeWebhook] Received event: ${event.type}`);
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -58,7 +58,7 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
              const bookingId = session.metadata.bookingId;
              if (bookingId) {
                   await this._bookingRepository.updateById(bookingId, {
-                    paymentStatus: "failed",
+                    paymentStatus: PaymentStatus.FAILED,
                   });
              }
         }
@@ -68,7 +68,6 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
   }
 
   async verifySession(sessionId: string) {
-    console.log(`[StripeWebhook] Verifying session: ${sessionId}`);
     const session = await this._stripeService.retrieveSession(sessionId);
     
     if (session.payment_status === "paid") {
@@ -78,14 +77,14 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
          const planId = session.metadata?.planId;
          if (companyId && planId) {
             await this.handleSubscriptionSuccess(companyId, planId, session);
-            return { success: true, message: "Subscription activated" };
+            return { success: true, message: Messages.GENERIC.SUBSCRIPTION_ACTIVATED };
          }
        } else if (type === "booking") {
           const bookingId = session.metadata?.bookingId;
           if (bookingId) {
               const booking = await this._bookingRepository.findById(bookingId);
-              if (booking?.status === "cancelled" && booking.paymentStatus === "paid") {
-                return { success: false, message: "This slot was just taken by someone else. We will process your refund." };
+              if (booking?.status === "cancelled" && booking.paymentStatus === PaymentStatus.PAID) {
+                return { success: false, message: Messages.BOOKING.BOOKING_CANCELLED_REFUND };
               }
 
               const result = await this.processBookingPayment(bookingId, session);
@@ -93,39 +92,35 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
                 // If result is false, it means it was either already paid or there was a slot conflict
                 const finalBooking = await this._bookingRepository.findById(bookingId);
                 if (finalBooking?.status === "cancelled") {
-                  return { success: false, message: "This slot was just taken by someone else who paid first." };
+                  return { success: false, message: Messages.BOOKING.SLOT_CONFLICT };
                 }
-                return { success: true, message: "Booking already confirmed.", bookingId, sessionId: session.id, booking: finalBooking };
+                return { success: true, message: Messages.BOOKING.BOOKING_ALREADY_CONFIRMED, bookingId, sessionId: session.id, booking: finalBooking };
               }
               const finalBooking = await this._bookingRepository.findById(bookingId);
-              return { success: true, message: "Booking confirmed successfully!", bookingId, sessionId: session.id, booking: finalBooking };
+              return { success: true, message: Messages.BOOKING.CONFIRMED_SUCCESS, bookingId, sessionId: session.id, booking: finalBooking };
           }
        }
 
     }
-    return { success: false, message: "Payment not completed or session not found" };
+    return { success: false, message: Messages.GENERIC.PAYMENT_NOT_COMPLETED };
   }
 
   private async processBookingPayment(bookingId: string, session: Stripe.Checkout.Session): Promise<boolean> {
-    console.log(`[StripeWebhook] Processing booking payment for ID: ${bookingId}`);
     const booking = await this._bookingRepository.findById(bookingId);
     
     if (!booking) {
-      console.error(`[StripeWebhook] Booking not found: ${bookingId}`);
       return false;
     }
 
-    if (booking.paymentStatus === "paid") {
-      console.log(`[StripeWebhook] Booking ${bookingId} already marked as paid.`);
+    if (booking.paymentStatus === PaymentStatus.PAID) {
       return false;
     }
 
     // DOUBLE CHECK: Ensure the slot hasn't been taken by someone else while this user was paying
     const isSlotStillAvailable = await this._bookingRepository.checkSlotAvailability(booking.companyId, booking.date, booking.startTime);
     if (!isSlotStillAvailable) {
-      console.warn(`[StripeWebhook] Slot already taken for booking ${bookingId}. Marking as failed.`);
       await this._bookingRepository.updateById(bookingId, {
-        paymentStatus: "paid", // They paid, but slot is gone
+        paymentStatus: PaymentStatus.PAID, // They paid, but slot is gone
         status: "cancelled",   // Slot conflict
       });
       // In a real app, you would initiate a refund here.
@@ -144,7 +139,7 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
 
     // Update booking - ensure it's confirmed AND paid
     await this._bookingRepository.updateById(bookingId, {
-      paymentStatus: "paid",
+      paymentStatus: PaymentStatus.PAID,
       status: "confirmed",
       adminCommission: commissionAmount,
     });
@@ -188,8 +183,6 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
       netAmount,
     });
 
-    console.log("[StripeWebhook] Booking " + bookingId + " processed successfully.");
-
     // Notify User
     await this._notificationService.createNotification({
       recipientId: booking.userId,
@@ -212,18 +205,14 @@ export class StripeWebhookUseCase implements IStripeWebhookUseCase {
   }
 
   private async handleSubscriptionSuccess(companyId: string, planId: string, session: Stripe.Checkout.Session) {
-    console.log("[StripeWebhook] Handling success for company: " + companyId + ", plan: " + planId);
-    
     // Check if company already has this subscription active to prevent double-processing
     const company = await this._companyRepository.findCompanyById(companyId);
     if (company?.subscription?.stripeSubscriptionId === session.payment_intent) {
-        console.log("[StripeWebhook] Subscription already processed for company " + companyId);
         return;
     }
 
     const plan = await this._subscriptionRepository.getPlanById(planId);
     if (!plan) {
-      console.error("[StripeWebhook] Plan not found for subscription payment: " + planId); 
       return;
     }
 

@@ -11,7 +11,6 @@ export class ReminderService {
   ) {}
 
   async sendBookingReminders() {
-    console.log("[ReminderService] Checking for upcoming bookings...");
     const tomorrowStart = new Date();
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
     tomorrowStart.setHours(0, 0, 0, 0);
@@ -46,16 +45,15 @@ export class ReminderService {
           type: "BOOKING_REMINDER"
         });
       }
-      console.log(`[ReminderService] Sent ${upcomingBookings.length * 2} reminders.`);
-    } catch (error) {
-      console.error("[ReminderService] Error sending reminders:", error);
+    } catch {
+      // Error handled silently
     }
   }
 
   startReminderTask() {
     // Run every hour
     setInterval(() => {
-      this.sendBookingReminders().catch(console.error);
+      this.sendBookingReminders().catch(void 0);
     }, 60 * 60 * 1000);
   }
 }

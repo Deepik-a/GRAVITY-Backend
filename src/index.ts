@@ -41,6 +41,8 @@ app.use("/public", express.static(path.join(process.cwd(), "public")));
 logger.info(process.cwd(), { cwd: process.cwd() });
 
 // CORS
+
+
 app.use(
   cors({
     origin: [env.FRONTEND_URL, env.FRONTEND_URL.replace("www.", "")],
@@ -70,7 +72,7 @@ app.use(errorHandler);
 const uri = env.MONGO_URI;
 
 //
-//  ✅ FIX: Wrap startup logic in async to avoid "Top-level await" error
+//  FIX: Wrap startup logic in async to avoid "Top-level await" error
 //
 (async () => {
   try {

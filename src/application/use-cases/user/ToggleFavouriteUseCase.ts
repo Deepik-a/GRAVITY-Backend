@@ -6,6 +6,7 @@ import { AppError } from "@/shared/error/AppError";
 import { StatusCode } from "@/domain/enums/StatusCode";
 
 import { IToggleFavouriteUseCase } from "@/application/interfaces/use-cases/user/IToggleFavouriteUseCase";
+import { Messages } from "@/shared/constants/message";
 
 @injectable()
 export class ToggleFavouriteUseCase implements IToggleFavouriteUseCase {
@@ -15,7 +16,7 @@ export class ToggleFavouriteUseCase implements IToggleFavouriteUseCase {
 
   async execute(userId: string, companyId: string): Promise<string[]> {
     if (!userId || !companyId) {
-      throw new AppError("Invalid data", StatusCode.BAD_REQUEST);
+      throw new AppError(Messages.USER.INVALID_DATA, StatusCode.BAD_REQUEST);
     }
     return await this._userRepository.toggleFavourite(userId, companyId);
   }

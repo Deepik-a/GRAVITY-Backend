@@ -3,7 +3,7 @@ import { ISubscriptionPlan } from "@/infrastructure/database/models/Subscription
 
 export const SubscriptionMapper = {
   toEntity(doc: ISubscriptionPlan): SubscriptionPlan {
-    const id = doc._id as any;
+    const id = doc._id as { toString: () => string };
     const createdAt = (doc as unknown as { createdAt: Date }).createdAt;
     const updatedAt = (doc as unknown as { updatedAt: Date }).updatedAt;
 

@@ -13,7 +13,7 @@ export class SearchUserUseCase implements ISearchUsersUseCase {
     const result = await this._adminRepository.searchUsers(query, page, limit);
 
     return {
-      data: result.data,          // ✅ interface match
+      data: result.data,          //  interface match
       total: result.total,
       page: result.page,
       limit: result.limit,
