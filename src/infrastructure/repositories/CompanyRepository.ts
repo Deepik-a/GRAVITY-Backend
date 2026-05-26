@@ -105,7 +105,7 @@ export class CompanyRepository
 
   private _stripSignedUrls(profile: unknown): Record<string, unknown> | null {
     if (!profile) return null;
-    const stripped = JSON.parse(JSON.stringify(profile));
+    const stripped = JSON.parse(JSON.stringify(profile)); //deep clone the profile
     const extractKey = (url: string | undefined): string | undefined => {
       if (!url || !url.startsWith("http") || url.startsWith("data:")) return url;
       try { 

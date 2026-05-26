@@ -48,19 +48,15 @@ export class CancelBookingUseCase implements ICancelBookingUseCase {
     }
 
     // Refund the full amount to user wallet if payment was completed
-    console.log("Booking payment status:", booking.paymentStatus, "Price:", booking.price);
     if (booking.paymentStatus === PaymentStatus.PAID || booking.paymentStatus === PaymentStatus.PENDING) {
       const refundAmount = booking.price || 0;
       
       if (refundAmount > 0) {
         try {
-          console.log("Attempting refund for user:", booking.userId, "Amount:", refundAmount);
           const user = await UserModel.findById(booking.userId);
           if (user) {
-            console.log("User found, current balance:", user.walletBalance);
             user.walletBalance = (user.walletBalance || 0) + refundAmount;
             await user.save();
-            console.log("User balance updated to:", user.walletBalance);
 
             // Create a transaction record to note the refund
             await TransactionModel.create({
@@ -79,18 +75,14 @@ export class CancelBookingUseCase implements ICancelBookingUseCase {
               paymentStatus: PaymentStatus.REFUNDED
             });
           } else {
-            console.error("User not found for refund:", booking.userId);
+            // User not found for refund
           }
-        } catch (refundError) {
-          console.error("Refund failed during cancellation:", refundError);
+        } catch {
+          // Refund failed during cancellation
           // Don't throw error - allow cancellation to proceed even if refund fails
           // Admin can manually refund later
         }
-      } else {
-        console.log("Refund amount is 0, skipping refund");
       }
-    } else {
-      console.log("Payment status is not PAID or PENDING, skipping refund. Status:", booking.paymentStatus);
     }
 
     // Notify User
