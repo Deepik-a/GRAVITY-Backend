@@ -258,24 +258,37 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
         "companyAccessToken", "companyRefreshToken",
         "adminAccessToken", "adminRefreshToken"
       ];
-      
       const cookieDomain = getCookieDomain(req.hostname);
       cookieNames.forEach(name => {
-        // Clear both host-only and domain-scoped cookies for reliability across
-        // api/frontend subdomains in production.
+        // Clear host-scoped cookie (e.g., api.gravityconstruction.co.in)
         res.clearCookie(name, { 
           path: "/",
           httpOnly: cookieData.httpONLY,
           secure: cookieData.SECURE,
           sameSite: cookieData.SAME_SITE
         });
-        res.clearCookie(name, {
-          path: "/",
-          ...(cookieDomain ? { domain: cookieDomain } : {}),
-          httpOnly: cookieData.httpONLY,
-          secure: cookieData.SECURE,
-          sameSite: cookieData.SAME_SITE,
-        });
+
+        // Clear domain-scoped cookie (e.g., .gravityconstruction.co.in)
+        if (cookieDomain) {
+          res.clearCookie(name, {
+            path: "/",
+            domain: cookieDomain,
+            httpOnly: cookieData.httpONLY,
+            secure: cookieData.SECURE,
+            sameSite: cookieData.SAME_SITE,
+          });
+
+          // Also clear without the leading dot to handle legacy stale cookies
+          if (cookieDomain.startsWith(".")) {
+            res.clearCookie(name, {
+              path: "/",
+              domain: cookieDomain.substring(1),
+              httpOnly: cookieData.httpONLY,
+              secure: cookieData.SECURE,
+              sameSite: cookieData.SAME_SITE,
+            });
+          }
+        }
       });
 
       return res.status(StatusCode.SUCCESS).json({ success: true, message: Messages.AUTH.LOGOUT_SUCCESS });
