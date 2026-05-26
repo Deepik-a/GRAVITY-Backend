@@ -1,6 +1,6 @@
   import { Request, Response, NextFunction, RequestHandler } from "express";
   import { IJwtService } from "@/domain/services/IJWTService";
-  import { cookieData } from "@/shared/constants/cookieData";
+  import { cookieData, getCookieDomain } from "@/shared/constants/cookieData";
   import { StatusCode } from "@/domain/enums/StatusCode";
   import { Messages } from "@/shared/constants/message";
   import { inject, injectable } from "inversify";
@@ -98,7 +98,7 @@ export class SessionAuth {
             const user = req.user as AuthenticatedUser;
 
             if (await this._checkBlockStatus(user.role, user.id)) {
-              this._clearSpecificCookies(res, accessKey, refreshKey);
+              this._clearSpecificCookies(req, res, accessKey, refreshKey);
               return res.status(StatusCode.FORBIDDEN).json({ status: false, message: Messages.AUTH.ACCOUNT_BLOCKED });
             }
             return next();
@@ -111,10 +111,10 @@ export class SessionAuth {
 
       if (refreshToken) {
         const payload = this._jwtService.verifyRefreshToken(refreshToken);
-        if (!payload) return this._endSpecificSession(res, accessKey, refreshKey);
+        if (!payload) return this._endSpecificSession(req, res, accessKey, refreshKey);
 
         if (await this._checkBlockStatus(payload.role as string, (payload.userId || payload.id) as string)) {
-          this._clearSpecificCookies(res, accessKey, refreshKey);
+          this._clearSpecificCookies(req, res, accessKey, refreshKey);
           return res.status(StatusCode.FORBIDDEN).json({ status: false, message: Messages.AUTH.ACCOUNT_BLOCKED });
         }
 
@@ -127,10 +127,12 @@ const data = {
 };
         const newAccessToken = this._jwtService.signAccessToken(data);
 
+        const cookieDomain = getCookieDomain(req.hostname);
         res.cookie(accessKey, newAccessToken, {
           httpOnly: true,
           secure: cookieData.SECURE,
           sameSite: cookieData.SAME_SITE,
+          ...(cookieDomain ? { domain: cookieDomain } : {}),
           maxAge: cookieData.MAX_AGE_ACCESS_TOKEN,
           path: "/",
         });
@@ -144,10 +146,10 @@ const data = {
         return next();
       }
 
-      return this._endSpecificSession(res, accessKey, refreshKey);
+      return this._endSpecificSession(req, res, accessKey, refreshKey);
     } catch (error) {
       this._logger.error("Auth Catch Error:", { error });
-      return this._endSpecificSession(res, accessKey, refreshKey);
+      return this._endSpecificSession(req, res, accessKey, refreshKey);
     }
   };
 
@@ -176,13 +178,21 @@ authorize(allowedRoles: string[]): RequestHandler {
   };
 }
 
-  private _clearSpecificCookies(res: Response, accessKey: string, refreshKey: string) {
-    res.clearCookie(accessKey, { path: "/" });
-    res.clearCookie(refreshKey, { path: "/" });
+  private _clearSpecificCookies(req: Request, res: Response, accessKey: string, refreshKey: string) {
+    const cookieDomain = getCookieDomain(req.hostname);
+    const options = {
+      path: "/",
+      httpOnly: cookieData.httpONLY,
+      secure: cookieData.SECURE,
+      sameSite: cookieData.SAME_SITE,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
+    };
+    res.clearCookie(accessKey, options);
+    res.clearCookie(refreshKey, options);
   }
 
-  private _endSpecificSession(res: Response, accessKey: string, refreshKey: string) {
-    this._clearSpecificCookies(res, accessKey, refreshKey);
+  private _endSpecificSession(req: Request, res: Response, accessKey: string, refreshKey: string) {
+    this._clearSpecificCookies(req, res, accessKey, refreshKey);
     return res.status(StatusCode.UNAUTHORIZED).json({ status: false, message: Messages.AUTH.INVALID_TOKEN });
   }
 
