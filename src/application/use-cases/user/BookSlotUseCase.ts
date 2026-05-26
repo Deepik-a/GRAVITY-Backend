@@ -80,7 +80,7 @@ export class BookSlotUseCase implements IBookSlotUseCase {
       // Handle MongoDB duplicate key error (E11000)
      
       if (error instanceof Error && error.message.includes("E11000")) {
-         console.log("hello error from me");
+       
         throw new AppError(Messages.GENERIC.SERVER_ERROR, StatusCode.INTERNAL_ERROR);
       }
       throw error;

@@ -40,22 +40,46 @@ app.use(cookieParser());
 app.use("/public", express.static(path.join(process.cwd(), "public")));
 logger.info(process.cwd(), { cwd: process.cwd() });
 
+// //preflight request
+// app.options("/(.*)", cors());
+
 // CORS
-
-
 app.use(
   cors({
-    origin: (() => {
-      const frontend = new URL(env.FRONTEND_URL);
-      const host = frontend.hostname.replace(/^www\./, "");
-      const baseOrigin = `${frontend.protocol}//${host}`;
-      const wwwOrigin = `${frontend.protocol}//www.${host}`;
-      return [baseOrigin, wwwOrigin];
-    })(),
+    origin: (origin, callback) => {
+      // Allow non-browser requests (curl/postman) with no Origin header.
+      if (!origin) return callback(null, true);
+
+      const urls = env.FRONTEND_URL.split(",").map((u) => u.trim()).filter(Boolean);
+      const allowedOrigins = new Set<string>();
+
+      for (const frontendUrl of urls) {
+        const frontend = new URL(frontendUrl);
+
+        // Keep exact origin (includes port) e.g. http://localhost:3000
+        allowedOrigins.add(frontend.origin);
+
+        const hostname = frontend.hostname;
+        const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+
+        // For production domains, allow both with/without www.
+        if (!isLocalhost) {
+          if (hostname.startsWith("www.")) {
+            allowedOrigins.add(new URL(frontendUrl.replace("://www.", "://")).origin);
+          } else {
+            allowedOrigins.add(new URL(frontendUrl.replace("://", "://www.")).origin);
+          }
+        }
+      }
+
+      if (allowedOrigins.has(origin)) return callback(null, true);
+      return callback(new Error(`CORS blocked origin: ${origin}`));
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-role"],
   })
 );
-
 // MUST NOT use express.json() before Stripe webhook as it needs raw body for signature verification
 app.use("/payments/webhook", express.raw({ type: "application/json" }));
 

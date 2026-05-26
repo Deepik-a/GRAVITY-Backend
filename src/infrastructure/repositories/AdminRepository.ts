@@ -118,7 +118,7 @@ export class AdminRepository implements IAdminRepository {
     const sortedActivities = activities
       .sort((a, b) => b.rawTime.getTime() - a.rawTime.getTime())
       .slice(0, 10)
-      .map(({ rawTime: _, ...rest }) => ({ ...rest }));
+      .map(({ rawTime: _, ...rest }) => rest);
 
     return {
       totalUsers,
@@ -273,7 +273,7 @@ export class AdminRepository implements IAdminRepository {
       companies.map(async (c) => {
         let resolvedProfile = c.profile;
         if (resolvedProfile) {
-          resolvedProfile = await this._resolveProfileUrls(JSON.parse(JSON.stringify(resolvedProfile)));
+          resolvedProfile = await this._resolveProfileUrls(resolvedProfile);
         }
 
         const resolvedDocs: Record<string, string | null> = {};
