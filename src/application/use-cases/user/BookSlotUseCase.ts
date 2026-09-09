@@ -22,8 +22,8 @@ export class BookSlotUseCase implements IBookSlotUseCase {
     const { companyId, date, startTime } = bookingData;
 
     // 1. Verify Slot is actually available
-    const config = await this._slotRepository.getConfigByCompanyId(companyId);
-    if (!config) throw new AppError("Company has no slot configuration.", StatusCode.NOT_FOUND);
+    const config = await this._slotRepository.getConfigForDate(companyId, new Date(date));
+    if (!config) throw new AppError("No active slot configuration for this date.", StatusCode.NOT_FOUND);
 
     // IMPORTANT: Check for existing bookings to prevent E11000 duplicate key error
     // If a booking exists for this slot (even if pending), we handle it.

@@ -17,10 +17,10 @@ export class GetAvailableSlotsUseCase implements IGetAvailableSlotsUseCase {
 
   async execute(companyId: string, dateStr: string): Promise<string[]> {
     const date = new Date(dateStr);
-    const config = await this._slotRepository.getConfigByCompanyId(companyId);
+    const config = await this._slotRepository.getConfigForDate(companyId, date);
 
     if (!config) {
-      throw new AppError("No slot configuration found for this company.", StatusCode.NOT_FOUND);
+      return [];
     }
 
     // 1. Basic Date Checks

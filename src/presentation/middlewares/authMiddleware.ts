@@ -167,8 +167,18 @@ authorize(allowedRoles: string[]): RequestHandler {
 }
 
   private _clearSpecificCookies(res: Response, accessKey: string, refreshKey: string) {
-    res.clearCookie(accessKey, { path: "/" });
-    res.clearCookie(refreshKey, { path: "/" });
+    res.clearCookie(accessKey, {
+      path: "/",
+      httpOnly: cookieData.httpONLY,
+      secure: cookieData.SECURE,
+      sameSite: cookieData.SAME_SITE,
+    });
+    res.clearCookie(refreshKey, {
+      path: "/",
+      httpOnly: cookieData.httpONLY,
+      secure: cookieData.SECURE,
+      sameSite: cookieData.SAME_SITE,
+    });
   }
 
   private _endSpecificSession(res: Response, accessKey: string, refreshKey: string) {

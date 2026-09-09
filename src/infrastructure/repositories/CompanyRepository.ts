@@ -69,7 +69,7 @@ export class CompanyRepository
     if (!profile) return null;
     const stripped = JSON.parse(JSON.stringify(profile));
     const extractKey = (url: string | undefined): string | undefined => {
-      if (!url || !url.startsWith("http") || url.startsWith("data:")) return url;
+      if (!url || !url.startsWith("http") || url.startsWith("data:") || url.includes("cloudinary.com")) return url;
       try { 
         return new URL(url).pathname.substring(1).split('?')[0]; 
       } catch { 

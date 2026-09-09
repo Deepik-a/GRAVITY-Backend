@@ -254,7 +254,7 @@ async googleLogin(req: Request, res: Response, next: NextFunction) {
           path: "/",
           httpOnly: cookieData.httpONLY,
           secure: cookieData.SECURE,
-          sameSite: cookieData.SAME_SITE
+          sameSite: cookieData.SAME_SITE,
         });
       });
 

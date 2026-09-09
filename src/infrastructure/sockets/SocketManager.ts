@@ -24,9 +24,28 @@ export class SocketManager {
 
   constructor(server: HttpServer) {
     this.logger = container.get<ILogger>(TYPES.Logger);
+    const allowedOrigins = Array.from(
+      new Set([
+        env.FRONTEND_URL,
+        env.FRONTEND_URL.replace("www.", ""),
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+      ])
+    );
+
     SocketManager.io = new SocketIOServer<object, object, object, object>(server, {
       cors: {
-        origin: [env.FRONTEND_URL, env.FRONTEND_URL.replace("www.", "")],
+        origin: (origin, callback) => {
+          if (!origin) return callback(null, true);
+          const cleanOrigin = origin.replace(/\/$/, "");
+          const isAllowed = allowedOrigins.some(
+            (url) => url && url.replace(/\/$/, "") === cleanOrigin
+          );
+          if (isAllowed) {
+            return callback(null, true);
+          }
+          return callback(null, false);
+        },
         credentials: true,
       },
     });

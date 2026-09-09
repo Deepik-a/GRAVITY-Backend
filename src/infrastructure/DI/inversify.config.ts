@@ -14,6 +14,7 @@ import { BookingRepository } from "@/infrastructure/repositories/BookingReposito
 import { JwtService } from "@/infrastructure/services/JWTService";
 import { OtpService } from "@/infrastructure/services/OTPService";
 import { S3StorageService } from "@/infrastructure/services/S3StorageService";
+import { CloudinaryStorageService } from "@/infrastructure/services/CloudinaryStorageService";
 import { StripeService } from "@/infrastructure/services/StripeService";
 
 // ---------------- Use Cases (Payment) ----------------
@@ -104,7 +105,7 @@ container.bind(TYPES.AuthRepository).to(UserRepository); // Same repo for login 
 container.bind(TYPES.EmailService).to(EmailService).inSingletonScope();
 container.bind(TYPES.JwtService).to(JwtService);
 container.bind(TYPES.OtpService).to(OtpService);
-container.bind(TYPES.StorageService).to(S3StorageService).inSingletonScope();
+container.bind(TYPES.StorageService).to(CloudinaryStorageService).inSingletonScope();
 container.bind(TYPES.Logger).to(LoggerService).inSingletonScope();
 container.bind(TYPES.StripeService).to(StripeService).inSingletonScope();
 

@@ -27,18 +27,15 @@ export class SetSlotConfigUseCase implements ISetSlotConfigUseCase {
 
     const sub = company.subscription;
     if (!company.isSubscribed) {
-      throw new AppError(`Active subscription required to configure slots. (isSubscribed: ${company.isSubscribed}, Status: ${sub?.status || "none"})`, StatusCode.FORBIDDEN);
+      throw new AppError(
+        `Active subscription required to configure slots. (isSubscribed: ${company.isSubscribed}, Status: ${sub?.status || "none"})`,
+        StatusCode.FORBIDDEN
+      );
     }
 
     if (sub?.endDate && new Date() > new Date(sub.endDate)) {
-        throw new AppError("Subscription expired. Please renew to manage slots.", StatusCode.FORBIDDEN);
+      throw new AppError("Subscription expired. Please renew to manage slots.", StatusCode.FORBIDDEN);
     }
-
-
-    const existingConfig = await this._slotRepository.getConfigByCompanyId(config.companyId);
-    
-    // 1. Validations (passing existingConfig to allow historical dates)
-    this.validate(config, existingConfig);
 
     const toDateStr = (date: Date | string | undefined | null) => {
       if (!date) return "";
@@ -47,69 +44,133 @@ export class SetSlotConfigUseCase implements ISetSlotConfigUseCase {
       return d.toISOString().split("T")[0];
     };
 
-    // 2. Editing restrictions for existing config
-    if (existingConfig) {
+    // Fetch all existing rules for this company
+    const companyRules = await this._slotRepository.getAllConfigsByCompanyId(config.companyId);
+
+    // 1. EDITING an existing rule
+    if (config.id) {
+      const existingConfig = companyRules.find((r) => r.id === config.id);
+      if (!existingConfig) {
+        throw new AppError("Slot configuration not found to update.", StatusCode.NOT_FOUND);
+      }
+
+      this.validate(config, existingConfig);
+
+      // Check overlap against other rules of this company
+      const otherRules = companyRules.filter((r) => r.id !== config.id);
+      for (const other of otherRules) {
+        if (this.datesOverlap(config.startDate, config.endDate, other.startDate, other.endDate)) {
+          throw new AppError(
+            `This date range overlaps with another existing slot rule (${toDateStr(other.startDate)} - ${toDateStr(other.endDate)}).`,
+            StatusCode.BAD_REQUEST
+          );
+        }
+      }
+
+      // Check active rule restrictions
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const isExpired = new Date(existingConfig.endDate) < today;
 
       if (!isExpired) {
-        // Check if fields other than exceptionalDays have changed
         const fieldsToCheck: (keyof ISlotConfig)[] = [
-          "startDate", "endDate", "startTime", "endTime", "slotDuration", "bufferTime", "weekdays"
+          "startDate",
+          "endDate",
+          "startTime",
+          "endTime",
+          "slotDuration",
+          "bufferTime",
+          "weekdays",
         ];
-        
-        const hasOtherChanges = fieldsToCheck.some(field => {
+
+        const hasCoreChanges = fieldsToCheck.some((field) => {
           const oldValue = existingConfig[field as keyof typeof existingConfig];
           const newValue = config[field as keyof typeof config];
-          
+
           if (field === "weekdays") {
             const oldArr = Array.isArray(oldValue) ? oldValue : [];
             const newArr = Array.isArray(newValue) ? newValue : [];
             return JSON.stringify([...oldArr].sort()) !== JSON.stringify([...newArr].sort());
           }
-          
+
           if (field === "startDate" || field === "endDate") {
-              return toDateStr(oldValue as string | Date) !== toDateStr(newValue as string | Date);
+            return toDateStr(oldValue as string | Date) !== toDateStr(newValue as string | Date);
           }
-  
+
           return String(oldValue ?? "") !== String(newValue ?? "");
         });
-  
-        if (hasOtherChanges) {
-          throw new AppError(
-            "Only exceptional days (holidays) can be modified for an active rule. To create a new rule, wait until the current one expires.",
-            StatusCode.BAD_REQUEST
-          );
-        }
-  
-        // Check for days with more than 5 bookings in the range
+
         const bookings = await this._bookingRepository.getCompanyBookings(config.companyId);
         const bookingCounts: Record<string, number> = {};
-        
+
         bookings.forEach((b: IBooking) => {
           const dateStr = toDateStr(b.date);
           if (dateStr) {
             bookingCounts[dateStr] = (bookingCounts[dateStr] || 0) + 1;
           }
         });
-  
-        const startDate = new Date(config.startDate);
-        const endDate = new Date(config.endDate);
-        
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-          const dateStr = toDateStr(d);
+
+        // If core scheduling fields changed, verify there are no active bookings on this rule
+        if (hasCoreChanges) {
+          const existingStart = new Date(existingConfig.startDate);
+          const existingEnd = new Date(existingConfig.endDate);
+          const hasBookingsInRule = bookings.some((b: IBooking) => {
+            const bDate = new Date(b.date);
+            return bDate >= existingStart && bDate <= existingEnd && b.status !== "cancelled";
+          });
+
+          if (hasBookingsInRule) {
+            throw new AppError(
+              "Cannot modify schedule timings or dates for an active rule with existing bookings. Only exceptional days (holidays) can be modified.",
+              StatusCode.BAD_REQUEST
+            );
+          }
+        }
+
+        // Check for days with more than 5 bookings
+        for (const exDate of config.exceptionalDays) {
+          const dateStr = toDateStr(exDate);
           if (dateStr && bookingCounts[dateStr] > 5) {
             throw new AppError(
-              `Editing is not possible: ${dateStr} already has ${bookingCounts[dateStr]} bookings (limit is 5).`,
+              `Cannot set ${dateStr} as holiday: it already has ${bookingCounts[dateStr]} bookings (limit is 5).`,
               StatusCode.BAD_REQUEST
             );
           }
         }
       }
+    } else {
+      // 2. CREATING a new rule
+      if (companyRules.length >= 3) {
+        throw new AppError("Maximum of 3 slot rules allowed per company.", StatusCode.BAD_REQUEST);
+      }
+
+      this.validate(config, null);
+
+      // Check overlap against all existing rules of this company
+      for (const other of companyRules) {
+        if (this.datesOverlap(config.startDate, config.endDate, other.startDate, other.endDate)) {
+          throw new AppError(
+            `This date range overlaps with existing rule: ${toDateStr(other.startDate)} - ${toDateStr(other.endDate)}`,
+            StatusCode.BAD_REQUEST
+          );
+        }
+      }
     }
 
     return await this._slotRepository.setConfig(config);
+  }
+
+  private datesOverlap(
+    aStart: Date | string,
+    aEnd: Date | string,
+    bStart: Date | string,
+    bEnd: Date | string
+  ): boolean {
+    const aS = new Date(aStart).setHours(0, 0, 0, 0);
+    const aE = new Date(aEnd).setHours(23, 59, 59, 999);
+    const bS = new Date(bStart).setHours(0, 0, 0, 0);
+    const bE = new Date(bEnd).setHours(23, 59, 59, 999);
+    return aS <= bE && bS <= aE;
   }
 
   private validate(config: ISlotConfig, existingConfig: ISlotConfig | null) {
@@ -123,9 +184,9 @@ export class SetSlotConfigUseCase implements ISetSlotConfigUseCase {
 
     // Only block past start date if it's a new config or the start date is being changed
     if (!existingConfig || toDateStr(existingConfig.startDate) !== toDateStr(config.startDate)) {
-        if (startDate < now) {
-            throw new AppError("Start date cannot be in the past.", StatusCode.BAD_REQUEST);
-        }
+      if (startDate < now) {
+        throw new AppError("Start date cannot be in the past.", StatusCode.BAD_REQUEST);
+      }
     }
 
     if (endDate <= startDate) {
@@ -141,19 +202,19 @@ export class SetSlotConfigUseCase implements ISetSlotConfigUseCase {
       throw new AppError("End time must be after start time.", StatusCode.BAD_REQUEST);
     }
 
-    if (config.slotDuration <= 0) {
-      throw new AppError("Slot duration must be greater than 0.", StatusCode.BAD_REQUEST);
+    if (config.slotDuration < 15) {
+      throw new AppError("Slot duration must be at least 15 minutes.", StatusCode.BAD_REQUEST);
     }
 
-    if (config.bufferTime < 0) {
-      throw new AppError("Buffer time cannot be negative.", StatusCode.BAD_REQUEST);
+    if (config.bufferTime < 10) {
+      throw new AppError("Buffer time must be at least 10 minutes.", StatusCode.BAD_REQUEST);
     }
 
     if (config.slotDuration + config.bufferTime > endMins - startMins) {
       throw new AppError("Slot duration + buffer time cannot exceed total available time.", StatusCode.BAD_REQUEST);
     }
 
-    if (config.weekdays.length === 0) {
+    if (!config.weekdays || config.weekdays.length === 0) {
       throw new AppError("At least one weekday must be selected.", StatusCode.BAD_REQUEST);
     }
 
@@ -164,7 +225,7 @@ export class SetSlotConfigUseCase implements ISetSlotConfigUseCase {
       }
     }
 
-    for (const exDate of config.exceptionalDays) {
+    for (const exDate of config.exceptionalDays || []) {
       const d = new Date(exDate);
       if (d < startDate || d > endDate) {
         throw new AppError(`Exceptional day ${d.toDateString()} is outside the configured date range.`, StatusCode.BAD_REQUEST);

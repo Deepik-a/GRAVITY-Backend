@@ -6,7 +6,8 @@ export class StripeService {
   private stripe: Stripe;
 
   constructor() {
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+    const apiKey = process.env.STRIPE_SECRET_KEY || "sk_test_placeholder";
+    this.stripe = new Stripe(apiKey, {
       // @ts-expect-error: Suppressing stripe api version mismatch
       apiVersion: "2025-01-27.acacia",
     });

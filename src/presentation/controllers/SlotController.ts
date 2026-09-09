@@ -159,7 +159,8 @@ export class SlotController {
          res.status(StatusCode.UNAUTHORIZED).json({ message: Messages.GENERIC.UNAUTHORIZED });
          return;
       }
-      await this._deleteSlotConfigUseCase.execute(companyId);
+      const ruleId = (req.query.ruleId as string) || req.body?.ruleId;
+      await this._deleteSlotConfigUseCase.execute(companyId, ruleId);
       res.status(StatusCode.SUCCESS).json({ message: Messages.SLOT.CONFIG_DELETE_SUCCESS });
     } catch (error: unknown) {
       if (error instanceof AppError) {

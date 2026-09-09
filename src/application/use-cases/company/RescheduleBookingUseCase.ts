@@ -27,9 +27,9 @@ export class RescheduleBookingUseCase implements IRescheduleBookingUseCase {
     }
 
     // Verify Slot is actually available for this company on this date
-    const config = await this._slotRepository.getConfigByCompanyId(booking.companyId);
+    const config = await this._slotRepository.getConfigForDate(booking.companyId, newDate);
     if (!config) {
-      throw new AppError("Company has no slot configuration.", StatusCode.NOT_FOUND);
+      throw new AppError("Company has no slot configuration for the selected date.", StatusCode.NOT_FOUND);
     }
 
     // Check if the slot is already booked

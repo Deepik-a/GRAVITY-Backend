@@ -11,7 +11,7 @@ export class GetSlotConfigUseCase implements IGetSlotConfigUseCase {
     @inject(TYPES.SlotRepository) private _slotRepository: ISlotRepository
   ) {}
 
-  async execute(companyId: string): Promise<ISlotConfig | null> {
-    return await this._slotRepository.getConfigByCompanyId(companyId);
+  async execute(companyId: string): Promise<ISlotConfig[]> {
+    return await this._slotRepository.getAllConfigsByCompanyId(companyId);
   }
 }

@@ -33,6 +33,23 @@ export class CreateSubscriptionCheckoutSessionUseCase implements ICreateSubscrip
       throw new AppError("Subscription plan is not active", StatusCode.BAD_REQUEST);
     }
 
+    // Restrict Upgrade Plan without active Basic plan
+    const isUpgradePlan = plan.name.toLowerCase().includes("upgrade");
+    if (isUpgradePlan) {
+      const currentSub = company.subscription;
+      const isSubActive = currentSub?.status === "active";
+      let hasActiveBasic = false;
+      if (isSubActive && currentSub?.planId) {
+        const currentPlan = await this._subscriptionRepository.getPlanById(currentSub.planId.toString());
+        if (currentPlan && currentPlan.name.toLowerCase().includes("basic")) {
+          hasActiveBasic = true;
+        }
+      }
+      if (!hasActiveBasic) {
+        throw new AppError("Please subscribe to the Basic plan first before upgrading.", StatusCode.BAD_REQUEST);
+      }
+    }
+
     const session = await this._stripeService.createSubscriptionCheckoutSession({
       amount: plan.price,
       planId: plan._id,

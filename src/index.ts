@@ -33,6 +33,9 @@ const httpServer = createServer(app);
 new SocketManager(httpServer);
 logger.info("hello before public file");
 
+// Enable trust proxy for Render / cloud load balancers (ensures secure cookies work over HTTPS)
+app.set("trust proxy", 1);
+
 // must come before routes/middleware that use req.cookies
 app.use(cookieParser());
 
@@ -40,10 +43,31 @@ app.use(cookieParser());
 app.use("/public", express.static(path.join(process.cwd(), "public")));
 logger.info(process.cwd(), { cwd: process.cwd() });
 
+// Allowed Origins for both local development and production
+const allowedOrigins = Array.from(
+  new Set([
+    env.FRONTEND_URL,
+    env.FRONTEND_URL.replace("www.", ""),
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+  ])
+);
+
 // CORS
 app.use(
   cors({
-    origin: [env.FRONTEND_URL, env.FRONTEND_URL.replace("www.", "")],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, "");
+      const isAllowed = allowedOrigins.some(
+        (url) => url && url.replace(/\/$/, "") === cleanOrigin
+      );
+      if (isAllowed) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
   })
 );
