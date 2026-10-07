@@ -17,15 +17,17 @@ export class EmailService {
   ) {
     this._logger.info("EmailService initializing with Brevo SMTP relay...");
 
-    // Brevo SMTP relay — works on all cloud servers (no IP blocking like Gmail)
+    // Brevo SMTP relay — port 465 SSL (port 587 STARTTLS is blocked on Render)
     this._transporter = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
-      port: 587,
-      secure: false, // STARTTLS
+      port: 465,
+      secure: true, // SSL — never hangs waiting for STARTTLS upgrade
       auth: {
         user: env.BREVO_SENDER_EMAIL, // your Brevo login email
-        pass: env.BREVO_SMTP_KEY,     // SMTP key from Brevo dashboard (NOT your password)
+        pass: env.BREVO_SMTP_KEY,     // SMTP key from Brevo dashboard
       },
+      connectionTimeout: 10000, // 10s — fail fast if host unreachable
+      socketTimeout: 15000,     // 15s — fail fast if connection stalls
     });
   }
 
@@ -137,14 +139,20 @@ async sendOtpEmail(to: string, otp: string) {
     </html>
   `;
 
-  await this._transporter.sendMail({
-    from: `"${env.BREVO_SENDER_NAME}" <${env.BREVO_SENDER_EMAIL}>`,
-    to,
-    subject: "🔐 Your GRAVITY Verification Code",
-    html: htmlContent,
-  });
-
-  this._logger.info(`📧 OTP sent via Brevo SMTP to ${to}`);
+  try {
+    this._logger.info(`📮 Attempting Brevo SMTP sendMail to ${to}...`);
+    const info = await this._transporter.sendMail({
+      from: `"${env.BREVO_SENDER_NAME}" <${env.BREVO_SENDER_EMAIL}>`,
+      to,
+      subject: "🔐 Your GRAVITY Verification Code",
+      html: htmlContent,
+    });
+    this._logger.info(`✅ OTP email delivered via Brevo SMTP`, { messageId: info.messageId, to });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    this._logger.error(`❌ Brevo SMTP sendMail FAILED for ${to}`, { error: msg });
+    throw err; // re-throw so OTPService catch block handles it
+  }
 }
 
 
@@ -218,14 +226,20 @@ async sendRejectionEmail(to: string, reason: string) {
   </html>
   `;
 
-  await this._transporter.sendMail({
-    from: `"${env.BREVO_SENDER_NAME}" <${env.BREVO_SENDER_EMAIL}>`,
-    to,
-    subject: "⚠ Action Needed: Document Rejected",
-    html: htmlContent,
-  });
-
-  this._logger.info(`📧 Rejection Email sent via Brevo SMTP to ${to}`);
+  try {
+    this._logger.info(`📮 Attempting Brevo SMTP rejection email to ${to}...`);
+    const info = await this._transporter.sendMail({
+      from: `"${env.BREVO_SENDER_NAME}" <${env.BREVO_SENDER_EMAIL}>`,
+      to,
+      subject: "⚠ Action Needed: Document Rejected",
+      html: htmlContent,
+    });
+    this._logger.info(`✅ Rejection email delivered via Brevo SMTP`, { messageId: info.messageId, to });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    this._logger.error(`❌ Brevo SMTP rejection email FAILED for ${to}`, { error: msg });
+    throw err;
+  }
 }
 
 
