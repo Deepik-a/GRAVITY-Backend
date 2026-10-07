@@ -1,33 +1,28 @@
 //providers: Contains modules responsible for offering services or dependencies,
 //  aligning with the Dependency Inversion Principle.
 
-import nodemailer from "nodemailer";
+import * as Brevo from "@getbrevo/brevo";
 import { injectable, inject } from "inversify";
 import { env } from "@/infrastructure/config/env";
 import { TYPES } from "@/infrastructure/DI/types";
 import { ILogger } from "@/domain/services/ILogger";
 
 @injectable()
-export class EmailService{
+export class EmailService {
 
-    private _transporter;
+  private _apiInstance: Brevo.TransactionalEmailsApi;
 
-    constructor(
-      @inject(TYPES.Logger) private readonly _logger: ILogger
-    ){
-      this._logger.info("emailService initializing...");
-      this._logger.info("EMAIL_USER:", { user: env.EMAIL_USER });
+  constructor(
+    @inject(TYPES.Logger) private readonly _logger: ILogger
+  ) {
+    this._logger.info("EmailService initializing with Brevo...");
 
-this._transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // true for 465
-  auth: {
-    user: env.EMAIL_USER,
-    pass: env.EMAIL_PASS,
-  },
-});
-    }
+    this._apiInstance = new Brevo.TransactionalEmailsApi();
+    this._apiInstance.setApiKey(
+      Brevo.TransactionalEmailsApiApiKeys.apiKey,
+      env.BREVO_API_KEY
+    );
+  }
 
     
 
@@ -137,14 +132,14 @@ async sendOtpEmail(to: string, otp: string) {
     </html>
   `;
 
-  await this._transporter.sendMail({
-    from: `"GRAVITY Support" <${env.EMAIL_USER}>`,
-    to,
-    subject: "🔐 Your GRAVITY Verification Code",
-    html: htmlContent,
-  });
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+  sendSmtpEmail.sender = { name: env.BREVO_SENDER_NAME, email: env.BREVO_SENDER_EMAIL };
+  sendSmtpEmail.to = [{ email: to }];
+  sendSmtpEmail.subject = "🔐 Your GRAVITY Verification Code";
+  sendSmtpEmail.htmlContent = htmlContent;
 
-  this._logger.info(`📧 OTP sent to ${to}`);
+  await this._apiInstance.sendTransacEmail(sendSmtpEmail);
+  this._logger.info(`📧 OTP sent via Brevo to ${to}`);
 }
 
 
@@ -218,14 +213,14 @@ async sendRejectionEmail(to: string, reason: string) {
   </html>
   `;
 
-  await this._transporter.sendMail({
-    from: `"GRAVITY Support" <${env.EMAIL_USER}>`,
-    to,
-    subject: "⚠ Action Needed: Document Rejected",
-    html: htmlContent,
-  });
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+  sendSmtpEmail.sender = { name: env.BREVO_SENDER_NAME, email: env.BREVO_SENDER_EMAIL };
+  sendSmtpEmail.to = [{ email: to }];
+  sendSmtpEmail.subject = "⚠ Action Needed: Document Rejected";
+  sendSmtpEmail.htmlContent = htmlContent;
 
-  this._logger.info(`📧 Rejection Email sent to ${to}`);
+  await this._apiInstance.sendTransacEmail(sendSmtpEmail);
+  this._logger.info(`📧 Rejection Email sent via Brevo to ${to}`);
 }
 
 

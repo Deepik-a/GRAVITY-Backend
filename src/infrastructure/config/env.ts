@@ -9,7 +9,7 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.string().transform(Number).default(5000),
-  MONGO_URI: z.string().url(),
+  MONGO_URI: z.string().startsWith("mongodb"),
   REDIS_URL: z.string().url().default("redis://localhost:6379"),
   FRONTEND_URL: z.string().url().default("https://www.gravityconstruction.co.in"),
   JWT_ACCESS_SECRET: z.string().min(1),
@@ -25,8 +25,11 @@ JWT_ACCESS_EXPIRATION: z.enum(["15m", "30m", "1h", "1d"]).default("15m"),
   AWS_ACCESS_KEY: z.string().optional().default(""),
   AWS_SECRET_KEY: z.string().optional().default(""),
   S3_BUCKET: z.string().optional().default(""),
-  EMAIL_USER: z.string().email(),
-  EMAIL_PASS: z.string().min(1),
+  EMAIL_USER: z.string().email().optional().default(""),
+  EMAIL_PASS: z.string().optional().default(""),
+  BREVO_API_KEY: z.string().min(1),
+  BREVO_SENDER_EMAIL: z.string().email(),
+  BREVO_SENDER_NAME: z.string().default("GRAVITY Support"),
 });
 
 const _env = envSchema.safeParse(process.env);
