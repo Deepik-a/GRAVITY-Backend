@@ -1,7 +1,7 @@
 //providers: Contains modules responsible for offering services or dependencies,
 //  aligning with the Dependency Inversion Principle.
 
-import * as Brevo from "@getbrevo/brevo";
+import { BrevoClient } from "@getbrevo/brevo";
 import { injectable, inject } from "inversify";
 import { env } from "@/infrastructure/config/env";
 import { TYPES } from "@/infrastructure/DI/types";
@@ -10,18 +10,14 @@ import { ILogger } from "@/domain/services/ILogger";
 @injectable()
 export class EmailService {
 
-  private _apiInstance: Brevo.TransactionalEmailsApi;
+  private _brevo: BrevoClient;
 
   constructor(
     @inject(TYPES.Logger) private readonly _logger: ILogger
   ) {
-    this._logger.info("EmailService initializing with Brevo API...");
+    this._logger.info("EmailService initializing with Brevo API v6...");
 
-    this._apiInstance = new Brevo.TransactionalEmailsApi();
-    this._apiInstance.setApiKey(
-      Brevo.TransactionalEmailsApiApiKeys.apiKey,
-      env.BREVO_API_KEY
-    );
+    this._brevo = new BrevoClient({ apiKey: env.BREVO_API_KEY });
   }
 
 
@@ -134,14 +130,14 @@ async sendOtpEmail(to: string, otp: string) {
   try {
     this._logger.info(`📮 Attempting Brevo API sendMail to ${to}...`);
 
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
-    sendSmtpEmail.sender = { name: env.BREVO_SENDER_NAME, email: env.BREVO_SENDER_EMAIL };
-    sendSmtpEmail.to = [{ email: to }];
-    sendSmtpEmail.subject = "🔐 Your GRAVITY Verification Code";
-    sendSmtpEmail.htmlContent = htmlContent;
+    const result = await this._brevo.transactionalEmails.sendTransacEmail({
+      sender: { name: env.BREVO_SENDER_NAME, email: env.BREVO_SENDER_EMAIL },
+      to: [{ email: to }],
+      subject: "🔐 Your GRAVITY Verification Code",
+      htmlContent,
+    });
 
-    const result = await this._apiInstance.sendTransacEmail(sendSmtpEmail);
-    this._logger.info("✅ OTP email delivered via Brevo API", { messageId: result.body.messageId, to });
+    this._logger.info("✅ OTP email delivered via Brevo API", { messageId: result.messageId, to });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     this._logger.error(`❌ Brevo API sendMail FAILED for ${to}`, { error: msg });
@@ -223,14 +219,14 @@ async sendRejectionEmail(to: string, reason: string) {
   try {
     this._logger.info(`📮 Attempting Brevo API rejection email to ${to}...`);
 
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
-    sendSmtpEmail.sender = { name: env.BREVO_SENDER_NAME, email: env.BREVO_SENDER_EMAIL };
-    sendSmtpEmail.to = [{ email: to }];
-    sendSmtpEmail.subject = "⚠ Action Needed: Document Rejected";
-    sendSmtpEmail.htmlContent = htmlContent;
+    const result = await this._brevo.transactionalEmails.sendTransacEmail({
+      sender: { name: env.BREVO_SENDER_NAME, email: env.BREVO_SENDER_EMAIL },
+      to: [{ email: to }],
+      subject: "⚠ Action Needed: Document Rejected",
+      htmlContent,
+    });
 
-    const result = await this._apiInstance.sendTransacEmail(sendSmtpEmail);
-    this._logger.info("✅ Rejection email delivered via Brevo API", { messageId: result.body.messageId, to });
+    this._logger.info("✅ Rejection email delivered via Brevo API", { messageId: result.messageId, to });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     this._logger.error(`❌ Brevo API rejection email FAILED for ${to}`, { error: msg });
