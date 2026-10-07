@@ -27,7 +27,7 @@ JWT_ACCESS_EXPIRATION: z.enum(["15m", "30m", "1h", "1d"]).default("15m"),
   S3_BUCKET: z.string().optional().default(""),
   EMAIL_USER: z.string().email().optional().default(""),
   EMAIL_PASS: z.string().optional().default(""),
-  BREVO_SMTP_KEY: z.string().min(1),
+  BREVO_API_KEY: z.string().min(1),
   BREVO_SENDER_EMAIL: z.string().email(),
   BREVO_SENDER_NAME: z.string().default("GRAVITY Support"),
 });
