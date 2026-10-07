@@ -147,7 +147,7 @@ async sendOtpEmail(to: string, otp: string) {
       subject: "🔐 Your GRAVITY Verification Code",
       html: htmlContent,
     });
-    this._logger.info(`✅ OTP email delivered via Brevo SMTP`, { messageId: info.messageId, to });
+    this._logger.info("✅ OTP email delivered via Brevo SMTP", { messageId: info.messageId, to });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     this._logger.error(`❌ Brevo SMTP sendMail FAILED for ${to}`, { error: msg });
